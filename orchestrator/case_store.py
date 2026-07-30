@@ -30,6 +30,7 @@ from orchestrator.artifacts import (
     AssumptionRecord,
     AuditEvent,
     DecisionSpec,
+    DisclosureRecord,
     EvidenceRecord,
     ObjectionRecord,
     TaskRecord,
@@ -63,7 +64,12 @@ def _required_layout_paths(case_root: Path) -> tuple[Path, ...]:
     )
 
 
-def _atomic_write_text(path: Path, content: str) -> None:
+def atomic_write_text(path: Path, content: str) -> None:
+    """Write `content` to `path` atomically, leaving no partial or stray temp file.
+
+    Public because non-artifact case files (notably `state.yaml`) need the same
+    durability guarantee without going through the artifact path mapping.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path: Path | None = None
     try:
@@ -89,6 +95,8 @@ def _atomic_write_text(path: Path, content: str) -> None:
 def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
     if isinstance(model, DecisionSpec):
         return case_root / "shared" / "decision_spec.yaml"
+    if isinstance(model, DisclosureRecord):
+        return case_root / "shared" / "disclosure_record.yaml"
     if isinstance(model, EvidenceRecord):
         return case_root / "shared" / "evidence" / f"{model.evidence_id}.yaml"
     if isinstance(model, AssumptionRecord):
@@ -105,6 +113,8 @@ def _artifact_path_for_read(
 ) -> Path:
     if issubclass(model_type, DecisionSpec):
         return case_root / "shared" / "decision_spec.yaml"
+    if issubclass(model_type, DisclosureRecord):
+        return case_root / "shared" / "disclosure_record.yaml"
     if artifact_id is None:
         raise ValueError(f"artifact_id is required for {model_type.__name__}")
     if issubclass(model_type, EvidenceRecord):
@@ -120,6 +130,8 @@ def _artifact_path_for_read(
 
 def _artifact_dir_for_list(case_root: Path, model_type: type[BaseModel]) -> Path:
     if issubclass(model_type, DecisionSpec):
+        return case_root / "shared"
+    if issubclass(model_type, DisclosureRecord):
         return case_root / "shared"
     if issubclass(model_type, EvidenceRecord):
         return case_root / "shared" / "evidence"
@@ -140,7 +152,7 @@ class Case:
     def write_artifact(self, model: BaseModel) -> Path:
         path = _artifact_path_for_write(self.root, model)
         payload = dump_model_to_yaml_text(model)
-        _atomic_write_text(path, payload)
+        atomic_write_text(path, payload)
         return path
 
     def read_artifact(self, model_type: type[ModelT], artifact_id: str | None = None) -> ModelT:
@@ -167,7 +179,7 @@ class Case:
             next_value = counters.get(prefix, 0) + 1
             counters[prefix] = next_value
             dumped = yaml.safe_dump(counters, sort_keys=True)
-            _atomic_write_text(counters_path, dumped)
+            atomic_write_text(counters_path, dumped)
             return f"{prefix}{next_value:03d}"
 
     def audit(self, event: AuditEvent) -> None:
@@ -184,6 +196,11 @@ class Case:
             if not decision_path.exists():
                 return []
             return [load_model_from_yaml_path(model_type, decision_path)]
+        if issubclass(model_type, DisclosureRecord):
+            disclosure_path = self.root / "shared" / "disclosure_record.yaml"
+            if not disclosure_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, disclosure_path)]
 
         artifact_dir = _artifact_dir_for_list(self.root, model_type)
         if not artifact_dir.exists():

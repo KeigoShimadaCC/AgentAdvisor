@@ -20,6 +20,7 @@
     },
     "TaskRole": {
       "enum": [
+        "intake",
         "planner",
         "director",
         "challenger",
@@ -27,6 +28,7 @@
         "researcher",
         "analyst",
         "synthesizer",
+        "reviewer",
         "specialist"
       ],
       "title": "TaskRole",
@@ -37,6 +39,7 @@
         "planned",
         "active",
         "completed",
+        "failed",
         "blocked",
         "cancelled"
       ],
@@ -50,6 +53,13 @@
       "minLength": 1,
       "title": "Completion Criteria",
       "type": "string"
+    },
+    "estimated_cost": {
+      "default": 1.0,
+      "description": "Estimated cost in expected agent-invocation units.",
+      "exclusiveMinimum": 0.0,
+      "title": "Estimated Cost",
+      "type": "number"
     },
     "expected_information_gain": {
       "$ref": "#/$defs/Level"
@@ -79,6 +89,14 @@
       "minimum": 1,
       "title": "Priority Score",
       "type": "integer"
+    },
+    "probability_of_changing_conclusion": {
+      "default": 0.5,
+      "description": "Estimated probability that this task's output changes the recommendation.",
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Probability Of Changing Conclusion",
+      "type": "number"
     },
     "question": {
       "minLength": 1,

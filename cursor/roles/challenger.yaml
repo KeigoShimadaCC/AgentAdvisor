@@ -1,0 +1,12 @@
+role_md_path: cursor/roles/challenger.md
+default_model: gpt-5.6-sol-high
+escalation_model: claude-opus-5-thinking-high
+read_only: false
+allow_shell: false
+projection_include:
+  - decision_spec
+  - preliminary_recommendation
+  - high_materiality_assumptions
+  - key_evidence
+output_artifact_type: objection_record
+model_tier: high

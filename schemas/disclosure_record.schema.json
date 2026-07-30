@@ -1,0 +1,46 @@
+{
+  "$defs": {
+    "StopReason": {
+      "enum": [
+        "no_critical_evidence_gaps_remain",
+        "recommendation_stable_across_plausible_sensitivity_ranges",
+        "no_unresolved_objection_likely_to_change_decision",
+        "expected_value_of_more_research_low",
+        "investigation_budget_exhausted",
+        "user_deadline_or_depth_limit_reached"
+      ],
+      "title": "StopReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "exhausted_dimensions": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Exhausted Dimensions",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "stop_reasons": {
+      "items": {
+        "$ref": "#/$defs/StopReason"
+      },
+      "title": "Stop Reasons",
+      "type": "array"
+    }
+  },
+  "required": [
+    "stop_reasons",
+    "exhausted_dimensions"
+  ],
+  "title": "DisclosureRecord",
+  "type": "object"
+}

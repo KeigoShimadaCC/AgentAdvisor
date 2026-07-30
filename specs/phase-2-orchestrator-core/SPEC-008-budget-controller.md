@@ -2,11 +2,11 @@
 id: SPEC-008
 title: Budget controller and stop rules
 phase: 2
-status: draft
+status: verified
 depends_on: [SPEC-007]
 parallel_with: [SPEC-009]
 north_star_refs: ["13", "8"]
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 ---
 
 # SPEC-008 — Budget controller and stop rules
@@ -38,17 +38,17 @@ Ledger consumption is check-and-increment under a lock; refusal returns false an
 
 ## Deliverables
 
-- [ ] `orchestrator/budget.py`
-- [ ] `BudgetConfig` defaults documented in `schemas/` export (via SPEC-003 mechanism)
-- [ ] `tests/test_budget.py`
+- [x] `orchestrator/budget.py`
+- [x] `BudgetConfig` defaults documented in `schemas/` export (via SPEC-003 mechanism)
+- [x] `tests/test_budget.py`
 
 ## Acceptance criteria
 
-- [ ] Exceeding any cap makes `try_consume` return false; 100 threaded consumers never overshoot a cap.
-- [ ] High-tier calls counted only for models mapped to the high tier.
-- [ ] StopEvaluator: table-driven tests cover all Stage 9 stop reasons and the continue case.
-- [ ] Budget-exhaustion stop emits a `DisclosureRecord` with the exhausted dimensions.
-- [ ] `make check` green.
+- [x] Exceeding any cap makes `try_consume` return false; 100 threaded consumers never overshoot a cap.
+- [x] High-tier calls counted only for models mapped to the high tier.
+- [x] StopEvaluator: table-driven tests cover all Stage 9 stop reasons and the continue case.
+- [x] Budget-exhaustion stop emits a `DisclosureRecord` with the exhausted dimensions.
+- [x] `make check` green.
 
 ## Verification plan
 
@@ -59,7 +59,11 @@ uv run pytest tests/test_budget.py -q
 
 ## Verification results
 
-—
+**2026-07-31 — PASS.** `orchestrator/budget.py` and `tests/test_budget.py` (17 tests) are complete with `BudgetConfig` defaults aligned to north star Section 13: 40 agent invocations, 3 concurrent workers, 2 repair cycles, 15 research tasks, 6 high-tier calls, and 7200 seconds wall clock. `try_consume` is implemented as lock-guarded check-and-increment that returns `False` on refusal, and a 100-thread test verifies the counter reaches the cap exactly without overshoot.
+
+Stop-rule semantics are implemented as a pure evaluator with injected clock and full table-driven coverage of all six Stage 9 stop reasons plus continue, so deadline behavior is tested deterministically without sleep-based flake. High-tier accounting increments only for models mapped to the high tier through an injected tier map, and budget or deadline exhaustion emits a `DisclosureRecord` that names exhausted dimensions so Synthesizer output explicitly discloses a budget-driven stop.
+
+One specification amendment has been incorporated and validated: because Stage 9 distinguishes deadline from depth limit, `StopEvaluatorInputs` now includes an explicit `depth_limit_reached` flag in addition to deadline state. This keeps the stop reason precise instead of collapsing two different termination causes.
 
 ## Open questions
 

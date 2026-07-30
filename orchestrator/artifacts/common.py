@@ -68,6 +68,7 @@ class ObjectionResolutionStatus(StrEnum):
 
 
 class TaskRole(StrEnum):
+    INTAKE = "intake"
     PLANNER = "planner"
     DIRECTOR = "director"
     CHALLENGER = "challenger"
@@ -75,6 +76,7 @@ class TaskRole(StrEnum):
     RESEARCHER = "researcher"
     ANALYST = "analyst"
     SYNTHESIZER = "synthesizer"
+    REVIEWER = "reviewer"
     SPECIALIST = "specialist"
 
 
@@ -82,6 +84,7 @@ class TaskStatus(StrEnum):
     PLANNED = "planned"
     ACTIVE = "active"
     COMPLETED = "completed"
+    FAILED = "failed"
     BLOCKED = "blocked"
     CANCELLED = "cancelled"
 

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ValidationError
 from orchestrator.artifacts.assumptions import AssumptionRecord
 from orchestrator.artifacts.audit import AuditEvent
 from orchestrator.artifacts.decision import DecisionSpec
+from orchestrator.artifacts.disclosure import DisclosureRecord
 from orchestrator.artifacts.evidence import EvidenceRecord
 from orchestrator.artifacts.objections import ObjectionRecord
 from orchestrator.artifacts.probability import ProbabilityEstimate
@@ -26,6 +27,7 @@ MODEL_BY_FIXTURE: dict[str, ModelType] = {
     "assumption_record": AssumptionRecord,
     "audit_event": AuditEvent,
     "decision_spec": DecisionSpec,
+    "disclosure_record": DisclosureRecord,
     "evidence_record": EvidenceRecord,
     "final_recommendation": FinalRecommendation,
     "objection_record": ObjectionRecord,

@@ -21,6 +21,7 @@ from orchestrator.artifacts.common import (
 )
 from orchestrator.artifacts.confidence import ConfidenceAssessment
 from orchestrator.artifacts.decision import DecisionSpec
+from orchestrator.artifacts.disclosure import DisclosureRecord, StopReason
 from orchestrator.artifacts.evidence import EvidenceRecord
 from orchestrator.artifacts.objections import ObjectionRecord
 from orchestrator.artifacts.probability import ProbabilityAdjustment, ProbabilityEstimate
@@ -46,6 +47,7 @@ __all__ = [
     "ConfidenceAssessment",
     "Counterargument",
     "DecisionSpec",
+    "DisclosureRecord",
     "Depth",
     "EvidenceId",
     "EvidenceRecord",
@@ -64,6 +66,7 @@ __all__ = [
     "RiskTolerance",
     "ScenarioAssessment",
     "SourceType",
+    "StopReason",
     "TaskId",
     "TaskRecord",
     "TaskRole",

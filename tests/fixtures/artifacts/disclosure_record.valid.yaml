@@ -1,0 +1,7 @@
+exhausted_dimensions:
+- max_agent_invocations
+- deadline
+schema_version: 1
+stop_reasons:
+- investigation_budget_exhausted
+- user_deadline_or_depth_limit_reached

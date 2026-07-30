@@ -1,0 +1,12 @@
+role_md_path: cursor/roles/reviewer.md
+default_model: composer-2.5
+escalation_model: gpt-5.2
+read_only: true
+allow_shell: false
+projection_include:
+  - decision_spec
+  - final_recommendation
+  - evidence_records
+  - assumptions
+output_artifact_type: final_recommendation
+model_tier: medium

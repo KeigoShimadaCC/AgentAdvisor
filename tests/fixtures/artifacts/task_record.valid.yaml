@@ -1,4 +1,5 @@
 completion_criteria: Primary or high-quality secondary sourcing for two named competitors.
+estimated_cost: 1.5
 expected_information_gain: high
 inputs:
 - decision_spec
@@ -8,6 +9,7 @@ materiality: high
 priority: high
 priority_rationale: Directly affects alternative ranking.
 priority_score: 90
+probability_of_changing_conclusion: 0.7
 question: What is the realistic competitive response within 24 months?
 required_output: evidence_records
 role: researcher

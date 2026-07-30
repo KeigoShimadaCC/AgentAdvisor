@@ -1,0 +1,13 @@
+role_md_path: cursor/roles/auditor.md
+default_model: composer-2.5
+escalation_model: gpt-5.2
+read_only: true
+allow_shell: false
+projection_include:
+  - decision_spec
+  - task_records
+  - evidence_records
+  - assumptions
+  - objections
+output_artifact_type: task_record
+model_tier: low

@@ -20,6 +20,17 @@ class TaskRecord(ArtifactModel):
     why_it_matters: NonEmptyStr
     expected_information_gain: Level
     materiality: Level
+    probability_of_changing_conclusion: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Estimated probability that this task's output changes the recommendation.",
+    )
+    estimated_cost: float = Field(
+        default=1.0,
+        gt=0.0,
+        description="Estimated cost in expected agent-invocation units.",
+    )
     inputs: list[NonEmptyStr] = Field(min_length=1)
     required_output: NonEmptyStr
     completion_criteria: NonEmptyStr

@@ -10,9 +10,9 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | Phase | Name | Status | Depends on |
 |---|---|---|---|
 | 0 | Foundations | done | — |
-| 1 | Agent backend | in_progress | 0 (parallel with 2) |
-| 2 | Orchestrator core | not_started | 0 (parallel with 1) |
-| 3 | Roles | not_started | 1, 0.3 (role specs mutually parallel) |
+| 1 | Agent backend | done | 0 (parallel with 2) |
+| 2 | Orchestrator core | done | 0 (parallel with 1) |
+| 3 | Roles | in_progress | 1, 0.3 (role specs mutually parallel) |
 | 4 | End-to-end workflow and CLI | not_started | 2, 3 |
 | 5 | Evaluation and hardening | not_started | 4 |
 
@@ -37,32 +37,37 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 - (2026-07-31) Review of the first SPEC-003 implementation caught the four uncertainty measures being flattened toward `Level` enums. North star Section 9 states three of them numerically, so `model_stability` became a computed `ModelStability` record (share must equal `runs_supporting / runs_total`, so it cannot be model-asserted) and the two confidences became `ConfidenceAssessment` (value plus required basis). `Level` is retained only for subjective per-item judgements. `ProbabilityEstimate` was also over-constrained and would have forced fabricated reference classes; base-rate fields are now conditionally required.
 - (2026-07-31) One measured Cursor CLI smoke run costs roughly 89k input / 1.3k output / 139k cache-read tokens across 6 invocations, which sets a floor for per-case budget expectations.
 
-## Phase 1 — Agent backend [not_started]
+## Phase 1 — Agent backend [done]
 
 **Specs**
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-005 | AgentBackend interface and CursorCLIBackend | draft |
-| SPEC-006 | Role invocation kit | draft |
+| SPEC-005 | AgentBackend interface and CursorCLIBackend | verified |
+| SPEC-006 | Role invocation kit | verified |
 
 **Findings**
 
-- —
+- (2026-07-31) A hung agent is now structurally incapable of wedging the orchestrator: the backend runs the CLI in its own session and kills the whole process group on timeout, verified by a test that asserts a grandchild process spawned by a fake binary is gone afterwards. Raw output is truncated at 8k chars so a runaway agent cannot flood the audit log.
+- (2026-07-31) Failed invocations are archived, not discarded. Successful attempts land at `agents/<role>--<task-id>/` and failures at `--attempt-<n>`, so the reason an escalation happened stays reconstructable from the case alone.
+- (2026-07-31) Role-model assignment now lives in `cursor/roles/<role>.yaml` with Director on `claude-opus-5-thinking-high` and Challenger on `gpt-5.6-sol-high`, keeping the two on different model families as the north star requires.
 
-## Phase 2 — Orchestrator core [not_started]
+## Phase 2 — Orchestrator core [done]
 
 **Specs**
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-007 | Case state machine | draft |
-| SPEC-008 | Budget controller and stop rules | draft |
-| SPEC-009 | Task graph engine | draft |
+| SPEC-007 | Case state machine | verified |
+| SPEC-008 | Budget controller and stop rules | verified |
+| SPEC-009 | Task graph engine | verified |
 
 **Findings**
 
-- —
+- (2026-07-31) Routing initially conflated three roles: the REVIEW stage was pointed at the Auditor, INTAKE at the Director, and STOP_DECISION was given an agent role even though it is a deterministic evaluator. `TaskRole` gained `intake` and `reviewer`, and STOP_DECISION now carries no roles at all. Worth remembering for Phase 3: a stage having no agent is a legitimate and important case.
+- (2026-07-31) The Stage 4 priority formula could not actually be computed, because `TaskRecord` had no cost field and `priority_score` was silently standing in for the whole expression. Explicit `estimated_cost` and `probability_of_changing_conclusion` fields were added, and a test now proves a cheap low-materiality task can outrank an expensive high-materiality one.
+- **(2026-07-31) The marginal-value rule is now enforced rather than deferred.** North star Section 13 assigns enforcement to the orchestrator, and it had been recorded as an accepted MVP simplification. Once the cost field existed the gate was trivial, so it is implemented as a pre-dispatch check that leaves refused tasks `planned` and audits the computed numbers. This closes the emergent-work candidate rather than carrying it.
+- (2026-07-31) A failing task used to be recorded as `blocked`, which made it indistinguishable from a task blocked by someone else's failure. `TaskStatus.FAILED` was added so the audit trail can tell the difference.
 
 ## Phase 3 — Roles [not_started]
 
@@ -126,9 +131,11 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 - Live citation re-verification by the reviewer (north star open question 8; out of scope in SPEC-017)
 - Repeated-run consistency measurement across benchmarks (out of scope in SPEC-021)
 - Domain Specialist skill packs under `cursor/skills/` (north star 6.7); the MVP relies on the generic Researcher and Analyst
-- Per-task marginal-value gate (north star Section 13 rule); MVP substitutes priority ordering, task caps, and Auditor relevance flags (accepted simplification)
+- ~~Per-task marginal-value gate (north star Section 13 rule)~~ **Promoted and implemented 2026-07-31 in SPEC-009**, since adding `estimated_cost` to `TaskRecord` made the real rule cheaper than the planned workaround.
 - Evaluation of workflow variations (north star Section 19 item 3); SPEC-021 runs baseline + full workflow only
 
 **Promoted**
 
-- Per-workspace permission profiles (`.cursor/cli.json`) → SPEC-006 (2026-07-30, spec review)
+- Per-workspace permission profiles (`.cursor/cli.json`) → SPEC-006 (2026-07-30, spec review); implemented and verified 2026-07-31
+- Out-of-repo runtime workspaces + `assert_isolated` guard → SPEC-004/SPEC-006 (2026-07-31, forced by the leakage finding); implemented and verified
+- Per-task marginal-value gate → SPEC-009 (2026-07-31); implemented and verified
