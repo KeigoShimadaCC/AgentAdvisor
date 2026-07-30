@@ -11,6 +11,7 @@ It behaves like a small consulting team or investment committee, not a search as
 ## Read first
 
 - `decision_intelligence_north_star.md` is the authoritative product and architecture direction. Read it before writing code.
+- `PROJECT_PLAN.md` (root) is the static plan: goal, definition of done, phase structure and dependencies. Do not update it with progress; live status belongs in `specs/ROADMAP.md`.
 - If this file and the north star conflict: the north star wins on product intent and architecture; this file wins on repository mechanics.
 - Re-check current Cursor CLI docs (north star Section 24) before relying on specific CLI flags, models, or quotas.
 
@@ -42,7 +43,8 @@ Work proceeds spec first: write the spec sheet → user approves → implement �
 
 - Do not implement functionality that has no approved spec in `specs/`.
 - Do not mark a spec `verified` without executing its verification plan and recording the results in the spec.
-- `specs/README.md` defines the lifecycle and parallelism rules; `specs/TEMPLATE.md` is the required format; `specs/ROADMAP.md` is the status board and must be kept in sync.
+- `specs/README.md` defines the lifecycle and parallelism rules; `specs/TEMPLATE.md` is the required format; `specs/ROADMAP.md` is the live status board (phase/spec states, per-phase findings, emergent work) and must be kept in sync.
+- Newly discovered work goes to ROADMAP's "Emergent work" section first, then is promoted to a spec or phase with user approval. `PROJECT_PLAN.md` stays frozen.
 - If implementation reveals the spec is wrong, update the spec first, then continue coding.
 
 ## Priorities when tradeoffs conflict (ordered)
