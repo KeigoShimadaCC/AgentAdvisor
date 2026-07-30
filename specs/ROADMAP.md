@@ -24,10 +24,10 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 
 | Spec | Task | Status |
 |---|---|---|
-| — | 0.1 Python tooling | no spec yet |
-| — | 0.2 Harness smoke test | no spec yet |
-| — | 0.3 Artifact schemas v1 | no spec yet |
-| — | 0.4 Case store and audit log | no spec yet |
+| SPEC-001 | Python project tooling | draft |
+| SPEC-002 | Cursor CLI harness smoke test | draft |
+| SPEC-003 | Artifact schemas v1 | draft |
+| SPEC-004 | Case store and audit log | draft |
 
 **Findings**
 
@@ -39,8 +39,8 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 
 | Spec | Task | Status |
 |---|---|---|
-| — | 1.1 AgentBackend + CursorCLIBackend | no spec yet |
-| — | 1.2 Role invocation kit | no spec yet |
+| SPEC-005 | AgentBackend interface and CursorCLIBackend | draft |
+| SPEC-006 | Role invocation kit | draft |
 
 **Findings**
 
@@ -52,9 +52,9 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 
 | Spec | Task | Status |
 |---|---|---|
-| — | 2.1 Case state machine | no spec yet |
-| — | 2.2 Budget controller and stop rules | no spec yet |
-| — | 2.3 Task graph engine | no spec yet |
+| SPEC-007 | Case state machine | draft |
+| SPEC-008 | Budget controller and stop rules | draft |
+| SPEC-009 | Task graph engine | draft |
 
 **Findings**
 
@@ -66,14 +66,14 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 
 | Spec | Task | Status |
 |---|---|---|
-| — | 3.1 Intake and framing | no spec yet |
-| — | 3.2 Planner | no spec yet |
-| — | 3.3 Researcher + evidence normalization | no spec yet |
-| — | 3.4 Analyst | no spec yet |
-| — | 3.5 Director thesis | no spec yet |
-| — | 3.6 Challenger | no spec yet |
-| — | 3.7 Auditor | no spec yet |
-| — | 3.8 Synthesis and review | no spec yet |
+| SPEC-010 | Intake and framing roles | draft |
+| SPEC-011 | Planner role | draft |
+| SPEC-012 | Researcher role and evidence normalization | draft |
+| SPEC-013 | Quantitative Analyst role | draft |
+| SPEC-014 | Director thesis and preliminary recommendation | draft |
+| SPEC-015 | Challenger role | draft |
+| SPEC-016 | Process Auditor role | draft |
+| SPEC-017 | Synthesizer and calibration/citation reviewer | draft |
 
 **Findings**
 
@@ -85,9 +85,9 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 
 | Spec | Task | Status |
 |---|---|---|
-| — | 4.1 Stage wiring | no spec yet |
-| — | 4.2 User CLI | no spec yet |
-| — | 4.3 First real case | no spec yet |
+| SPEC-018 | Stage wiring (end-to-end pipeline) | draft |
+| SPEC-019 | User CLI | draft |
+| SPEC-020 | First real decision case | draft |
 
 **Findings**
 
@@ -99,8 +99,8 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 
 | Spec | Task | Status |
 |---|---|---|
-| — | 5.1 Benchmarks and baseline | no spec yet |
-| — | 5.2 Comparative evaluation | no spec yet |
+| SPEC-021 | Benchmark cases and single-agent baseline | draft |
+| SPEC-022 | Comparative evaluation and DoD audit | draft |
 
 **Findings**
 
@@ -116,9 +116,11 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 
 - Concurrency behavior at more than 3 parallel CLI invocations (current cap: 3)
 - `--resume <session_id>` repair-cycle experiment: resuming the Director versus fresh invocation with projected context (north star Section 21, question 1/7 adjacent)
-- Per-role permission and sandbox profiles (`.cursor/cli.json`, `.cursor/sandbox.json`)
-- MCP-based research tooling for the Researcher role (search providers, citation extraction)
-- Root `AGENTS.md` leakage mitigation, if the Phase 0.2 smoke test detects leakage into runtime agent workspaces
+- Per-role permission and sandbox profiles (`.cursor/cli.json`, `.cursor/sandbox.json`), including hard no-network enforcement for Analyst scripts (SPEC-013)
+- MCP-based research tooling for the Researcher role (search providers, citation extraction) (SPEC-012)
+- Root `AGENTS.md` leakage mitigation, if the SPEC-002 smoke test detects leakage into runtime agent workspaces
+- Live citation re-verification by the reviewer (north star open question 8; out of scope in SPEC-017)
+- Repeated-run consistency measurement across benchmarks (out of scope in SPEC-021)
 
 **Promoted**
 

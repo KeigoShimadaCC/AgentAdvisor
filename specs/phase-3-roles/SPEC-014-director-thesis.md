@@ -1,0 +1,68 @@
+---
+id: SPEC-014
+title: Director thesis and preliminary recommendation
+phase: 3
+status: draft
+depends_on: [SPEC-006]
+parallel_with: [SPEC-010, SPEC-011, SPEC-012, SPEC-013, SPEC-015, SPEC-016, SPEC-017]
+north_star_refs: ["6.1", "8", "9"]
+last_updated: 2026-07-30
+---
+
+# SPEC-014 — Director thesis and preliminary recommendation
+
+## Summary
+
+The Director's two thesis moments: the early provisional thesis (Stage 3) that gives research direction and the Challenger a target, and the evidence-grounded preliminary recommendation (Stage 6).
+
+## Motivation
+
+North star 6.1: the Director owns the substantive decision, interprets evidence, and maintains the thesis; Section 9 forbids collapsed uncertainty measures from the very first thesis onward.
+
+## Scope
+
+- `cursor/roles/director.md` with two task modes (`mode: provisional_thesis`, `mode: preliminary_recommendation` in `task.yaml`):
+  - Provisional thesis: preferred alternative + rationale + the uncertainties that would most plausibly change it; explicitly labeled non-final.
+  - Preliminary recommendation: `PreliminaryRecommendation` artifact citing evidence IDs (`E-*`) and assumption IDs (`A-*`) for every material claim, with recommendation confidence and evidence confidence as separate fields, unresolved gaps, and major risks (Stage 6 list).
+- Assumption maintenance: the Director may propose new/updated `AssumptionRecord`s; orchestrator merges by ID (updates audited).
+- `roles.yaml` entry: Director-tier model (claude-opus-5 family per research report); projection: decision spec, normalized evidence ledger summaries, assumption registry, analysis results, prior thesis.
+- Fixtures: a populated mini-blackboard (evidence + assumptions + analysis) with structural assertions on citation coverage.
+
+## Out of scope
+
+Challenge handling (SPEC-015 produces objections; repair routing is SPEC-018), final synthesis (SPEC-017), framing (SPEC-010).
+
+## Design
+
+Citation coverage is enforced structurally: every entry in the recommendation's `key_reasons` and `estimated_outcomes` must reference ≥1 `E-*` or `A-*` ID; the SPEC-006 validator gains a per-artifact hook for such cross-field checks (small extension included here). Uncited reasons fail validation and trigger the retry ladder.
+
+## Deliverables
+
+- [ ] `cursor/roles/director.md`
+- [ ] Cross-reference validation hook in the invocation kit
+- [ ] `roles.yaml` entry, projection config
+- [ ] `tests/test_role_director.py` + mini-blackboard fixtures; live mini-run test
+
+## Acceptance criteria
+
+- [ ] Fixture replay: preliminary recommendation schema-valid; every key reason cites ≥1 existing E-/A- ID; dangling IDs rejected.
+- [ ] Recommendation confidence and evidence confidence are distinct fields with values; a fixture collapsing them fails validation.
+- [ ] Provisional-thesis mode output labeled non-final and lists ≥3 reversal-relevant uncertainties.
+- [ ] Live mini-run over the fixture blackboard yields a valid PreliminaryRecommendation in ≤2 attempts.
+- [ ] `make check` green.
+
+## Verification plan
+
+```
+make check
+uv run pytest tests/test_role_director.py -q
+uv run pytest -m live -k director -q
+```
+
+## Verification results
+
+—
+
+## Open questions
+
+- None.
