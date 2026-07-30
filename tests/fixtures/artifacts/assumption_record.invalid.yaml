@@ -1,0 +1,11 @@
+assumption_id: A-17
+claim: AAA can reach 5 billion JPY annual revenue within five years
+confidence: low
+evidence_against:
+- E-117
+evidence_for:
+- E-102
+materiality: high
+schema_version: 1
+status: unresolved
+type: forecast

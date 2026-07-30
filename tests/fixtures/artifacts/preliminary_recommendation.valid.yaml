@@ -1,0 +1,40 @@
+evidence_confidence:
+  basis: Weighted synthesis of source quality and agreement across independent groups.
+  schema_version: 1
+  value: 0.61
+key_assumptions:
+- A-17
+major_risks:
+- Down-round dilution in bear case.
+model_stability:
+  runs_supporting: 19
+  runs_total: 25
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.76
+outcome_probabilities:
+  positive_return_within_5y:
+    adjustments:
+    - delta: 0.07
+      description: Demand signal from regulatory filing
+      evidence_ids:
+      - E-102
+      schema_version: 1
+    base_rate: 0.48
+    interval_high: 0.62
+    interval_low: 0.45
+    method: scenario_model
+    point: null
+    reference_class: Comparable pre-IPO investments
+    schema_version: 1
+preferred_alternative: invest_in_stages
+rationale:
+- Balances upside participation with downside protection.
+- Preserves optionality under uncertainty.
+recommendation_confidence:
+  basis: Structured subjective assessment balancing evidence quality and downside
+    asymmetry.
+  schema_version: 1
+  value: 0.74
+schema_version: 1
+unresolved_evidence_gaps:
+- Competitive reaction evidence is incomplete.

@@ -1,0 +1,283 @@
+{
+  "$defs": {
+    "ConfidenceAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "minLength": 1,
+          "title": "Basis",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "basis"
+      ],
+      "title": "ConfidenceAssessment",
+      "type": "object"
+    },
+    "ModelStability": {
+      "additionalProperties": false,
+      "properties": {
+        "runs_supporting": {
+          "minimum": 0,
+          "title": "Runs Supporting",
+          "type": "integer"
+        },
+        "runs_total": {
+          "minimum": 1,
+          "title": "Runs Total",
+          "type": "integer"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "share_of_sensitivity_runs_supporting_recommendation": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Share Of Sensitivity Runs Supporting Recommendation",
+          "type": "number"
+        }
+      },
+      "required": [
+        "share_of_sensitivity_runs_supporting_recommendation",
+        "runs_total",
+        "runs_supporting"
+      ],
+      "title": "ModelStability",
+      "type": "object"
+    },
+    "ProbabilityAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "description",
+        "delta",
+        "evidence_ids"
+      ],
+      "title": "ProbabilityAdjustment",
+      "type": "object"
+    },
+    "ProbabilityEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustments": {
+          "items": {
+            "$ref": "#/$defs/ProbabilityAdjustment"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        },
+        "base_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Rate"
+        },
+        "interval_high": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval High"
+        },
+        "interval_low": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Low"
+        },
+        "method": {
+          "$ref": "#/$defs/ProbabilityMethod"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point"
+        },
+        "reference_class": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Class"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "title": "ProbabilityEstimate",
+      "type": "object"
+    },
+    "ProbabilityMethod": {
+      "enum": [
+        "reference_class",
+        "scenario_model",
+        "structured_subjective"
+      ],
+      "title": "ProbabilityMethod",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "evidence_confidence": {
+      "$ref": "#/$defs/ConfidenceAssessment"
+    },
+    "key_assumptions": {
+      "items": {
+        "pattern": "^A-\\d+$",
+        "type": "string"
+      },
+      "title": "Key Assumptions",
+      "type": "array"
+    },
+    "major_risks": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Major Risks",
+      "type": "array"
+    },
+    "model_stability": {
+      "$ref": "#/$defs/ModelStability"
+    },
+    "outcome_probabilities": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ProbabilityEstimate"
+      },
+      "minProperties": 1,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Outcome Probabilities",
+      "type": "object"
+    },
+    "preferred_alternative": {
+      "minLength": 1,
+      "title": "Preferred Alternative",
+      "type": "string"
+    },
+    "rationale": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Rationale",
+      "type": "array"
+    },
+    "recommendation_confidence": {
+      "$ref": "#/$defs/ConfidenceAssessment"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "unresolved_evidence_gaps": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Unresolved Evidence Gaps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "preferred_alternative",
+    "rationale",
+    "outcome_probabilities",
+    "evidence_confidence",
+    "recommendation_confidence",
+    "model_stability"
+  ],
+  "title": "PreliminaryRecommendation",
+  "type": "object"
+}

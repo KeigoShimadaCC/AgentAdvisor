@@ -1,0 +1,14 @@
+completion_criteria: Primary sourcing required.
+expected_information_gain: high
+inputs:
+- decision_spec
+materiality: high
+priority: high
+priority_rationale: Directly affects ranking.
+priority_score: 90
+required_output: evidence_records
+role: researcher
+schema_version: 1
+status: planned
+task_id: T-21
+why_it_matters: Could reverse ranking between invest_now and wait_for_milestone.

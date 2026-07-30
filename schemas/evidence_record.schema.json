@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "SourceType": {
+      "enum": [
+        "regulatory_filing",
+        "official_statistic",
+        "law_or_standard",
+        "original_research",
+        "reputable_secondary",
+        "specialist_reporting",
+        "other"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "claim": {
+      "minLength": 1,
+      "title": "Claim",
+      "type": "string"
+    },
+    "directness": {
+      "$ref": "#/$defs/Level"
+    },
+    "evidence_id": {
+      "pattern": "^E-\\d+$",
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "excerpt": {
+      "minLength": 1,
+      "title": "Excerpt",
+      "type": "string"
+    },
+    "independence_group": {
+      "minLength": 1,
+      "title": "Independence Group",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "publication_date": {
+      "format": "date",
+      "title": "Publication Date",
+      "type": "string"
+    },
+    "publisher": {
+      "minLength": 1,
+      "title": "Publisher",
+      "type": "string"
+    },
+    "reliability": {
+      "$ref": "#/$defs/Level"
+    },
+    "retrieval_date": {
+      "format": "date",
+      "title": "Retrieval Date",
+      "type": "string"
+    },
+    "retrieved_by": {
+      "minLength": 1,
+      "title": "Retrieved By",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_title": {
+      "minLength": 1,
+      "title": "Source Title",
+      "type": "string"
+    },
+    "source_type": {
+      "$ref": "#/$defs/SourceType"
+    },
+    "source_url": {
+      "minLength": 1,
+      "title": "Source Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "claim",
+    "source_title",
+    "publisher",
+    "source_url",
+    "source_type",
+    "publication_date",
+    "retrieval_date",
+    "excerpt",
+    "reliability",
+    "directness",
+    "independence_group",
+    "limitations",
+    "retrieved_by"
+  ],
+  "title": "EvidenceRecord",
+  "type": "object"
+}

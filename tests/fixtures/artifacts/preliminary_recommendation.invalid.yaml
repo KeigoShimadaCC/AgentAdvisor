@@ -1,0 +1,29 @@
+evidence_confidence:
+  basis: Evidence quality is mixed across independent groups.
+  schema_version: 1
+  value: 0.58
+key_assumptions:
+- A-17
+major_risks: []
+model_stability:
+  runs_supporting: 3
+  runs_total: 4
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.75
+outcome_probabilities:
+  positive_return_within_5y:
+    adjustments: []
+    base_rate: 0.48
+    interval_high: 0.62
+    interval_low: 0.45
+    method: scenario_model
+    reference_class: Comparable pre-IPO investments
+    schema_version: 1
+preferred_alternative: invest_in_stages
+rationale:
+- Balances upside and downside.
+recommendation_confidence:
+  schema_version: 1
+  value: 0.62
+schema_version: 1
+unresolved_evidence_gaps: []

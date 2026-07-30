@@ -1,0 +1,62 @@
+alternatives_considered:
+- alternative: invest_smaller_amount
+  rank: 1
+  rationale: Best downside-adjusted expected utility.
+  schema_version: 1
+citations:
+- e-102
+critical_assumptions:
+- A-17
+decision_confidence_summary: Evidence is mixed.
+evidence_confidence:
+  basis: Evidence quality is mixed.
+  schema_version: 1
+  value: 0.57
+key_reasons:
+- Asymmetric downside risk is meaningful.
+model_stability:
+  runs_supporting: 3
+  runs_total: 4
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.75
+next_actions:
+- Collect competitor pricing data.
+outcome_probabilities:
+  positive_return_within_5y:
+    adjustments:
+    - delta: 0.08
+      description: Demand growth evidence
+      evidence_ids:
+      - E-102
+      schema_version: 1
+    base_rate: 0.5
+    method: structured_subjective
+    point: 0.58
+    reference_class: Early growth private tech investments
+    schema_version: 1
+quantitative_findings: []
+recommendation_change_triggers: []
+recommendation_confidence:
+  basis: Confidence remains moderate pending more competitive data.
+  schema_version: 1
+  value: 0.63
+recommended_action: invest_smaller_amount
+scenario_analysis:
+- probability:
+    adjustments:
+    - delta: 0.08
+      description: Revenue momentum
+      evidence_ids:
+      - E-102
+      schema_version: 1
+    base_rate: 0.44
+    method: reference_class
+    point: 0.52
+    reference_class: Series C enterprise software outcomes
+    schema_version: 1
+  scenario_name: base
+  schema_version: 1
+  summary: Steady growth.
+schema_version: 1
+strongest_counterarguments: []
+timing: Within this quarter

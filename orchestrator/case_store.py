@@ -1,0 +1,273 @@
+"""Case blackboard storage primitives.
+
+This module is the single owner of `cases/` path construction.
+
+Live agent workspaces are intentionally outside the repository tree because the
+`report-and-findings/2026-07-31-agents-md-leakage.md` finding showed
+`cursor-agent` loads `AGENTS.md` files from workspace ancestors. Keeping runtime
+workspaces out of the repo avoids inheriting development instructions.
+
+Concurrency scope for v1 is one process with multiple threads. Cross-process
+locking is explicitly out of scope.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import shutil
+import tempfile
+import threading
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import TypeVar
+
+import yaml  # type: ignore[import-untyped]
+from pydantic import BaseModel
+
+from orchestrator.artifacts import (
+    AssumptionRecord,
+    AuditEvent,
+    DecisionSpec,
+    EvidenceRecord,
+    ObjectionRecord,
+    TaskRecord,
+)
+from orchestrator.artifacts.yaml_io import dump_model_to_yaml_text, load_model_from_yaml_path
+
+ModelT = TypeVar("ModelT", bound=BaseModel)
+
+_CASE_DIR_RE = re.compile(r"^case-(\d+)-([a-z0-9]+(?:-[a-z0-9]+)*)$")
+_SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+_COUNTER_PREFIXES = {"E-", "A-", "T-", "O-"}
+
+
+def _default_cases_root() -> Path:
+    return Path(__file__).resolve().parents[1] / "cases"
+
+
+def _required_layout_paths(case_root: Path) -> tuple[Path, ...]:
+    return (
+        case_root / "shared",
+        case_root / "shared" / "evidence",
+        case_root / "shared" / "assumptions",
+        case_root / "shared" / "objections",
+        case_root / "shared" / "tasks",
+        case_root / "shared" / "task_graph.yaml",
+        case_root / "agents",
+        case_root / "analysis",
+        case_root / "outputs",
+        case_root / "state.yaml",
+        case_root / "audit.jsonl",
+    )
+
+
+def _atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.tmp-",
+            suffix=".tmp",
+            delete=False,
+        ) as tmp:
+            tmp.write(content)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+            tmp_path = Path(tmp.name)
+        os.replace(tmp_path, path)
+    except Exception:
+        if tmp_path is not None and tmp_path.exists():
+            tmp_path.unlink()
+        raise
+
+
+def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
+    if isinstance(model, DecisionSpec):
+        return case_root / "shared" / "decision_spec.yaml"
+    if isinstance(model, EvidenceRecord):
+        return case_root / "shared" / "evidence" / f"{model.evidence_id}.yaml"
+    if isinstance(model, AssumptionRecord):
+        return case_root / "shared" / "assumptions" / f"{model.assumption_id}.yaml"
+    if isinstance(model, ObjectionRecord):
+        return case_root / "shared" / "objections" / f"{model.objection_id}.yaml"
+    if isinstance(model, TaskRecord):
+        return case_root / "shared" / "tasks" / f"{model.task_id}.yaml"
+    raise TypeError(f"Unsupported artifact model type: {type(model).__name__}")
+
+
+def _artifact_path_for_read(
+    case_root: Path, model_type: type[BaseModel], artifact_id: str | None
+) -> Path:
+    if issubclass(model_type, DecisionSpec):
+        return case_root / "shared" / "decision_spec.yaml"
+    if artifact_id is None:
+        raise ValueError(f"artifact_id is required for {model_type.__name__}")
+    if issubclass(model_type, EvidenceRecord):
+        return case_root / "shared" / "evidence" / f"{artifact_id}.yaml"
+    if issubclass(model_type, AssumptionRecord):
+        return case_root / "shared" / "assumptions" / f"{artifact_id}.yaml"
+    if issubclass(model_type, ObjectionRecord):
+        return case_root / "shared" / "objections" / f"{artifact_id}.yaml"
+    if issubclass(model_type, TaskRecord):
+        return case_root / "shared" / "tasks" / f"{artifact_id}.yaml"
+    raise TypeError(f"Unsupported artifact model type: {model_type.__name__}")
+
+
+def _artifact_dir_for_list(case_root: Path, model_type: type[BaseModel]) -> Path:
+    if issubclass(model_type, DecisionSpec):
+        return case_root / "shared"
+    if issubclass(model_type, EvidenceRecord):
+        return case_root / "shared" / "evidence"
+    if issubclass(model_type, AssumptionRecord):
+        return case_root / "shared" / "assumptions"
+    if issubclass(model_type, ObjectionRecord):
+        return case_root / "shared" / "objections"
+    if issubclass(model_type, TaskRecord):
+        return case_root / "shared" / "tasks"
+    raise TypeError(f"Unsupported artifact model type: {model_type.__name__}")
+
+
+@dataclass(slots=True)
+class Case:
+    root: Path
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+
+    def write_artifact(self, model: BaseModel) -> Path:
+        path = _artifact_path_for_write(self.root, model)
+        payload = dump_model_to_yaml_text(model)
+        _atomic_write_text(path, payload)
+        return path
+
+    def read_artifact(self, model_type: type[ModelT], artifact_id: str | None = None) -> ModelT:
+        path = _artifact_path_for_read(self.root, model_type, artifact_id)
+        if not path.exists():
+            raise FileNotFoundError(f"Artifact not found: {path}")
+        return load_model_from_yaml_path(model_type, path)
+
+    def next_id(self, prefix: str) -> str:
+        if prefix not in _COUNTER_PREFIXES:
+            raise ValueError(f"Unsupported ID prefix: {prefix}")
+        counters_path = self.root / "shared" / "counters.yaml"
+        with self._lock:
+            counters: dict[str, int] = {}
+            if counters_path.exists():
+                loaded = yaml.safe_load(counters_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    counters = {
+                        str(key): int(value)
+                        for key, value in loaded.items()
+                        if str(key) in _COUNTER_PREFIXES
+                    }
+
+            next_value = counters.get(prefix, 0) + 1
+            counters[prefix] = next_value
+            dumped = yaml.safe_dump(counters, sort_keys=True)
+            _atomic_write_text(counters_path, dumped)
+            return f"{prefix}{next_value:03d}"
+
+    def audit(self, event: AuditEvent) -> None:
+        audit_path = self.root / "audit.jsonl"
+        line = json.dumps(event.model_dump(mode="json"), separators=(",", ":"), sort_keys=True)
+        with self._lock:
+            with audit_path.open("a", encoding="utf-8") as fh:
+                fh.write(f"{line}\n")
+                fh.flush()
+
+    def list_artifacts(self, model_type: type[ModelT]) -> list[ModelT]:
+        if issubclass(model_type, DecisionSpec):
+            decision_path = self.root / "shared" / "decision_spec.yaml"
+            if not decision_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, decision_path)]
+
+        artifact_dir = _artifact_dir_for_list(self.root, model_type)
+        if not artifact_dir.exists():
+            return []
+        return [
+            load_model_from_yaml_path(model_type, path)
+            for path in sorted(artifact_dir.glob("*.yaml"))
+        ]
+
+    def archive_agent_workspace(self, role: str, task_id: str, workspace_path: Path) -> Path:
+        if not workspace_path.is_dir():
+            raise FileNotFoundError(f"Workspace path is not a directory: {workspace_path}")
+        destination = self.root / "agents" / f"{role}--{task_id}"
+        if destination.exists():
+            raise FileExistsError(f"Archive destination already exists: {destination}")
+        shutil.copytree(workspace_path, destination)
+        return destination
+
+
+def create_case(slug: str, cases_root: Path | None = None) -> Case:
+    if not _SLUG_RE.fullmatch(slug):
+        raise ValueError(f"Invalid slug '{slug}'. Use lowercase letters, digits, and hyphens.")
+
+    root = cases_root or _default_cases_root()
+    root.mkdir(parents=True, exist_ok=True)
+
+    max_number = 0
+    for entry in root.iterdir():
+        if not entry.is_dir():
+            continue
+        match = _CASE_DIR_RE.fullmatch(entry.name)
+        if match is None:
+            continue
+        max_number = max(max_number, int(match.group(1)))
+
+    case_id = f"case-{max_number + 1:03d}-{slug}"
+    case_root = root / case_id
+    case_root.mkdir(parents=False, exist_ok=False)
+
+    for path in (
+        case_root / "shared" / "evidence",
+        case_root / "shared" / "assumptions",
+        case_root / "shared" / "objections",
+        case_root / "shared" / "tasks",
+        case_root / "agents",
+        case_root / "analysis",
+        case_root / "outputs",
+    ):
+        path.mkdir(parents=True, exist_ok=True)
+
+    (case_root / "shared" / "task_graph.yaml").write_text("{}\n", encoding="utf-8")
+    (case_root / "state.yaml").write_text("{}\n", encoding="utf-8")
+    (case_root / "audit.jsonl").write_text("", encoding="utf-8")
+
+    return Case(root=case_root)
+
+
+def load_case(case_id: str, cases_root: Path | None = None) -> Case:
+    if _CASE_DIR_RE.fullmatch(case_id) is None:
+        raise ValueError(f"Invalid case_id '{case_id}'")
+
+    root = cases_root or _default_cases_root()
+    case_root = root / case_id
+    if not case_root.exists():
+        raise FileNotFoundError(f"Case directory does not exist: {case_root}")
+    if not case_root.is_dir():
+        raise NotADirectoryError(f"Case path is not a directory: {case_root}")
+
+    missing: list[str] = []
+    for path in _required_layout_paths(case_root):
+        if not path.exists():
+            missing.append(str(path.relative_to(case_root)))
+    if missing:
+        missing_str = ", ".join(missing)
+        raise FileNotFoundError(f"Case layout is incomplete for {case_id}. Missing: {missing_str}")
+
+    return Case(root=case_root)
+
+
+def runtime_root() -> Path:
+    configured = os.getenv("AGENTADVISOR_RUNTIME_ROOT")
+    if configured:
+        root = Path(configured).expanduser()
+    else:
+        root = Path("~/.local/share/agentadvisor/workspaces").expanduser()
+    root.mkdir(parents=True, exist_ok=True)
+    return root

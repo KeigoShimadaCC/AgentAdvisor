@@ -1,0 +1,76 @@
+{
+  "$defs": {
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "ObjectionResolutionStatus": {
+      "enum": [
+        "open",
+        "partially_resolved",
+        "resolved",
+        "dismissed"
+      ],
+      "title": "ObjectionResolutionStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "claim": {
+      "minLength": 1,
+      "title": "Claim",
+      "type": "string"
+    },
+    "commissioned_tasks": {
+      "items": {
+        "pattern": "^T-\\d+$",
+        "type": "string"
+      },
+      "title": "Commissioned Tasks",
+      "type": "array"
+    },
+    "materiality": {
+      "$ref": "#/$defs/Level"
+    },
+    "objection_id": {
+      "pattern": "^O-\\d+$",
+      "title": "Objection Id",
+      "type": "string"
+    },
+    "reasoning": {
+      "minLength": 1,
+      "title": "Reasoning",
+      "type": "string"
+    },
+    "resolution_status": {
+      "$ref": "#/$defs/ObjectionResolutionStatus"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "target": {
+      "minLength": 1,
+      "title": "Target",
+      "type": "string"
+    }
+  },
+  "required": [
+    "objection_id",
+    "target",
+    "claim",
+    "materiality",
+    "reasoning",
+    "resolution_status"
+  ],
+  "title": "ObjectionRecord",
+  "type": "object"
+}

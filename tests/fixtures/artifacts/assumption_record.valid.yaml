@@ -1,0 +1,25 @@
+assumption_id: A-17
+claim: AAA can reach 5 billion JPY annual revenue within five years
+confidence: low
+estimate:
+  adjustments:
+  - delta: 0.13
+    description: Strong current pipeline
+    evidence_ids:
+    - E-102
+    schema_version: 1
+  base_rate: 0.22
+  interval_high: null
+  interval_low: null
+  method: reference_class
+  point: 0.35
+  reference_class: Late-stage B2B SaaS in Japan
+  schema_version: 1
+evidence_against:
+- E-117
+evidence_for:
+- E-102
+materiality: high
+schema_version: 1
+status: unresolved
+type: forecast

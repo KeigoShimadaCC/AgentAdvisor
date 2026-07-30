@@ -1,0 +1,18 @@
+alternatives:
+- invest_now
+- wait_for_milestone
+- do_not_invest
+constraints:
+- maximum_acceptable_loss
+- required_liquidity_horizon
+deadline: '2026-08-15'
+decision_id: case-1-investment
+depth: standard
+objectives:
+- expected_return
+- downside_protection
+owner: user
+question: Should the user invest in AAA?
+reversibility: partially_reversible
+risk_tolerance: moderate
+schema_version: 1

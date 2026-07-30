@@ -2,11 +2,11 @@
 id: SPEC-001
 title: Python project tooling
 phase: 0
-status: draft
+status: verified
 depends_on: []
 parallel_with: [SPEC-002]
 north_star_refs: ["5.8", "23"]
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 ---
 
 # SPEC-001 — Python project tooling
@@ -35,21 +35,22 @@ CI pipelines, packaging/distribution, any workflow or schema code, pre-commit ho
 
 ## Design
 
-Single root `pyproject.toml`, no src-layout (personal project, one package). mypy in strict-leaning mode (`disallow_untyped_defs = true` for `orchestrator/`). Ruff replaces both linter and formatter (`ruff check`, `ruff format --check` in `lint`). All make targets run through `uv run` so no shell activation is needed.
+Single root `pyproject.toml`, no src-layout (personal project, one package). mypy in strict-leaning mode (`disallow_untyped_defs = true` for `orchestrator/`). Ruff replaces both linter and formatter (`ruff check`, `ruff format --check` in `lint`), covering `orchestrator tests scripts`. Make targets run through `uv run`, with one deliberate exception: `smoke` calls bare `python3` because SPEC-002's script is stdlib-only by design and must run before `uv sync`.
 
 ## Deliverables
 
-- [ ] `pyproject.toml`, `uv.lock`
-- [ ] `orchestrator/__init__.py`
-- [ ] `tests/test_sanity.py`
-- [ ] `Makefile`
+- [x] `pyproject.toml`, `uv.lock`
+- [x] `orchestrator/__init__.py`
+- [x] `tests/test_sanity.py`
+- [x] `tests/test_markers.py` (dummy `live`-marked test proving default deselection)
+- [x] `Makefile`
 
 ## Acceptance criteria
 
-- [ ] `make check` exits 0 from a clean clone after `make init`.
-- [ ] `uv run python -c "import orchestrator; print(orchestrator.__version__)"` prints a version.
-- [ ] `make lint`, `make type`, `make test` each run and exit 0 individually.
-- [ ] `uv run pytest` collects zero `live`/`live_slow` tests by default (marker registration verified with a dummy marked test).
+- [x] `make check` exits 0 from a clean clone after `make init`.
+- [x] `uv run python -c "import orchestrator; print(orchestrator.__version__)"` prints a version.
+- [x] `make lint`, `make type`, `make test` each run and exit 0 individually.
+- [x] `uv run pytest` collects zero `live`/`live_slow` tests by default (marker registration verified with a dummy marked test).
 
 ## Verification plan
 
@@ -60,7 +61,12 @@ uv run python -c "import orchestrator; print(orchestrator.__version__)"
 
 ## Verification results
 
-—
+**2026-07-31 — PASS.** Environment: uv 0.10.0, resolved interpreter CPython 3.12.12, pytest 9.1.1.
+
+- `make init && make check` → exit 0. Ruff: "All checks passed!" + "17 files already formatted"; mypy: "Success: no issues found"; pytest: `20 passed, 1 deselected`.
+- `uv run python -c "import orchestrator; print(orchestrator.__version__)"` → `0.1.0`.
+- `make lint`, `make type`, `make test` each exit 0 individually.
+- `uv run pytest --collect-only -q` → `1/2 tests collected (1 deselected)`; `uv run pytest -m live --collect-only -q` → collects `tests/test_markers.py::test_live_marker_deselected_by_default`. Default deselection confirmed in both directions.
 
 ## Open questions
 

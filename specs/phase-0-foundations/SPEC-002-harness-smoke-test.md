@@ -2,11 +2,11 @@
 id: SPEC-002
 title: Cursor CLI harness smoke test
 phase: 0
-status: draft
+status: verified
 depends_on: []
 parallel_with: [SPEC-001]
 north_star_refs: ["11", "21"]
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 ---
 
 # SPEC-002 — Cursor CLI harness smoke test
@@ -42,14 +42,14 @@ Pure stdlib (`subprocess`, `json`, `tempfile`, `concurrent.futures`, `argparse`)
 
 ## Deliverables
 
-- [ ] `scripts/smoke_cursor_cli.py`
-- [ ] `smoke` target in `Makefile` (if SPEC-001 is already merged)
+- [x] `scripts/smoke_cursor_cli.py`
+- [x] `smoke` target in `Makefile` (owned by SPEC-001, which holds the Makefile)
 
 ## Acceptance criteria
 
-- [ ] `python3 scripts/smoke_cursor_cli.py --out /tmp/smoke.json` exits 0 on the current machine.
-- [ ] `/tmp/smoke.json` contains `cli_version`, all six check results, and token usage per invocation.
-- [ ] Leakage check result (LEAK or CLEAN) is recorded in the ROADMAP Phase 0 findings after first run.
+- [x] `python3 scripts/smoke_cursor_cli.py --out /tmp/smoke.json` exits 0 on the current machine.
+- [x] `/tmp/smoke.json` contains `cli_version`, all six check results, and token usage per invocation.
+- [x] Leakage check result (LEAK or CLEAN) is recorded in the ROADMAP Phase 0 findings after first run.
 
 ## Verification plan
 
@@ -61,8 +61,23 @@ Then record findings (cli_version, leakage result) in `specs/ROADMAP.md` Phase 0
 
 ## Verification results
 
-—
+**2026-07-31 — PASS (all five hard checks), leakage check returned LEAK.** CLI version `2026.07.23-e383d2b`.
+
+| Check | Kind | Result | Duration |
+|---|---|---|---|
+| binary | hard | pass | 0.27s |
+| auth | hard | pass | 2.16s |
+| headless-text | hard | pass | 15.15s |
+| artifact-roundtrip | hard | pass (is_error=false, session_id present, usage.inputTokens=12424) | 17.29s |
+| concurrency-3 | hard | pass (composer-2.5, gpt-5.2, cursor-grok-4.5-low all succeeded) | 28.44s |
+| agents-md-leakage | soft | **LEAK** | 17.41s |
+
+Total usage for one run: 89,485 input / 1,293 output / 138,643 cache-read tokens. Exit code 0; report at `/tmp/smoke.json`.
+
+The LEAK verdict triggered a dedicated follow-up investigation: `report-and-findings/2026-07-31-agents-md-leakage.md`. `cursor-agent` walks the workspace's directory ancestry upward and loads every `AGENTS.md` it finds; a local `AGENTS.md` is additive rather than suppressive, and neither a nested `.git` boundary nor an explicit `--workspace` flag stops it. Consequence: runtime agent workspaces must not live inside this repository. This is now a design constraint on SPEC-004 and SPEC-006.
+
+Lint note: the script is included in `make lint` (`ruff check`/`format` over `orchestrator tests scripts`) despite being stdlib-only, so it cannot rot.
 
 ## Open questions
 
-- None blocking. Leakage semantics may vary by CLI version; the check records rather than asserts.
+- None blocking. Leakage semantics may vary by CLI version; the check records rather than asserts, and the standing mitigation (out-of-repo workspaces) does not depend on the verdict.

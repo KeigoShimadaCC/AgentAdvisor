@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "alternative": {
+      "minLength": 1,
+      "title": "Alternative",
+      "type": "string"
+    },
+    "rank": {
+      "minimum": 1,
+      "title": "Rank",
+      "type": "integer"
+    },
+    "rationale": {
+      "minLength": 1,
+      "title": "Rationale",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "alternative",
+    "rank",
+    "rationale"
+  ],
+  "title": "AlternativeAssessment",
+  "type": "object"
+}

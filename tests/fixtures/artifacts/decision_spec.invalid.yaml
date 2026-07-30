@@ -1,0 +1,13 @@
+alternatives:
+- invest_now
+constraints: []
+deadline: '2026-08-15'
+decision_id: CASE-1
+depth: standard
+objectives:
+- expected_return
+owner: user
+question: Should the user invest in AAA?
+reversibility: partially_reversible
+risk_tolerance: moderate
+schema_version: 1

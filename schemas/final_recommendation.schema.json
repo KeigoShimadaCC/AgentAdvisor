@@ -1,0 +1,434 @@
+{
+  "$defs": {
+    "AlternativeAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "alternative": {
+          "minLength": 1,
+          "title": "Alternative",
+          "type": "string"
+        },
+        "rank": {
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "rationale": {
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "alternative",
+        "rank",
+        "rationale"
+      ],
+      "title": "AlternativeAssessment",
+      "type": "object"
+    },
+    "ConfidenceAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "minLength": 1,
+          "title": "Basis",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "basis"
+      ],
+      "title": "ConfidenceAssessment",
+      "type": "object"
+    },
+    "Counterargument": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "minLength": 1,
+          "title": "Claim",
+          "type": "string"
+        },
+        "resolution": {
+          "minLength": 1,
+          "title": "Resolution",
+          "type": "string"
+        },
+        "resolved": {
+          "title": "Resolved",
+          "type": "boolean"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "claim",
+        "resolution",
+        "resolved"
+      ],
+      "title": "Counterargument",
+      "type": "object"
+    },
+    "ModelStability": {
+      "additionalProperties": false,
+      "properties": {
+        "runs_supporting": {
+          "minimum": 0,
+          "title": "Runs Supporting",
+          "type": "integer"
+        },
+        "runs_total": {
+          "minimum": 1,
+          "title": "Runs Total",
+          "type": "integer"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "share_of_sensitivity_runs_supporting_recommendation": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Share Of Sensitivity Runs Supporting Recommendation",
+          "type": "number"
+        }
+      },
+      "required": [
+        "share_of_sensitivity_runs_supporting_recommendation",
+        "runs_total",
+        "runs_supporting"
+      ],
+      "title": "ModelStability",
+      "type": "object"
+    },
+    "ProbabilityAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "description",
+        "delta",
+        "evidence_ids"
+      ],
+      "title": "ProbabilityAdjustment",
+      "type": "object"
+    },
+    "ProbabilityEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustments": {
+          "items": {
+            "$ref": "#/$defs/ProbabilityAdjustment"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        },
+        "base_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Rate"
+        },
+        "interval_high": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval High"
+        },
+        "interval_low": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Low"
+        },
+        "method": {
+          "$ref": "#/$defs/ProbabilityMethod"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point"
+        },
+        "reference_class": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Class"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "title": "ProbabilityEstimate",
+      "type": "object"
+    },
+    "ProbabilityMethod": {
+      "enum": [
+        "reference_class",
+        "scenario_model",
+        "structured_subjective"
+      ],
+      "title": "ProbabilityMethod",
+      "type": "string"
+    },
+    "ScenarioAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "probability": {
+          "$ref": "#/$defs/ProbabilityEstimate"
+        },
+        "scenario_name": {
+          "minLength": 1,
+          "title": "Scenario Name",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "summary": {
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scenario_name",
+        "summary",
+        "probability"
+      ],
+      "title": "ScenarioAssessment",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alternatives_considered": {
+      "items": {
+        "$ref": "#/$defs/AlternativeAssessment"
+      },
+      "minItems": 1,
+      "title": "Alternatives Considered",
+      "type": "array"
+    },
+    "citations": {
+      "items": {
+        "pattern": "^E-\\d+$",
+        "type": "string"
+      },
+      "title": "Citations",
+      "type": "array"
+    },
+    "critical_assumptions": {
+      "items": {
+        "pattern": "^A-\\d+$",
+        "type": "string"
+      },
+      "title": "Critical Assumptions",
+      "type": "array"
+    },
+    "decision_confidence_summary": {
+      "minLength": 1,
+      "title": "Decision Confidence Summary",
+      "type": "string"
+    },
+    "evidence_confidence": {
+      "$ref": "#/$defs/ConfidenceAssessment"
+    },
+    "key_reasons": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Key Reasons",
+      "type": "array"
+    },
+    "model_stability": {
+      "$ref": "#/$defs/ModelStability"
+    },
+    "next_actions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Next Actions",
+      "type": "array"
+    },
+    "outcome_probabilities": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ProbabilityEstimate"
+      },
+      "minProperties": 1,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Outcome Probabilities",
+      "type": "object"
+    },
+    "quantitative_findings": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Quantitative Findings",
+      "type": "array"
+    },
+    "recommendation_change_triggers": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Recommendation Change Triggers",
+      "type": "array"
+    },
+    "recommendation_confidence": {
+      "$ref": "#/$defs/ConfidenceAssessment"
+    },
+    "recommended_action": {
+      "minLength": 1,
+      "title": "Recommended Action",
+      "type": "string"
+    },
+    "scenario_analysis": {
+      "items": {
+        "$ref": "#/$defs/ScenarioAssessment"
+      },
+      "minItems": 1,
+      "title": "Scenario Analysis",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "strongest_counterarguments": {
+      "items": {
+        "$ref": "#/$defs/Counterargument"
+      },
+      "title": "Strongest Counterarguments",
+      "type": "array"
+    },
+    "timing": {
+      "minLength": 1,
+      "title": "Timing",
+      "type": "string"
+    }
+  },
+  "required": [
+    "recommended_action",
+    "timing",
+    "decision_confidence_summary",
+    "alternatives_considered",
+    "key_reasons",
+    "scenario_analysis",
+    "next_actions",
+    "outcome_probabilities",
+    "evidence_confidence",
+    "recommendation_confidence",
+    "model_stability"
+  ],
+  "title": "FinalRecommendation",
+  "type": "object"
+}

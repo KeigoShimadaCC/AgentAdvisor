@@ -1,0 +1,10 @@
+adjustments:
+- delta: 0.09
+  description: Team execution history
+  evidence_ids:
+  - E-102
+  schema_version: 1
+base_rate: 1.4
+method: reference_class
+reference_class: Seed-to-Series-A progression
+schema_version: 1

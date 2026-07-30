@@ -1,0 +1,16 @@
+claim: Market demand grew 18% in 2025
+directness: high
+evidence_id: E-102
+excerpt: Demand increased due to enterprise adoption.
+independence_group: company_filing
+limitations:
+- company-defined market boundary
+publication_date: '2026-03-12'
+publisher: Example Regulator
+reliability: high
+retrieval_date: '2026-07-29'
+retrieved_by: researcher-market
+schema_version: 1
+source_title: AAA annual market update
+source_type: regulatory_filing
+source_url: https://example.com/report

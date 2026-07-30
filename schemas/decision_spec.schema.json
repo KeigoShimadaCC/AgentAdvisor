@@ -1,0 +1,108 @@
+{
+  "$defs": {
+    "Depth": {
+      "enum": [
+        "light",
+        "standard",
+        "deep"
+      ],
+      "title": "Depth",
+      "type": "string"
+    },
+    "Reversibility": {
+      "enum": [
+        "fully_reversible",
+        "partially_reversible",
+        "irreversible"
+      ],
+      "title": "Reversibility",
+      "type": "string"
+    },
+    "RiskTolerance": {
+      "enum": [
+        "low",
+        "moderate",
+        "high"
+      ],
+      "title": "RiskTolerance",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alternatives": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Alternatives",
+      "type": "array"
+    },
+    "constraints": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Constraints",
+      "type": "array"
+    },
+    "deadline": {
+      "format": "date",
+      "title": "Deadline",
+      "type": "string"
+    },
+    "decision_id": {
+      "pattern": "^case-\\d+[-a-z0-9-]*$",
+      "title": "Decision Id",
+      "type": "string"
+    },
+    "depth": {
+      "$ref": "#/$defs/Depth"
+    },
+    "objectives": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Objectives",
+      "type": "array"
+    },
+    "owner": {
+      "minLength": 1,
+      "title": "Owner",
+      "type": "string"
+    },
+    "question": {
+      "minLength": 1,
+      "title": "Question",
+      "type": "string"
+    },
+    "reversibility": {
+      "$ref": "#/$defs/Reversibility"
+    },
+    "risk_tolerance": {
+      "$ref": "#/$defs/RiskTolerance"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "decision_id",
+    "question",
+    "owner",
+    "deadline",
+    "alternatives",
+    "objectives",
+    "risk_tolerance",
+    "reversibility",
+    "depth"
+  ],
+  "title": "DecisionSpec",
+  "type": "object"
+}

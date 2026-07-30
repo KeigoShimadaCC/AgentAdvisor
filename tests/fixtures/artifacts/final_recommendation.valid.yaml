@@ -1,0 +1,92 @@
+alternatives_considered:
+- alternative: invest_now
+  rank: 2
+  rationale: Higher upside but materially higher downside concentration.
+  schema_version: 1
+- alternative: invest_smaller_amount
+  rank: 1
+  rationale: Best downside-adjusted expected utility under current uncertainty.
+  schema_version: 1
+citations:
+- E-102
+critical_assumptions:
+- A-17
+decision_confidence_summary: Evidence is mixed but favors staged entry with risk controls.
+evidence_confidence:
+  basis: Confidence reflects source reliability, directness, and cross-source agreement.
+  schema_version: 1
+  value: 0.61
+key_reasons:
+- Asymmetric downside risk is still meaningful.
+- Staged or smaller allocation preserves option value.
+model_stability:
+  runs_supporting: 19
+  runs_total: 25
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.76
+next_actions:
+- Collect competitor pricing data within 30 days.
+- Set max loss guardrail before order placement.
+outcome_probabilities:
+  positive_return_within_5y:
+    adjustments:
+    - delta: 0.08
+      description: Demand growth evidence
+      evidence_ids:
+      - E-102
+      schema_version: 1
+    base_rate: 0.5
+    interval_high: null
+    interval_low: null
+    method: structured_subjective
+    point: 0.58
+    reference_class: Early growth private tech investments
+    schema_version: 1
+  total_loss:
+    adjustments:
+    - delta: 0.03
+      description: Financing market tightness
+      evidence_ids:
+      - E-102
+      schema_version: 1
+    base_rate: 0.16
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.19
+    reference_class: Comparable down-round outcomes
+    schema_version: 1
+quantitative_findings:
+- Break-even success probability threshold is 0.41.
+recommendation_change_triggers:
+- If two major competitors cut pricing >20%, switch to wait_for_milestone.
+recommendation_confidence:
+  basis: Structured subjective estimate combining evidence confidence with risk asymmetry.
+  schema_version: 1
+  value: 0.74
+recommended_action: invest_smaller_amount
+scenario_analysis:
+- probability:
+    adjustments:
+    - delta: 0.08
+      description: Revenue momentum from filing
+      evidence_ids:
+      - E-102
+      schema_version: 1
+    base_rate: 0.44
+    interval_high: null
+    interval_low: null
+    method: reference_class
+    point: 0.52
+    reference_class: Series C enterprise software outcomes
+    schema_version: 1
+  scenario_name: base
+  schema_version: 1
+  summary: Steady growth with manageable dilution.
+schema_version: 1
+strongest_counterarguments:
+- claim: Competitive moat may be overstated.
+  resolution: Position size reduced until competitor data improves.
+  resolved: false
+  schema_version: 1
+timing: Within this quarter

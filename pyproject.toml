@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "decision-intelligence-platform"
+version = "0.1.0"
+description = "Personal multi-agent decision-intelligence platform."
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2",
+  "pyyaml",
+]
+
+[dependency-groups]
+dev = [
+  "ruff",
+  "mypy",
+  "pytest",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["orchestrator"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["orchestrator"]
+disallow_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+strict_optional = true
+
+[tool.pytest.ini_options]
+addopts = '-m "not live and not live_slow"'
+markers = [
+  "live: marks tests that call live external model/provider APIs",
+  "live_slow: marks long-running live tests",
+]
