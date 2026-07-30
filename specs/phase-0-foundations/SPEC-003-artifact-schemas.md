@@ -21,7 +21,7 @@ North star 5.2/7: agents communicate through typed artifacts, and traceability d
 
 ## Scope
 
-Pydantic v2 models in `orchestrator/artifacts.py` (split into a package only if it exceeds ~500 lines):
+Pydantic v2 models in the `orchestrator/artifacts/` package, one module per artifact family, so later specs add files instead of editing a shared module:
 
 - `DecisionSpec` (question, owner, deadline, alternatives, objectives, constraints, risk_tolerance, reversibility, depth)
 - `EvidenceRecord` (claim, source fields, publication/retrieval dates, excerpt, reliability, directness, `independence_group`, limitations, retrieved_by)
@@ -30,6 +30,7 @@ Pydantic v2 models in `orchestrator/artifacts.py` (split into a package only if 
 - `TaskRecord` (role, question, why_it_matters, expected_information_gain, materiality, inputs, required_output, completion_criteria, status, priority fields)
 - `PreliminaryRecommendation` and `FinalRecommendation` (Section 16 structure, distinct uncertainty measures per Section 9)
 - `AuditEvent` (ts, actor, event_type, payload, model, cli_version, usage, duration_ms)
+- `ProbabilityEstimate` sub-model used wherever a probability appears: point value or interval, method (`reference_class` | `scenario_model` | `structured_subjective`), reference class, base rate, and documented adjustments each citing evidence IDs (the Section 9 base-rate-first audit trail)
 - Shared enums (materiality, confidence, statuses) and validated ID types: `E-\d+`, `A-\d+`, `T-\d+`, `O-\d+`, `case-\d+[-a-z0-9-]*`
 
 Plus:
@@ -44,11 +45,11 @@ Storage layout (SPEC-004), context projection (SPEC-006), schema migration tooli
 
 ## Design
 
-One module, models only, no I/O logic beyond YAML helpers. Cross-references are ID strings, not object references, so artifacts stay independently serializable. `schema_version: int = 1` field on every model. A sync test re-exports schemas to a temp dir and diffs against `schemas/` so committed schemas can never drift.
+Model modules only, no I/O logic beyond YAML helpers. Cross-references are ID strings, not object references, so artifacts stay independently serializable. `schema_version: int = 1` field on every model. A sync test re-exports schemas to a temp dir and diffs against `schemas/` so committed schemas can never drift.
 
 ## Deliverables
 
-- [ ] `orchestrator/artifacts.py`
+- [ ] `orchestrator/artifacts/` package (one module per artifact family)
 - [ ] `schemas/*.schema.json` (generated, committed)
 - [ ] `tests/test_artifacts.py`, `tests/fixtures/artifacts/`
 

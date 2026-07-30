@@ -23,9 +23,9 @@ North star 6.1: the Director owns the substantive decision, interprets evidence,
 
 - `cursor/roles/director.md` with two task modes (`mode: provisional_thesis`, `mode: preliminary_recommendation` in `task.yaml`):
   - Provisional thesis: preferred alternative + rationale + the uncertainties that would most plausibly change it; explicitly labeled non-final.
-  - Preliminary recommendation: `PreliminaryRecommendation` artifact citing evidence IDs (`E-*`) and assumption IDs (`A-*`) for every material claim, with recommendation confidence and evidence confidence as separate fields, unresolved gaps, and major risks (Stage 6 list).
+  - Preliminary recommendation: `PreliminaryRecommendation` artifact citing evidence IDs (`E-*`) and assumption IDs (`A-*`) for every material claim, with recommendation confidence and evidence confidence as separate fields, outcome estimates expressed as `ProbabilityEstimate`s (base-rate-first per Section 9), unresolved gaps, and major risks (Stage 6 list).
 - Assumption maintenance: the Director may propose new/updated `AssumptionRecord`s; orchestrator merges by ID (updates audited).
-- `roles.yaml` entry: Director-tier model (claude-opus-5 family per research report); projection: decision spec, normalized evidence ledger summaries, assumption registry, analysis results, prior thesis.
+- `cursor/roles/director.yaml`: Director-tier model (claude-opus-5 family per research report); projection: decision spec, normalized evidence ledger summaries, assumption registry, analysis results, prior thesis.
 - Fixtures: a populated mini-blackboard (evidence + assumptions + analysis) with structural assertions on citation coverage.
 
 ## Out of scope
@@ -34,13 +34,13 @@ Challenge handling (SPEC-015 produces objections; repair routing is SPEC-018), f
 
 ## Design
 
-Citation coverage is enforced structurally: every entry in the recommendation's `key_reasons` and `estimated_outcomes` must reference ≥1 `E-*` or `A-*` ID; the SPEC-006 validator gains a per-artifact hook for such cross-field checks (small extension included here). Uncited reasons fail validation and trigger the retry ladder.
+Citation coverage is enforced structurally: every entry in the recommendation's `key_reasons` and `estimated_outcomes` must reference ≥1 `E-*` or `A-*` ID, via citation-coverage rules registered on the invocation kit's cross-field validation hook (owned by SPEC-006). Uncited reasons fail validation and trigger the retry ladder.
 
 ## Deliverables
 
 - [ ] `cursor/roles/director.md`
-- [ ] Cross-reference validation hook in the invocation kit
-- [ ] `roles.yaml` entry, projection config
+- [ ] Citation-coverage rules registered on the SPEC-006 cross-field validation hook
+- [ ] `cursor/roles/director.yaml`
 - [ ] `tests/test_role_director.py` + mini-blackboard fixtures; live mini-run test
 
 ## Acceptance criteria

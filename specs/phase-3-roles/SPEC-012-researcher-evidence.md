@@ -24,7 +24,7 @@ North star Section 10: provenance is part of the product; ten articles from one 
 - `cursor/roles/researcher.md`: answer exactly the assigned question; prefer primary sources (Section 10 source order); emit `EvidenceRecord`s (≤8 per task) with every provenance field, explicit limitations, and contradicting evidence recorded rather than discarded; prose essays prohibited; "no reliable evidence found" is a valid, schema-conformant outcome.
 - Web access: researcher relies on Cursor's built-in web search tooling; each record must carry source_url and retrieval date.
 - `orchestrator/normalize.py` (pure, no model calls): URL canonicalization + near-duplicate collapse; independence-group assignment (same publisher/domain or same canonical origin → same group; syndication heuristics documented in code); staleness flags (publication_date older than a per-question threshold); contradiction pairing (opposing claims on the same assumption linked); schema re-validation gate into `shared/evidence/`.
-- `roles.yaml` entry (Cursor-pool model per the research report), projection config (decision spec excerpt + assigned task + related existing evidence IDs only).
+- `cursor/roles/researcher.yaml` (Cursor-pool model per the research report; projection: decision spec excerpt + assigned task + related existing evidence IDs only).
 - Fixtures: raw researcher outputs including duplicates, syndicated copies, a contradiction, and a stale source.
 
 ## Out of scope
@@ -39,7 +39,7 @@ Normalization runs on every researcher batch before blackboard write; rejected r
 
 - [ ] `cursor/roles/researcher.md`
 - [ ] `orchestrator/normalize.py`
-- [ ] `roles.yaml` entry, projection config
+- [ ] `cursor/roles/researcher.yaml`
 - [ ] `tests/test_normalize.py` (pure fixtures), `tests/test_role_researcher.py`; live mini-run test
 
 ## Acceptance criteria

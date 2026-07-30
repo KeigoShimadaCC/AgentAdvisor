@@ -23,8 +23,8 @@ North star 6.8/6.9 and Section 16: the final output must explain dominance rathe
 
 - `cursor/roles/synthesizer.md`: consume decision spec, preliminary recommendation, objections and resolutions, analysis results, disclosure records; produce `FinalRecommendation` covering all Section 16 blocks (executive recommendation, confidence explanation, alternatives ranking, key reasons, scenarios, quantitative findings, counterarguments and their status, critical assumptions, change-triggers, next actions), every material claim carrying E-/A- references; averaging agent opinions explicitly prohibited; unresolved disagreement reported as such (Section 21 question 11).
 - `cursor/roles/reviewer.md` (calibration + citation, one role for MVP per 6.9): verify probability statements have basis fields and no false precision, confidence language matches evidence confidence, every citation ID exists and supports its claim (against stored evidence only, not live sources), independence overstatement flagged; output `ReviewReport` (pass | fail with itemized defects); a fail routes the Synthesizer once through the retry ladder with defects as feedback.
-- `orchestrator/render.py`: deterministic `FinalRecommendation` + evidence ledger → `outputs/final_recommendation.md` per Section 16 layout, inline `[E-xxx]` citations with a source table, budget-stop disclosure section when a DisclosureRecord exists.
-- `roles.yaml`: synthesizer on Director-tier family, reviewer on a precise mid-tier model from a different family; projection configs.
+- `orchestrator/render.py`: deterministic `FinalRecommendation` + evidence ledger → `outputs/final_recommendation.md` per Section 16 layout, inline `[E-xxx]` citations with a source table, budget-stop disclosure section when a DisclosureRecord exists, and per-statement provenance labels distinguishing sourced facts, assumptions, calculations, user-supplied input, interpretation, and recommendations (Section 15).
+- `cursor/roles/synthesizer.yaml`, `cursor/roles/reviewer.yaml`: synthesizer on Director-tier family, reviewer on a precise mid-tier model from a different family; projections.
 
 ## Out of scope
 
@@ -32,14 +32,14 @@ Reopening live sources for citation verification (north star open question 8; em
 
 ## Design
 
-Renderer is pure and unit-tested: a golden FinalRecommendation fixture renders to a byte-stable Markdown file. The reviewer never edits the recommendation; it only reports defects, keeping authorship traceable. `ReviewReport` pass is a hard gate before the case may enter `AWAITING_FINAL_APPROVAL`.
+Renderer is pure and unit-tested: a golden FinalRecommendation fixture renders to a byte-stable Markdown file. Model stability is computed deterministically by the SPEC-013 stability function and injected as a synthesizer input; the Synthesizer reports it and never invents it. The reviewer never edits the recommendation; it only reports defects, keeping authorship traceable. `ReviewReport` pass is a hard gate before the case may enter `AWAITING_FINAL_APPROVAL`.
 
 ## Deliverables
 
 - [ ] `cursor/roles/synthesizer.md`, `cursor/roles/reviewer.md`
 - [ ] `ReviewReport` model + schema export
 - [ ] `orchestrator/render.py`
-- [ ] `roles.yaml` entries, projection configs
+- [ ] `cursor/roles/synthesizer.yaml`, `cursor/roles/reviewer.yaml`
 - [ ] `tests/test_render.py` (golden output), `tests/test_role_synthesis.py` + fixtures; live mini-run tests
 
 ## Acceptance criteria

@@ -22,10 +22,10 @@ North star 6.4 and its decision-log entry: the Auditor protects against drift an
 ## Scope
 
 - `cursor/roles/auditor.md`: given the decision spec, current task graph, and recent artifacts, flag: tasks irrelevant to the decision question, duplicated work, artifacts violating their mandates (e.g. narrative essays instead of records), unsupported claims (assertions with no E-/A- reference), and a recommendation on the Stage 9 stop inputs (open critical gaps yes/no with reasons). Explicitly forbidden: proposing alternatives, re-arguing the thesis, adding research questions.
-- `AuditFinding` artifact model: finding type enum, target IDs, severity, reason; plus the stop-input block consumed by SPEC-008's StopEvaluator.
-- Read-only enforcement: invoked with the backend `read_only` flag (`--mode plan`); its only write is the output artifact, collected from stdout `result` and written by the orchestrator, not the agent (invocation-kit variant included here).
+- `AuditFinding` artifact model: finding type enum, target IDs, severity, reason, and a `high_stakes_escalation` flag (north star 13 reserves frontier-tier calls partly for cases the Auditor flags); plus the stop-input block consumed by SPEC-008's StopEvaluator.
+- Read-only enforcement: invoked with the backend `read_only` flag (`--mode plan`); its only write is the output artifact, collected from stdout `result` and written by the orchestrator, not the agent (uses the SPEC-006 read-only stdout-collection variant).
 - Checkpoints (wired in SPEC-018): after planning, after each investigation wave, after challenge.
-- `roles.yaml`: composer-2.5; projection: decision spec, task graph, artifact index with claims, budget snapshot.
+- `cursor/roles/auditor.yaml`: composer-2.5; projection: decision spec, task graph, artifact index with claims, budget snapshot.
 
 ## Out of scope
 
@@ -39,8 +39,8 @@ Because plan mode cannot write files, the Auditor is the one role whose artifact
 
 - [ ] `cursor/roles/auditor.md`
 - [ ] `AuditFinding` model + schema export
-- [ ] Read-only invocation variant (stdout-artifact collection) in the invocation kit
-- [ ] `roles.yaml` entry, projection config
+- [ ] Auditor wiring of the SPEC-006 read-only invocation variant
+- [ ] `cursor/roles/auditor.yaml`
 - [ ] `tests/test_role_auditor.py` + fixtures (drifting task graph with a duplicate and an off-topic task); live mini-run test
 
 ## Acceptance criteria

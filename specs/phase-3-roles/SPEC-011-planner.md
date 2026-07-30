@@ -23,7 +23,7 @@ North star 6.2 and Stage 4: every task must state why it matters to the decision
 
 - `cursor/roles/planner.md`: mandate to decompose the decision into investigation areas and emit `TaskRecord` proposals, each with question, why_it_matters, expected_information_gain, materiality, estimated cost tier, required role, inputs, required_output, completion_criteria, dependencies; hard cap of 10 proposals per invocation; explicit instruction to propose nothing when open tasks already cover the material gaps (Section 5.1 tests).
 - Repair mode: same role md, `task.yaml` flag `mode: repair` with the unresolved objections projected; proposals must reference the objection IDs they resolve; cap 4.
-- `roles.yaml` entry (efficient model), projection config (decision spec, assumption gaps, open objections, existing task graph summary).
+- `cursor/roles/planner.yaml` (efficient model; projection: decision spec, assumption gaps, open objections, existing task graph summary).
 - Golden fixtures: post-framing planning and repair-mode planning; structural assertions.
 
 ## Out of scope
@@ -39,7 +39,7 @@ Planner output is a `TaskProposalBatch` (new small wrapper model listing TaskRec
 - [ ] `cursor/roles/planner.md`
 - [ ] `TaskProposalBatch` model + schema export
 - [ ] Acceptance filter in `orchestrator/planning.py`
-- [ ] `roles.yaml` entry, projection config
+- [ ] `cursor/roles/planner.yaml`
 - [ ] `tests/test_role_planner.py` + fixtures; live mini-run test
 
 ## Acceptance criteria

@@ -24,7 +24,7 @@ North star 6.3 and the Director–Challenger decision-log entry: structured fals
 - `cursor/roles/challenger.md`: attack the preliminary recommendation via the 6.3 checklist (hidden assumptions, contrary evidence, omitted alternatives, bias tests, tail risks, load-bearing assumptions, reversal evidence); emit ≤5 `ObjectionRecord`s ranked by materiality, each with reasoning, referenced evidence/assumption IDs where applicable, and a `reversal_evidence` statement; manufactured disagreement explicitly prohibited: returning fewer, stronger objections is compliant, zero objections requires a stated justification.
 - Family-diversity guard in `orchestrator/roles_config.py`: loading a config where `family(director.model) == family(challenger.model)` is a startup error.
 - Final falsification pass (Stage 5.3 step 5) uses the same role md with `mode: final_pass` and a cap of 2 objections.
-- `roles.yaml` entry: gpt-5.6-sol family per research report; projection: decision spec, preliminary recommendation, high-materiality assumptions, evidence summaries (bounded), prior resolved objections.
+- `cursor/roles/challenger.yaml`: gpt-5.6-sol family per research report; projection: decision spec, preliminary recommendation, high-materiality assumptions, evidence summaries (bounded), prior resolved objections.
 - Fixture: mini-blackboard with a deliberately over-confident recommendation containing a plantable flaw (uncited leap + fragile assumption).
 
 ## Out of scope
@@ -39,7 +39,7 @@ Objection cap enforced by validation, not trust: >5 objections fails validation 
 
 - [ ] `cursor/roles/challenger.md`
 - [ ] Family-diversity guard + `family()` mapping table
-- [ ] `roles.yaml` entry, projection config
+- [ ] `cursor/roles/challenger.yaml`
 - [ ] `tests/test_role_challenger.py` + fixture; live mini-run test
 
 ## Acceptance criteria

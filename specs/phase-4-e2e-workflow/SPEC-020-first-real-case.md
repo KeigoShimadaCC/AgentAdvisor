@@ -22,7 +22,7 @@ North star 13 (compare decision quality with resource consumption), 17 (investme
 ## Scope
 
 - Select a real, personally relevant investment-style decision with the user at approval time (fallback: a public-company invest/stage/decline decision).
-- Run via `advisor new` with default budget and the production `roles.yaml` (Director opus-5 family, Challenger gpt-5.6 family, workers Cursor-pool, per the 2026-07-30 research).
+- Run via `advisor new` with default budget and the production role configs (Director opus-5 family, Challenger gpt-5.6 family, workers Cursor-pool, per the 2026-07-30 research).
 - Capture: total/per-role invocations and tokens, wall clock, retry-ladder frequency, budget headroom, auditor findings usefulness, repair-cycle behavior, subjective output quality against the Section 3 promise (all twelve elements present and meaningful).
 - Findings report `report-and-findings/<date>-first-real-case.md` (metrics tables + qualitative assessment + defect list); ROADMAP Phase 4 findings updated; new emergent-work candidates filed.
 - Small fixes discovered during the run: config/prompt (role md) tuning allowed within this spec; code changes beyond ~20 lines require a new spec or an existing spec reopened.

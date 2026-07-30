@@ -24,7 +24,7 @@ North star Stage 1–2: research must not start until the decision is framed and
 - `cursor/roles/intake.md`: extract decision question, deadline, alternatives mentioned, objectives, constraints, risk tolerance, reversibility, depth; emit explicit `unknown` rather than inventing values; produce ≤5 clarification questions only where an assumption would be material (Stage 1 guidance).
 - `cursor/roles/director-framing.md`: from the intake, produce a full `DecisionSpec` with a broadened alternative set (for the investment vertical: staged entry, smaller amount, wait-for-milestone, alternative vehicle, decline-and-revisit patterns per Stage 2) plus initial known-unknowns.
 - New artifacts in SPEC-003 module: `IntakeRecord` (extraction + clarifications) and `FramingApproval` (user decision: approve | edit | answers to clarifications).
-- Projection entries and `roles.yaml` finalization for both roles (intake: cheap model; framing: Director-tier model).
+- Per-role configs `cursor/roles/intake.yaml` and `cursor/roles/director-framing.yaml` (intake: cheap model; framing: Director-tier model; projections).
 - Golden fixtures: two sample prompts (one investment, one deliberately vague) with expected-structure assertions (field presence and constraints, not exact text).
 
 ## Out of scope
@@ -39,7 +39,7 @@ Fixture assertions are structural: valid `DecisionSpec`, ≥5 alternatives for t
 
 - [ ] `cursor/roles/intake.md`, `cursor/roles/director-framing.md`
 - [ ] `IntakeRecord`, `FramingApproval` models + schema exports
-- [ ] `roles.yaml` entries, projection config
+- [ ] `cursor/roles/intake.yaml`, `cursor/roles/director-framing.yaml`
 - [ ] `tests/test_role_framing.py` + fixtures; live mini-run test
 
 ## Acceptance criteria

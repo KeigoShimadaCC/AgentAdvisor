@@ -26,6 +26,7 @@ North star 5.8 (simple first) and 23 (transparent, testable system). No workflow
 - Package `orchestrator/` (flat layout) with `__init__.py` exposing `__version__`.
 - `tests/test_sanity.py`: imports the package, asserts version.
 - `Makefile` with targets: `init` (uv sync), `lint`, `type`, `test`, `check` (lint + type + test).
+- pytest marker registration for `live` and `live_slow`, deselected by default (`addopts = -m "not live and not live_slow"`), so model-calling tests never run accidentally.
 - Remove `orchestrator/.gitkeep` and `tests/.gitkeep` as the folders gain content.
 
 ## Out of scope
@@ -48,6 +49,7 @@ Single root `pyproject.toml`, no src-layout (personal project, one package). myp
 - [ ] `make check` exits 0 from a clean clone after `make init`.
 - [ ] `uv run python -c "import orchestrator; print(orchestrator.__version__)"` prints a version.
 - [ ] `make lint`, `make type`, `make test` each run and exit 0 individually.
+- [ ] `uv run pytest` collects zero `live`/`live_slow` tests by default (marker registration verified with a dummy marked test).
 
 ## Verification plan
 

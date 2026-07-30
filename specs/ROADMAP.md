@@ -32,6 +32,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 **Findings**
 
 - (pre-phase, 2026-07-30) Cursor CLI validated as the Phase 1 harness: headless `-p` works; JSON envelope carries usage, session_id, duration; 3-way concurrency across model families succeeded; ~12–24k input-token overhead per invocation even for trivial tasks; no schema-constrained generation, so the file-write-then-validate pattern is mandatory. Details: `../report-and-findings/2026-07-30-cursor-cli-research.md`
+- (pre-phase, 2026-07-30) Spec review against the north star and PROJECT_PLAN closed five gaps before implementation: missing PROVISIONAL_THESIS stage (SPEC-007/018), unwired final-falsification/repair routing (SPEC-007/018), uncomputed model stability (now `orchestrator/stability.py` in SPEC-013), missing `ProbabilityEstimate` basis structure (SPEC-003), and unrestricted runtime write access (per-workspace `.cursor/cli.json` in SPEC-006). Shared files were re-partitioned (per-role `cursor/roles/<role>.yaml`, `orchestrator/artifacts/` package, invocation-kit variants owned by SPEC-006) so Phase 3 specs remain parallel-safe.
 
 ## Phase 1 — Agent backend [not_started]
 
@@ -116,12 +117,15 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 
 - Concurrency behavior at more than 3 parallel CLI invocations (current cap: 3)
 - `--resume <session_id>` repair-cycle experiment: resuming the Director versus fresh invocation with projected context (north star Section 21, question 1/7 adjacent)
-- Per-role permission and sandbox profiles (`.cursor/cli.json`, `.cursor/sandbox.json`), including hard no-network enforcement for Analyst scripts (SPEC-013)
+- Sandbox policies and hard network enforcement (`.cursor/sandbox.json`), including no-network guarantees for Analyst scripts (SPEC-013); per-workspace `.cursor/cli.json` write/shell profiles were promoted into SPEC-006
 - MCP-based research tooling for the Researcher role (search providers, citation extraction) (SPEC-012)
 - Root `AGENTS.md` leakage mitigation, if the SPEC-002 smoke test detects leakage into runtime agent workspaces
 - Live citation re-verification by the reviewer (north star open question 8; out of scope in SPEC-017)
 - Repeated-run consistency measurement across benchmarks (out of scope in SPEC-021)
+- Domain Specialist skill packs under `cursor/skills/` (north star 6.7); the MVP relies on the generic Researcher and Analyst
+- Per-task marginal-value gate (north star Section 13 rule); MVP substitutes priority ordering, task caps, and Auditor relevance flags (accepted simplification)
+- Evaluation of workflow variations (north star Section 19 item 3); SPEC-021 runs baseline + full workflow only
 
 **Promoted**
 
-- —
+- Per-workspace permission profiles (`.cursor/cli.json`) → SPEC-006 (2026-07-30, spec review)

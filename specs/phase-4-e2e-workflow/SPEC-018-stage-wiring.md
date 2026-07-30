@@ -24,14 +24,15 @@ North star Section 8 defines the workflow; Sections 14/15 define where the human
 `orchestrator/stages.py` handlers, one per stage:
 
 - INTAKE → intake role; FRAMING → director-framing; halt at AWAITING_FRAMING_APPROVAL until a `FramingApproval` artifact exists (written via CLI in SPEC-019; tests write it directly).
+- PROVISIONAL_THESIS → director (provisional-thesis mode) immediately after framing approval (north star Stage 3).
 - PLANNING → planner + acceptance filter + task-graph population; auditor checkpoint.
 - INVESTIGATION → task-graph dispatch (researchers/analyst) with budget gating and normalization; auditor checkpoint per wave.
 - PRELIMINARY_RECOMMENDATION → director (preliminary mode).
 - CHALLENGE → challenger; auditor checkpoint (objection triage inputs).
-- STOP_DECISION → StopEvaluator over auditor stop-inputs, objections, budget; routes to REPAIR (≤2, planner repair mode + targeted dispatch + director update) or SYNTHESIS.
+- STOP_DECISION → StopEvaluator over auditor stop-inputs, objections, stability (SPEC-013 function), budget; routes to REPAIR (≤2: planner repair mode + targeted dispatch + director update, then CHALLENGE in final-falsification mode before the next stop decision) or SYNTHESIS.
 - SYNTHESIS → synthesizer; REVIEW → reviewer gate (one synthesis retry on fail); render; halt at AWAITING_FINAL_APPROVAL; DONE.
 - Auditor findings reactions (deterministic): duplicate task → cancel; off-topic task → cancel + audit; mandate violation → re-run producer through retry ladder.
-- Toy case fixture: two-alternative purchase-timing decision, tiny budget (≤15 invocations), all roles pinned to cheap models via a test `roles.yaml` override.
+- Toy case fixture: two-alternative purchase-timing decision, tiny budget (≤15 invocations), all roles pinned to cheap models via test role-config overrides.
 
 ## Out of scope
 
@@ -49,7 +50,7 @@ Handlers contain orchestration only; every substantive judgment stays inside rol
 
 ## Acceptance criteria
 
-- [ ] Stub E2E: stage sequence matches the Section 8 order, both approval gates halt and resume, repair loop never exceeds 2, every invocation and transition present in audit.jsonl.
+- [ ] Stub E2E: stage sequence matches the Section 8 order including PROVISIONAL_THESIS, both approval gates halt and resume, each repair cycle routes REPAIR → CHALLENGE (final falsification) → STOP_DECISION with at most 2 cycles, every invocation and transition present in audit.jsonl.
 - [ ] Budget exhaustion path (stub): tiny budget forces a stop with DisclosureRecord surfaced in the rendered output.
 - [ ] Live toy case: completes ≤15 invocations, produces valid FinalRecommendation + final_recommendation.md, total usage recorded in audit log.
 - [ ] Case resume works mid-INVESTIGATION on the stub run (kill and continue).

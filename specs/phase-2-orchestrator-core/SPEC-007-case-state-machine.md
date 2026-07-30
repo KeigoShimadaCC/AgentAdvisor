@@ -23,10 +23,10 @@ North star 5.4: deterministic control around probabilistic workers. The state ma
 
 `orchestrator/state_machine.py`:
 
-- `CaseStage` enum: `INTAKE`, `FRAMING`, `AWAITING_FRAMING_APPROVAL`, `PLANNING`, `INVESTIGATION`, `PRELIMINARY_RECOMMENDATION`, `CHALLENGE`, `REPAIR`, `STOP_DECISION`, `SYNTHESIS`, `REVIEW`, `AWAITING_FINAL_APPROVAL`, `DONE`, `FAILED`.
+- `CaseStage` enum: `INTAKE`, `FRAMING`, `AWAITING_FRAMING_APPROVAL`, `PROVISIONAL_THESIS`, `PLANNING`, `INVESTIGATION`, `PRELIMINARY_RECOMMENDATION`, `CHALLENGE`, `REPAIR`, `STOP_DECISION`, `SYNTHESIS`, `REVIEW`, `AWAITING_FINAL_APPROVAL`, `DONE`, `FAILED`.
 - `CaseState` model (extends SPEC-003): stage, repair_cycle count, budget counters reference, timestamps; persisted as `state.yaml` via case store.
 - Transition table as data: allowed (stage → stage) pairs; anything else raises `IllegalTransition`.
-- `route(state) -> StepPlan`: pure function returning the next step descriptor (which handler, which roles) for the current stage. Repair loop: `STOP_DECISION` routes to `REPAIR` at most twice before forcing `SYNTHESIS`.
+- `route(state) -> StepPlan`: pure function returning the next step descriptor (which handler, which roles) for the current stage. Repair loop (north star 5.3): `STOP_DECISION` routes to `REPAIR` at most twice; each repair returns through `CHALLENGE` in final-falsification mode before the next `STOP_DECISION`; after the cap, `SYNTHESIS` is forced.
 - `run_case(case, handlers, until=None)`: loop `route → execute handler → reduce → checkpoint`; handlers injected (real stage handlers arrive in SPEC-018; tests use stubs).
 - Approval stages halt the loop and return control to the caller.
 
@@ -45,8 +45,8 @@ Real stage handlers (SPEC-018), budget math (SPEC-008; the state machine only ca
 
 ## Acceptance criteria
 
-- [ ] Happy-path simulation with stub handlers walks INTAKE → … → DONE, checkpointing at every transition (assert one state.yaml write per transition).
-- [ ] Repair loop executes at most 2 REPAIR passes, then forces SYNTHESIS.
+- [ ] Happy-path simulation with stub handlers walks INTAKE → … → DONE including `PROVISIONAL_THESIS` between framing approval and planning, checkpointing at every transition (assert one state.yaml write per transition).
+- [ ] Repair loop executes at most 2 REPAIR passes, each routing REPAIR → CHALLENGE → STOP_DECISION, then forces SYNTHESIS.
 - [ ] Illegal transitions raise; FAILED reachable from any active stage on error results.
 - [ ] Kill-and-resume: interrupting after any transition and calling `run_case` again completes identically (same final stage sequence).
 - [ ] `make check` green.

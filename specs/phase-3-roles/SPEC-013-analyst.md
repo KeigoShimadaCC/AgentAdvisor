@@ -21,11 +21,12 @@ North star 6.6 and the Section 8 decision model: no unsupported arithmetic in pr
 
 ## Scope
 
-- `cursor/roles/analyst.md`: build the scenario set (bull/base/bear/failure plus decision-specific factors), state every assumption as an `AssumptionRecord` reference or new proposal, write a standalone Python script `analysis/<task-id>/model.py` (stdlib + numpy if present) that prints a deterministic `results.yaml` (scenarios with probability ranges, per-alternative expected values, sensitivity table, break-even thresholds), seed-fixed where stochastic; ranges over false precision (Section 5.5/9).
+- `cursor/roles/analyst.md`: build the scenario set (bull/base/bear/failure plus decision-specific factors), state every assumption as an `AssumptionRecord` reference or new proposal, write a standalone Python script `analysis/<task-id>/model.py` (stdlib + numpy if present) that prints a deterministic `results.yaml` (scenarios with probability ranges, per-alternative expected values, sensitivity table, break-even thresholds), seed-fixed where stochastic; ranges over false precision (Section 5.5/9); scenario probabilities expressed as `ProbabilityEstimate`s built base-rate-first (reference class, then documented adjustments citing evidence IDs).
 - `AnalysisResult` artifact model binding `results.yaml` + declared assumptions + script path.
+- Stability function `orchestrator/stability.py`: pure computation of model stability (share of sensitivity runs in which a given preferred alternative remains best) from an `AnalysisResult`; consumed by the stop decision (SPEC-008) and the final package (SPEC-017).
 - Reproducibility gate in `orchestrator/reproduce.py`: re-run `model.py` in a fresh subprocess (timeout, cwd = analysis dir), diff regenerated `results.yaml` against the committed one (exact for fixed-seed, tolerance 1e-9 for floats).
 - Analyst workspace exception: projection mounts `analysis/<task-id>/` as writable working area in addition to `outputs/`.
-- `roles.yaml` entry (coding-strong model: gpt-5.3-codex per research report), projection config (decision spec, relevant evidence, assumption registry slice).
+- `cursor/roles/analyst.yaml` (coding-strong model: gpt-5.3-codex per research report; Shell-enabled permission profile; projection: decision spec, relevant evidence, assumption registry slice).
 
 ## Out of scope
 
@@ -40,8 +41,9 @@ The reproducibility gate is the acceptance boundary: an analysis whose rerun div
 - [ ] `cursor/roles/analyst.md`
 - [ ] `AnalysisResult` model + schema export
 - [ ] `orchestrator/reproduce.py`
-- [ ] `roles.yaml` entry, projection config
-- [ ] `tests/test_reproduce.py` (fixture script: pass, diverge, timeout), `tests/test_role_analyst.py`; live mini-run test
+- [ ] `orchestrator/stability.py`
+- [ ] `cursor/roles/analyst.yaml`
+- [ ] `tests/test_reproduce.py` (fixture script: pass, diverge, timeout), `tests/test_stability.py`, `tests/test_role_analyst.py`; live mini-run test
 
 ## Acceptance criteria
 
