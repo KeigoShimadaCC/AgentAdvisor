@@ -1,0 +1,145 @@
+{
+  "$defs": {
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "ObjectionMode": {
+      "enum": [
+        "standard",
+        "final_pass"
+      ],
+      "title": "ObjectionMode",
+      "type": "string"
+    },
+    "ObjectionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "minLength": 1,
+          "title": "Claim",
+          "type": "string"
+        },
+        "commissioned_tasks": {
+          "items": {
+            "pattern": "^T-\\d+$",
+            "type": "string"
+          },
+          "title": "Commissioned Tasks",
+          "type": "array"
+        },
+        "materiality": {
+          "$ref": "#/$defs/Level"
+        },
+        "objection_id": {
+          "pattern": "^O-\\d+$",
+          "title": "Objection Id",
+          "type": "string"
+        },
+        "reasoning": {
+          "minLength": 1,
+          "title": "Reasoning",
+          "type": "string"
+        },
+        "referenced_assumption_ids": {
+          "items": {
+            "pattern": "^A-\\d+$",
+            "type": "string"
+          },
+          "title": "Referenced Assumption Ids",
+          "type": "array"
+        },
+        "referenced_evidence_ids": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "title": "Referenced Evidence Ids",
+          "type": "array"
+        },
+        "resolution_status": {
+          "$ref": "#/$defs/ObjectionResolutionStatus"
+        },
+        "reversal_evidence": {
+          "minLength": 1,
+          "title": "Reversal Evidence",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "target_section": {
+          "minLength": 1,
+          "title": "Target Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "objection_id",
+        "target_section",
+        "claim",
+        "materiality",
+        "reasoning",
+        "reversal_evidence",
+        "resolution_status"
+      ],
+      "title": "ObjectionRecord",
+      "type": "object"
+    },
+    "ObjectionResolutionStatus": {
+      "enum": [
+        "open",
+        "partially_resolved",
+        "resolved",
+        "dismissed"
+      ],
+      "title": "ObjectionResolutionStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "mode": {
+      "$ref": "#/$defs/ObjectionMode"
+    },
+    "no_objections_justification": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "No Objections Justification"
+    },
+    "objections": {
+      "items": {
+        "$ref": "#/$defs/ObjectionRecord"
+      },
+      "title": "Objections",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "mode"
+  ],
+  "title": "ObjectionBatch",
+  "type": "object"
+}

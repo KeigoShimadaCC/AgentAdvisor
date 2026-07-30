@@ -1,0 +1,14 @@
+alternatives_mentioned:
+- invest_now
+clarification_questions: []
+constraints:
+- keep_loss_below_10_percent
+deadline: 2026-09-01
+decision_question: Should I invest in AAA?
+depth: standard
+objectives:
+- expected_return
+raw_prompt: Should I invest in AAA?
+reversibility: partially_reversible
+risk_tolerance: medium
+schema_version: 1

@@ -1,0 +1,91 @@
+records:
+  - evidence_id: E-001
+    claim: Japan 2020 census population was 126,146,099 people.
+    source_title: Population and Households of Japan 2020 Census
+    publisher: Statistics Bureau of Japan
+    source_url: https://www.stat.go.jp/data/kokusei/2020/kekka.html?utm_source=weekly
+    source_type: official_statistic
+    publication_date: "2021-11-30"
+    retrieval_date: "2026-07-31"
+    excerpt: The total population was 126,146,099 in the 2020 census.
+    reliability: high
+    directness: high
+    independence_group: placeholder
+    limitations:
+      - Final detailed tables are released in staged updates.
+    retrieved_by: researcher
+  - evidence_id: E-002
+    claim: Japan 2020 census population was 126,146,099 people.
+    source_title: Population and Households of Japan 2020 Census
+    publisher: Statistics Bureau of Japan
+    source_url: https://www.stat.go.jp/data/kokusei/2020/kekka.html?utm_source=digest&utm_medium=email
+    source_type: official_statistic
+    publication_date: "2021-11-30"
+    retrieval_date: "2026-07-31"
+    excerpt: The total population was 126,146,099 in the 2020 census.
+    reliability: high
+    directness: high
+    independence_group: placeholder
+    limitations:
+      - Mirrors the same official release.
+    retrieved_by: researcher
+  - evidence_id: E-003
+    claim: Reuters said Japan's economy contracted 0.5% in Q1 2020.
+    source_title: Economy update
+    publisher: Example Daily
+    source_url: https://example-daily.jp/economy/japan-q1-2020
+    source_type: specialist_reporting
+    publication_date: "2020-05-18"
+    retrieval_date: "2026-07-31"
+    excerpt: Reuters reported that Japan's economy contracted 0.5% in Q1 2020.
+    reliability: medium
+    directness: medium
+    independence_group: placeholder
+    limitations:
+      - Secondary reporting on wire content.
+    retrieved_by: researcher
+  - evidence_id: E-004
+    claim: According to Reuters, Japan's economy contracted 0.5% in Q1 2020.
+    source_title: Market brief
+    publisher: Markets Bulletin
+    source_url: https://markets-bulletin.com/asia/japan-q1-contracts
+    source_type: specialist_reporting
+    publication_date: "2020-05-18"
+    retrieval_date: "2026-07-31"
+    excerpt: This article republishes Reuters data on Q1 contraction of 0.5%.
+    reliability: medium
+    directness: medium
+    independence_group: placeholder
+    limitations:
+      - Syndicated wire copy.
+    retrieved_by: researcher
+  - evidence_id: E-005
+    claim: Japan 2020 census population was 125,000,000 people.
+    source_title: Population estimate note
+    publisher: Example Population Blog
+    source_url: https://example-population.blog/posts/japan-2020-census-estimate
+    source_type: other
+    publication_date: "2022-03-01"
+    retrieval_date: "2026-07-31"
+    excerpt: The post claims a 2020 census population of 125,000,000.
+    reliability: low
+    directness: low
+    independence_group: placeholder
+    limitations:
+      - Unofficial estimate.
+    retrieved_by: researcher
+  - evidence_id: E-006
+    claim: Japan's total fertility rate was 1.26 in 2005.
+    source_title: Fertility trends report
+    publisher: Historical Data Archive
+    source_url: https://archive.example.org/japan/fertility-2005
+    source_type: specialist_reporting
+    publication_date: "2006-07-01"
+    retrieval_date: "2026-07-31"
+    excerpt: Archived report states fertility rate was 1.26 in 2005.
+    reliability: medium
+    directness: medium
+    independence_group: placeholder
+    limitations:
+      - Historical record only.
+    retrieved_by: researcher

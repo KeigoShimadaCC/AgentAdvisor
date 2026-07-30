@@ -1,0 +1,18 @@
+schema_version: 1
+mode: standard
+objections:
+  - schema_version: 1
+    objection_id: O-401
+    target_section: preliminary_recommendation.rationale[1]
+    claim: The recommendation makes an uncited inferential leap on churn durability after repricing.
+    materiality: high
+    reasoning: |
+      This is load-bearing because the preferred alternative is invest_now at full size.
+      The cited input is company-reported expansion data and does not establish post-repricing churn behavior.
+    reversal_evidence: Independent cohort-level churn data from comparable repricing events showing churn stays at or below 2 percent.
+    referenced_evidence_ids:
+      - E-301
+    referenced_assumption_ids:
+      - A-301
+    resolution_status: open
+    commissioned_tasks: []

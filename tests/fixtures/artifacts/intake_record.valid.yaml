@@ -1,0 +1,25 @@
+alternatives_mentioned:
+- invest_now
+clarification_questions:
+- materiality_reason: Portfolio concentration materially changes acceptable position
+    sizing.
+  question: What maximum portfolio share are you willing to allocate?
+  question_id: CQ-001
+  resolves_field: constraints
+  schema_version: 1
+- materiality_reason: Recommendation quality depends on horizon-aligned scenario weighting.
+  question: By what date do you need to make this decision?
+  question_id: CQ-002
+  resolves_field: deadline
+  schema_version: 1
+constraints: null
+deadline: null
+decision_question: Should I invest in AAA?
+depth: standard
+objectives:
+- downside_protection
+- expected_return
+raw_prompt: Should I invest in AAA this year?
+reversibility: partially_reversible
+risk_tolerance: moderate
+schema_version: 1

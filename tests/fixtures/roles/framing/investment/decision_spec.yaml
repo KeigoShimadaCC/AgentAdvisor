@@ -1,0 +1,21 @@
+schema_version: 1
+decision_id: case-001-framing-investment
+question: Should I invest in AAA this quarter, and if so on what terms and timing?
+owner: user
+deadline: 2026-10-15
+alternatives:
+  - Invest $100,000 now at current terms
+  - Invest a smaller initial amount now
+  - Invest in stages tied to milestones
+  - Wait for a milestone before investing
+  - Seek AAA exposure through an alternative vehicle
+  - Decline this round and revisit later
+objectives:
+  - Maximize expected risk-adjusted return
+  - Maintain required near-term liquidity
+constraints:
+  - Preserve liquidity for a home down payment in about 18 months
+  - Do not invest above a $40M pre-money valuation
+risk_tolerance: moderate
+reversibility: partially_reversible
+depth: standard

@@ -1,0 +1,52 @@
+task_id: T-012-replay
+question: What population did Japan's 2020 national census record?
+no_evidence_found: false
+search_notes: >
+  Queried Statistics Bureau releases and mirror links; kept primary 2020 census page,
+  quarantined a duplicate-tracked URL and an invalid empty-URL record.
+records:
+  - evidence_id: E-101
+    claim: Japan 2020 census population was 126,146,099 people.
+    source_title: 2020 Population Census
+    publisher: Statistics Bureau of Japan
+    source_url: https://www.stat.go.jp/data/kokusei/2020/kekka.html
+    source_type: official_statistic
+    publication_date: "2021-11-30"
+    retrieval_date: "2026-07-31"
+    excerpt: Total population was 126,146,099.
+    reliability: high
+    directness: high
+    independence_group: placeholder
+    limitations:
+      - Release timing differs by table type.
+    retrieved_by: researcher
+  - evidence_id: E-102
+    claim: Japan 2020 census population was 126,146,099 people.
+    source_title: 2020 Population Census mirror
+    publisher: Statistics Bureau of Japan
+    source_url: https://www.stat.go.jp/data/kokusei/2020/kekka.html?utm_source=mirror
+    source_type: official_statistic
+    publication_date: "2021-11-30"
+    retrieval_date: "2026-07-31"
+    excerpt: Total population was 126,146,099.
+    reliability: high
+    directness: high
+    independence_group: placeholder
+    limitations:
+      - Duplicate mirror.
+    retrieved_by: researcher
+  - evidence_id: E-103
+    claim: Invalid record missing required URL.
+    source_title: Broken source
+    publisher: Broken publisher
+    source_url: ""
+    source_type: other
+    publication_date: "2026-01-01"
+    retrieval_date: "2026-07-31"
+    excerpt: Broken evidence entry.
+    reliability: low
+    directness: low
+    independence_group: placeholder
+    limitations:
+      - Invalid fixture on purpose.
+    retrieved_by: researcher

@@ -1,0 +1,32 @@
+- schema_version: 1
+  evidence_id: E-101
+  claim: Comparable investments show downside concentration when entry pricing is aggressive.
+  source_title: 2026 Venture Outcome Review
+  publisher: Example Capital Research
+  source_url: https://example.com/venture-outcome-review
+  source_type: reputable_secondary
+  publication_date: 2026-03-01
+  retrieval_date: 2026-07-30
+  excerpt: Aggressive entry pricing correlated with higher loss rates in comparable deals.
+  reliability: medium
+  directness: medium
+  independence_group: venture-outcomes-2026
+  limitations:
+    - Aggregated secondary analysis.
+  retrieved_by: researcher-market
+- schema_version: 1
+  evidence_id: E-102
+  claim: AAA filed customer retention metrics above peer median in Q2.
+  source_title: AAA Q2 filing
+  publisher: AAA Investor Relations
+  source_url: https://example.com/aaa-q2-filing
+  source_type: regulatory_filing
+  publication_date: 2026-06-20
+  retrieval_date: 2026-07-30
+  excerpt: Net dollar retention of 122%, above peer quartile thresholds in cited benchmark.
+  reliability: high
+  directness: high
+  independence_group: aaa-q2-filing
+  limitations:
+    - Company-reported metric definitions may differ from peers.
+  retrieved_by: researcher-finance

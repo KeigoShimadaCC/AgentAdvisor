@@ -1,0 +1,31 @@
+assumption_ids:
+- A-17
+break_even_thresholds: []
+evidence_ids:
+- E-102
+expected_values_by_alternative:
+  invest_now: 1.35
+  wait_for_milestone: 1.12
+results_path: analysis/T-101/results.yaml
+scenarios:
+- probability:
+    adjustments: []
+    base_rate: 0.2
+    interval_high: null
+    interval_low: null
+    method: reference_class
+    point: 0.25
+    reference_class: Comparable early-stage investments
+    schema_version: 1
+  scenario_name: bull
+  schema_version: 1
+schema_version: 1
+script_path: analysis/T-101/model.py
+sensitivity_table:
+- parameter: success_probability
+  parameter_value: 0.35
+  preferred_alternative: invest_now
+  resulting_expected_values:
+    invest_now: 1.04
+  schema_version: 1
+task_id: T-101

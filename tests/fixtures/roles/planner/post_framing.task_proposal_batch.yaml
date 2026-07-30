@@ -1,0 +1,74 @@
+mode: initial
+proposals:
+  - schema_version: 1
+    task:
+      schema_version: 1
+      role: researcher
+      question: What is the reference-class base rate of loss-making outcomes for comparable
+        pre-IPO software investments over five years?
+      why_it_matters: Base rates can materially change downside probability and may reverse
+        invest_now versus wait_for_milestone.
+      expected_information_gain: high
+      materiality: high
+      probability_of_changing_conclusion: 0.72
+      estimated_cost: 1.1
+      inputs:
+        - decision_spec
+        - open_assumptions
+      required_output: evidence_records with cited base-rate candidates and source independence
+        groups.
+      completion_criteria: At least three independent reference-class estimates with date,
+        definition notes, and one contradictory source.
+      priority: high
+      priority_score: 92
+      priority_rationale: Directly updates high-materiality probability assumptions.
+    depends_on_indices: []
+    resolves_objections: []
+  - schema_version: 1
+    task:
+      schema_version: 1
+      role: analyst
+      question: How does expected utility ranking change across base, downside, and severe
+        dilution scenarios using the updated base-rate priors?
+      why_it_matters: Recommendation ranking depends on scenario-weighted utility and can flip
+        if downside priors rise.
+      expected_information_gain: high
+      materiality: high
+      probability_of_changing_conclusion: 0.64
+      estimated_cost: 1.4
+      inputs:
+        - decision_spec
+        - evidence_base_rates
+      required_output: analysis_result with scenario table, expected values, and sensitivity
+        thresholds.
+      completion_criteria: Deterministic script and reproducible analysis artifact with clearly
+        labeled assumptions.
+      priority: high
+      priority_score: 88
+      priority_rationale: Converts new evidence into decision-comparative outcomes.
+    depends_on_indices:
+      - 0
+    resolves_objections: []
+  - schema_version: 1
+    task:
+      schema_version: 1
+      role: researcher
+      question: What milestone evidence would most reliably indicate product-market fit before
+        committing full capital?
+      why_it_matters: Clarifies whether staged investment dominates all-in timing under current
+        uncertainty.
+      expected_information_gain: medium
+      materiality: medium
+      probability_of_changing_conclusion: 0.46
+      estimated_cost: 0.9
+      inputs:
+        - decision_spec
+        - preliminary_recommendation
+      required_output: evidence_records mapping milestone quality to forward performance outcomes.
+      completion_criteria: Two primary or reputable-secondary sources plus explicit limitations.
+      priority: medium
+      priority_score: 67
+      priority_rationale: Narrows uncertainty on timing-sensitive alternative choice.
+    depends_on_indices: []
+    resolves_objections: []
+schema_version: 1

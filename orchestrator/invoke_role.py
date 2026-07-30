@@ -52,6 +52,7 @@ class InvokeTask:
     output_artifact_type: str
     timeout_s: float = DEFAULT_TIMEOUT_S
     projection_budget_chars: int = DEFAULT_PROJECTION_BUDGET_CHARS
+    mode: str | None = None
 
 
 class RoleInvocationFailed(RuntimeError):
@@ -173,8 +174,9 @@ def _invoke_internal(
     task: TaskRecord | InvokeTask,
     backend: AgentBackend | None,
     read_only_stdout: bool,
+    variant: str | None,
 ) -> BaseModel:
-    config = load_role_config(role)
+    config = load_role_config(role, variant)
     normalized_task = _coerce_task(task)
     if normalized_task.output_artifact_type != config.output_artifact_type:
         raise RoleInvocationFailed(
@@ -202,6 +204,7 @@ def _invoke_internal(
             ),
             required_output_schema=normalized_task.output_artifact_type,
             feedback=feedback,
+            mode=normalized_task.mode,
         )
         layout = build_workspace(
             case=case,
@@ -315,9 +318,15 @@ def invoke(
     task: TaskRecord | InvokeTask,
     *,
     backend: AgentBackend | None = None,
+    variant: str | None = None,
 ) -> BaseModel:
     return _invoke_internal(
-        case=case, role=role, task=task, backend=backend, read_only_stdout=False
+        case=case,
+        role=role,
+        task=task,
+        backend=backend,
+        read_only_stdout=False,
+        variant=variant,
     )
 
 
@@ -327,5 +336,13 @@ def invoke_read_only(
     task: TaskRecord | InvokeTask,
     *,
     backend: AgentBackend | None = None,
+    variant: str | None = None,
 ) -> BaseModel:
-    return _invoke_internal(case=case, role=role, task=task, backend=backend, read_only_stdout=True)
+    return _invoke_internal(
+        case=case,
+        role=role,
+        task=task,
+        backend=backend,
+        read_only_stdout=True,
+        variant=variant,
+    )

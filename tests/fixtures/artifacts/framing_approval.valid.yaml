@@ -1,0 +1,7 @@
+approved_at: '2026-07-31T10:30:00Z'
+approved_by: user
+clarification_answers:
+  CQ-001: Maximum acceptable loss is 10%.
+decision: answer_clarifications
+edits: {}
+schema_version: 1

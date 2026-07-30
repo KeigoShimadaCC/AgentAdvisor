@@ -1,0 +1,12 @@
+schema_version: 1
+outcome: fail
+defects:
+  - schema_version: 1
+    defect_type: false_precision
+    target_id: case-001-synthesis
+    explanation: Probability point estimate 51.7% is presented despite weak evidence and no
+      interval framing.
+  - schema_version: 1
+    defect_type: unsupported_citation
+    target_id: E-999
+    explanation: Citation E-999 does not exist in the provided evidence ledger.

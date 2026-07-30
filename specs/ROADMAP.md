@@ -12,7 +12,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 0 | Foundations | done | — |
 | 1 | Agent backend | done | 0 (parallel with 2) |
 | 2 | Orchestrator core | done | 0 (parallel with 1) |
-| 3 | Roles | in_progress | 1, 0.3 (role specs mutually parallel) |
+| 3 | Roles | done | 1, 0.3 (role specs mutually parallel) |
 | 4 | End-to-end workflow and CLI | not_started | 2, 3 |
 | 5 | Evaluation and hardening | not_started | 4 |
 
@@ -69,24 +69,30 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 - **(2026-07-31) The marginal-value rule is now enforced rather than deferred.** North star Section 13 assigns enforcement to the orchestrator, and it had been recorded as an accepted MVP simplification. Once the cost field existed the gate was trivial, so it is implemented as a pre-dispatch check that leaves refused tasks `planned` and audits the computed numbers. This closes the emergent-work candidate rather than carrying it.
 - (2026-07-31) A failing task used to be recorded as `blocked`, which made it indistinguishable from a task blocked by someone else's failure. `TaskStatus.FAILED` was added so the audit trail can tell the difference.
 
-## Phase 3 — Roles [not_started]
+## Phase 3 — Roles [done]
 
 **Specs**
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-010 | Intake and framing roles | draft |
-| SPEC-011 | Planner role | draft |
-| SPEC-012 | Researcher role and evidence normalization | draft |
-| SPEC-013 | Quantitative Analyst role | draft |
-| SPEC-014 | Director thesis and preliminary recommendation | draft |
-| SPEC-015 | Challenger role | draft |
-| SPEC-016 | Process Auditor role | draft |
-| SPEC-017 | Synthesizer and calibration/citation reviewer | draft |
+| SPEC-010 | Intake and framing roles | verified |
+| SPEC-011 | Planner role | verified |
+| SPEC-012 | Researcher role and evidence normalization | verified |
+| SPEC-013 | Quantitative Analyst role | verified |
+| SPEC-014 | Director thesis and preliminary recommendation | verified |
+| SPEC-015 | Challenger role | verified |
+| SPEC-016 | Process Auditor role | verified |
+| SPEC-017 | Synthesizer and calibration/citation reviewer | verified |
 
 **Findings**
 
-- —
+- (2026-07-31) The invocation kit needed three amendments discovered during parallel role implementation: `variant` parameter for named role configs (SPEC-010 framing), `mode` field in `task.yaml` for task-mode branching (Director/Planner/Challenger/Auditor), and projection routing through canonical `case_store` paths instead of ad-hoc `outputs/` guesses. Unknown projection keys now raise `ProjectionError` rather than silently returning empty context. SPEC-006 was amended to record these.
+- (2026-07-31) Two batch artifact models were added because the specs require multiple records per invocation but the kit produces one artifact: `EvidenceBatch` (Researcher, cap 8, `no_evidence_found` as first-class outcome) and `ObjectionBatch` (Challenger, caps 5/2 by mode, `no_objections_justification` for empty). `orchestrator/unpack.py` unpacks batches into individual blackboard records with orchestrator-allocated canonical IDs; agent-supplied IDs are never trusted for persistence. `case.write_artifact` on a batch raises a targeted error.
+- (2026-07-31) `ObjectionRecord` was extended with `reversal_evidence`, `target_section`, `referenced_evidence_ids`, and `referenced_assumption_ids` as first-class fields. A compatibility pre-validator that silently coerced legacy fields was removed because it violated the "validate before accepting" rule. Nine stale fixtures were migrated.
+- (2026-07-31) Three live tests initially skipped instead of failing (analyst, synthesizer, reviewer), and the director live test used a fabricated `composer-2.5` config instead of the real `claude-opus-5-thinking-high`. All four were fixed: skips removed, director monkeypatch removed, role mds enriched with explicit schema-valid YAML templates and field-type constraints, timeouts raised to 300s for the analyst and synthesizer. All 13 live tests now pass with real configurations.
+- (2026-07-31) The Auditor live run confirmed that fenced-YAML-in-stdout under plan mode is not fully reliable: the model did not fence the YAML block, and success depended on `_extract_yaml_block`'s fallback. The fallback is sufficient; the write-enabled path remains available if needed.
+- (2026-07-31) Final-recommendation citation checking is currently in `orchestrator/render.py` and the synthesis test file; it should be consolidated with `orchestrator/citations.py` (owned by SPEC-014) in Phase 4.
+- (2026-07-31) Full suite: 176 unit tests + 13 live tests green.
 
 ## Phase 4 — End-to-end workflow and CLI [not_started]
 

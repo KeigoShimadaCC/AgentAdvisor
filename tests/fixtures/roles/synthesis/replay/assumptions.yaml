@@ -1,0 +1,20 @@
+- schema_version: 1
+  assumption_id: A-001
+  claim: AAA can sustain retention above 115% for the next four quarters.
+  type: forecast
+  estimate:
+    schema_version: 1
+    method: structured_subjective
+    point: 0.62
+    reference_class: Growth-stage SaaS retention persistence
+    base_rate: null
+    interval_low: null
+    interval_high: null
+    adjustments: []
+  confidence: medium
+  materiality: high
+  evidence_for:
+    - E-102
+  evidence_against:
+    - E-101
+  status: unresolved

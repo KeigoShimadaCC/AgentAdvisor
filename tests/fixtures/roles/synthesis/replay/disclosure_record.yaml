@@ -1,0 +1,7 @@
+schema_version: 1
+stop_reasons:
+  - investigation_budget_exhausted
+  - expected_value_of_more_research_low
+exhausted_dimensions:
+  - max_research_tasks
+  - wall_clock

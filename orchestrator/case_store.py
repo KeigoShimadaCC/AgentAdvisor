@@ -27,12 +27,22 @@ import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
 from orchestrator.artifacts import (
+    AnalysisResult,
     AssumptionRecord,
     AuditEvent,
+    AuditFinding,
     DecisionSpec,
     DisclosureRecord,
+    EvidenceBatch,
     EvidenceRecord,
+    FinalRecommendation,
+    FramingApproval,
+    IntakeRecord,
+    ObjectionBatch,
     ObjectionRecord,
+    PreliminaryRecommendation,
+    ReviewReport,
+    TaskProposalBatch,
     TaskRecord,
 )
 from orchestrator.artifacts.yaml_io import dump_model_to_yaml_text, load_model_from_yaml_path
@@ -93,8 +103,38 @@ def atomic_write_text(path: Path, content: str) -> None:
 
 
 def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
+    if isinstance(model, EvidenceBatch):
+        raise TypeError(
+            "EvidenceBatch cannot be written directly to case storage. "
+            "Batches are transport envelopes archived with the agent workspace "
+            "(agents/<role>--<task_id>/outputs). Unpack into EvidenceRecord artifacts via "
+            "orchestrator.unpack.unpack_evidence_batch(case, batch)."
+        )
+    if isinstance(model, ObjectionBatch):
+        raise TypeError(
+            "ObjectionBatch cannot be written directly to case storage. "
+            "Batches are transport envelopes archived with the agent workspace "
+            "(agents/<role>--<task_id>/outputs). Unpack into ObjectionRecord artifacts via "
+            "orchestrator.unpack.unpack_objection_batch(case, batch)."
+        )
+    if isinstance(model, IntakeRecord):
+        return case_root / "shared" / "intake_record.yaml"
+    if isinstance(model, FramingApproval):
+        return case_root / "shared" / "framing_approval.yaml"
     if isinstance(model, DecisionSpec):
         return case_root / "shared" / "decision_spec.yaml"
+    if isinstance(model, PreliminaryRecommendation):
+        return case_root / "shared" / "preliminary_recommendation.yaml"
+    if isinstance(model, FinalRecommendation):
+        return case_root / "outputs" / "final_recommendation.yaml"
+    if isinstance(model, TaskProposalBatch):
+        return case_root / "shared" / "task_proposal_batch.yaml"
+    if isinstance(model, AnalysisResult):
+        return case_root / "analysis" / f"{model.task_id}.analysis_result.yaml"
+    if isinstance(model, AuditFinding):
+        return case_root / "shared" / "audit_finding.yaml"
+    if isinstance(model, ReviewReport):
+        return case_root / "outputs" / "review_report.yaml"
     if isinstance(model, DisclosureRecord):
         return case_root / "shared" / "disclosure_record.yaml"
     if isinstance(model, EvidenceRecord):
@@ -111,8 +151,26 @@ def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
 def _artifact_path_for_read(
     case_root: Path, model_type: type[BaseModel], artifact_id: str | None
 ) -> Path:
+    if issubclass(model_type, IntakeRecord):
+        return case_root / "shared" / "intake_record.yaml"
+    if issubclass(model_type, FramingApproval):
+        return case_root / "shared" / "framing_approval.yaml"
     if issubclass(model_type, DecisionSpec):
         return case_root / "shared" / "decision_spec.yaml"
+    if issubclass(model_type, PreliminaryRecommendation):
+        return case_root / "shared" / "preliminary_recommendation.yaml"
+    if issubclass(model_type, FinalRecommendation):
+        return case_root / "outputs" / "final_recommendation.yaml"
+    if issubclass(model_type, TaskProposalBatch):
+        return case_root / "shared" / "task_proposal_batch.yaml"
+    if issubclass(model_type, AnalysisResult):
+        if artifact_id is None:
+            raise ValueError(f"artifact_id is required for {model_type.__name__}")
+        return case_root / "analysis" / f"{artifact_id}.analysis_result.yaml"
+    if issubclass(model_type, AuditFinding):
+        return case_root / "shared" / "audit_finding.yaml"
+    if issubclass(model_type, ReviewReport):
+        return case_root / "outputs" / "review_report.yaml"
     if issubclass(model_type, DisclosureRecord):
         return case_root / "shared" / "disclosure_record.yaml"
     if artifact_id is None:
@@ -129,8 +187,24 @@ def _artifact_path_for_read(
 
 
 def _artifact_dir_for_list(case_root: Path, model_type: type[BaseModel]) -> Path:
+    if issubclass(model_type, IntakeRecord):
+        return case_root / "shared"
+    if issubclass(model_type, FramingApproval):
+        return case_root / "shared"
     if issubclass(model_type, DecisionSpec):
         return case_root / "shared"
+    if issubclass(model_type, PreliminaryRecommendation):
+        return case_root / "shared"
+    if issubclass(model_type, FinalRecommendation):
+        return case_root / "outputs"
+    if issubclass(model_type, TaskProposalBatch):
+        return case_root / "shared"
+    if issubclass(model_type, AnalysisResult):
+        return case_root / "analysis"
+    if issubclass(model_type, AuditFinding):
+        return case_root / "shared"
+    if issubclass(model_type, ReviewReport):
+        return case_root / "outputs"
     if issubclass(model_type, DisclosureRecord):
         return case_root / "shared"
     if issubclass(model_type, EvidenceRecord):
@@ -191,16 +265,59 @@ class Case:
                 fh.flush()
 
     def list_artifacts(self, model_type: type[ModelT]) -> list[ModelT]:
+        if issubclass(model_type, IntakeRecord):
+            intake_path = self.root / "shared" / "intake_record.yaml"
+            if not intake_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, intake_path)]
+        if issubclass(model_type, FramingApproval):
+            framing_path = self.root / "shared" / "framing_approval.yaml"
+            if not framing_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, framing_path)]
         if issubclass(model_type, DecisionSpec):
             decision_path = self.root / "shared" / "decision_spec.yaml"
             if not decision_path.exists():
                 return []
             return [load_model_from_yaml_path(model_type, decision_path)]
+        if issubclass(model_type, PreliminaryRecommendation):
+            preliminary_path = self.root / "shared" / "preliminary_recommendation.yaml"
+            if not preliminary_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, preliminary_path)]
+        if issubclass(model_type, FinalRecommendation):
+            final_path = self.root / "outputs" / "final_recommendation.yaml"
+            if not final_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, final_path)]
+        if issubclass(model_type, TaskProposalBatch):
+            proposal_path = self.root / "shared" / "task_proposal_batch.yaml"
+            if not proposal_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, proposal_path)]
+        if issubclass(model_type, AuditFinding):
+            finding_path = self.root / "shared" / "audit_finding.yaml"
+            if not finding_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, finding_path)]
+        if issubclass(model_type, ReviewReport):
+            review_path = self.root / "outputs" / "review_report.yaml"
+            if not review_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, review_path)]
         if issubclass(model_type, DisclosureRecord):
             disclosure_path = self.root / "shared" / "disclosure_record.yaml"
             if not disclosure_path.exists():
                 return []
             return [load_model_from_yaml_path(model_type, disclosure_path)]
+        if issubclass(model_type, AnalysisResult):
+            analysis_dir = self.root / "analysis"
+            if not analysis_dir.exists():
+                return []
+            return [
+                load_model_from_yaml_path(model_type, path)
+                for path in sorted(analysis_dir.glob("*.analysis_result.yaml"))
+            ]
 
         artifact_dir = _artifact_dir_for_list(self.root, model_type)
         if not artifact_dir.exists():

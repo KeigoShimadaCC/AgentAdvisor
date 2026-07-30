@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "AuditFindingType": {
+      "enum": [
+        "irrelevant_task",
+        "duplicated_work",
+        "mandate_violation",
+        "unsupported_claim"
+      ],
+      "title": "AuditFindingType",
+      "type": "string"
+    },
+    "AuditIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "finding_type": {
+          "$ref": "#/$defs/AuditFindingType"
+        },
+        "high_stakes_escalation": {
+          "default": false,
+          "title": "High Stakes Escalation",
+          "type": "boolean"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "severity": {
+          "$ref": "#/$defs/Level"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^(?:case-\\d+[-a-z0-9-]*|[EATO]-\\d+)$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "finding_type",
+        "target_ids",
+        "severity",
+        "reason"
+      ],
+      "title": "AuditIssue",
+      "type": "object"
+    },
+    "AuditStopInput": {
+      "additionalProperties": false,
+      "properties": {
+        "deadline": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deadline"
+        },
+        "depth_limit_reached": {
+          "default": false,
+          "title": "Depth Limit Reached",
+          "type": "boolean"
+        },
+        "expected_value_of_more_research_low": {
+          "title": "Expected Value Of More Research Low",
+          "type": "boolean"
+        },
+        "expected_value_of_more_research_low_reason": {
+          "minLength": 1,
+          "title": "Expected Value Of More Research Low Reason",
+          "type": "string"
+        },
+        "open_critical_evidence_gaps": {
+          "title": "Open Critical Evidence Gaps",
+          "type": "boolean"
+        },
+        "open_critical_evidence_gaps_reason": {
+          "minLength": 1,
+          "title": "Open Critical Evidence Gaps Reason",
+          "type": "string"
+        },
+        "recommendation_stable": {
+          "title": "Recommendation Stable",
+          "type": "boolean"
+        },
+        "recommendation_stable_reason": {
+          "minLength": 1,
+          "title": "Recommendation Stable Reason",
+          "type": "string"
+        },
+        "remaining_budget": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Remaining Budget",
+          "type": "object"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "unresolved_material_objections": {
+          "title": "Unresolved Material Objections",
+          "type": "boolean"
+        },
+        "unresolved_material_objections_reason": {
+          "minLength": 1,
+          "title": "Unresolved Material Objections Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "open_critical_evidence_gaps",
+        "unresolved_material_objections",
+        "recommendation_stable",
+        "expected_value_of_more_research_low",
+        "open_critical_evidence_gaps_reason",
+        "unresolved_material_objections_reason",
+        "recommendation_stable_reason",
+        "expected_value_of_more_research_low_reason"
+      ],
+      "title": "AuditStopInput",
+      "type": "object"
+    },
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/AuditIssue"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "stop_input": {
+      "$ref": "#/$defs/AuditStopInput"
+    }
+  },
+  "required": [
+    "stop_input"
+  ],
+  "title": "AuditFinding",
+  "type": "object"
+}

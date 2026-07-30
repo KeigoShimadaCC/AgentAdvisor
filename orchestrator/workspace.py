@@ -19,6 +19,7 @@ class WorkspaceTask:
     required_output_filename: str
     required_output_schema: str
     feedback: str | None = None
+    mode: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +76,8 @@ def build_workspace(
         "inputs_dir": "inputs",
         "outputs_dir": "outputs",
     }
+    if task.mode:
+        task_payload["mode"] = task.mode
     if task.feedback:
         task_payload["feedback"] = task.feedback
     task_yaml = yaml.safe_dump(task_payload, sort_keys=True, allow_unicode=True)

@@ -1,0 +1,30 @@
+schema_version: 1
+raw_prompt: |
+  I'm deciding whether to invest $100,000 in AAA this quarter.
+  I need enough liquidity for a home down payment in about 18 months, so I cannot lock up all my cash.
+  I do not want to invest if the round is priced above a $40M pre-money valuation.
+  I want upside, but my risk tolerance is moderate.
+  I need a recommendation by 2026-10-15.
+  Right now I am choosing between investing now and passing.
+decision_question: Should I invest $100,000 in AAA this quarter?
+deadline: 2026-10-15
+alternatives_mentioned:
+  - Invest now
+  - Pass
+objectives:
+  - Capture upside from AAA if risk-adjusted return is attractive
+constraints:
+  - Preserve liquidity for a home down payment in about 18 months
+  - Do not invest above a $40M pre-money valuation
+risk_tolerance: moderate
+reversibility: null
+depth: null
+clarification_questions:
+  - question_id: CQ-001
+    resolves_field: reversibility
+    question: If this investment underperforms, how reversible should this decision be for you?
+    materiality_reason: Reversibility affects position sizing and the relative ranking of staged vs. lump-sum entry.
+  - question_id: CQ-002
+    resolves_field: depth
+    question: Do you want a light, standard, or deep analysis before deciding?
+    materiality_reason: Desired analysis depth determines how much diligence is appropriate before the deadline.

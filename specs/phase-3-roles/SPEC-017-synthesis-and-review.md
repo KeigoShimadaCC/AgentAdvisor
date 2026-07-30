@@ -2,11 +2,11 @@
 id: SPEC-017
 title: Synthesizer and calibration/citation reviewer
 phase: 3
-status: draft
+status: verified
 depends_on: [SPEC-006]
 parallel_with: [SPEC-010, SPEC-011, SPEC-012, SPEC-013, SPEC-014, SPEC-015, SPEC-016]
 north_star_refs: ["6.8", "6.9", "9", "16"]
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 ---
 
 # SPEC-017 — Synthesizer and calibration/citation reviewer
@@ -36,19 +36,19 @@ Renderer is pure and unit-tested: a golden FinalRecommendation fixture renders t
 
 ## Deliverables
 
-- [ ] `cursor/roles/synthesizer.md`, `cursor/roles/reviewer.md`
-- [ ] `ReviewReport` model + schema export
-- [ ] `orchestrator/render.py`
-- [ ] `cursor/roles/synthesizer.yaml`, `cursor/roles/reviewer.yaml`
-- [ ] `tests/test_render.py` (golden output), `tests/test_role_synthesis.py` + fixtures; live mini-run tests
+- [x] `cursor/roles/synthesizer.md`, `cursor/roles/reviewer.md`
+- [x] `ReviewReport` model + schema export
+- [x] `orchestrator/render.py`
+- [x] `cursor/roles/synthesizer.yaml`, `cursor/roles/reviewer.yaml`
+- [x] `tests/test_render.py` (golden output), `tests/test_role_synthesis.py` + fixtures; live mini-run tests
 
 ## Acceptance criteria
 
-- [ ] Fixture replay: FinalRecommendation contains all Section 16 blocks, all citations resolve, distinct uncertainty fields present; a fixture with a dangling citation fails validation.
-- [ ] Reviewer fixture: planted false-precision probability (e.g. 51.7% from weak evidence) and planted unsupported citation are both flagged; clean fixture passes.
-- [ ] Renderer golden test: byte-identical Markdown across runs; disclosure section appears iff a DisclosureRecord exists.
-- [ ] Live mini-runs (both roles) produce schema-valid artifacts in ≤2 attempts each.
-- [ ] `make check` green.
+- [x] Fixture replay: FinalRecommendation contains all Section 16 blocks, all citations resolve, distinct uncertainty fields present; a fixture with a dangling citation fails validation.
+- [x] Reviewer fixture: planted false-precision probability (e.g. 51.7% from weak evidence) and planted unsupported citation are both flagged; clean fixture passes.
+- [x] Renderer golden test: byte-identical Markdown across runs; disclosure section appears iff a DisclosureRecord exists.
+- [x] Live mini-runs (both roles) produce schema-valid artifacts in ≤2 attempts each.
+- [x] `make check` green.
 
 ## Verification plan
 
@@ -60,7 +60,9 @@ uv run pytest -m live -k "synthesizer or reviewer" -q
 
 ## Verification results
 
-—
+**2026-07-31 — PASS.** `cursor/roles/synthesizer.md` forbids averaging agent opinions and requires unresolved disagreement to be reported as such. `cursor/roles/reviewer.md` checks calibration (false precision, confidence mismatch), citation support against stored evidence only, and independence overstatement; it reports defects only and never edits the recommendation. `orchestrator/render.py` is pure and deterministic: golden fixture renders to byte-identical Markdown across runs, with inline `[E-xxx]` citations, a source table, provenance labels (sourced_fact, assumption, calculation, user_input, interpretation, recommendation), and a disclosure section present iff a `DisclosureRecord` is supplied. Final-recommendation citation checking is currently in `render.py` and the test file's cross-field hook; it should be consolidated with `orchestrator/citations.py` (owned by SPEC-014) in Phase 4.
+
+The live synthesizer mini-run initially skipped because the model produced wrong schema shapes (alternative_assessments, scenarios, scalar probability). The fix was prompt engineering: the role md was enriched with exact `FinalRecommendation` field names/types and a valid YAML template, and the timeout raised to 300s. Both live runs then passed in 1 attempt each (synthesizer on `claude-opus-5-thinking-high`, reviewer on `gpt-5.2`).
 
 ## Open questions
 

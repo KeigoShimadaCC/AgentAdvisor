@@ -1,0 +1,42 @@
+schema_version: 1
+preferred_alternative: Invest in stages tied to milestones
+rationale:
+  - "NON-FINAL PROVISIONAL THESIS: Prefer staged entry because current evidence supports upside exposure with tighter downside control [E-001, E-003, A-002]."
+  - Early retention signals justify continuing diligence rather than full deferral [E-002, A-001].
+key_assumptions:
+  - A-001
+  - A-002
+outcome_probabilities:
+  positive_return_within_5y [E-001, A-001]:
+    schema_version: 1
+    method: reference_class
+    reference_class: late-stage private software rounds, 5y horizon
+    base_rate: 0.57
+    interval_low: 0.5
+    interval_high: 0.64
+    adjustments:
+      - schema_version: 1
+        description: retention trend may support slight uplift
+        delta: 0.03
+        evidence_ids:
+          - E-002
+evidence_confidence:
+  schema_version: 1
+  value: 0.56
+  basis: Provisional evidence set is directionally useful but still incomplete and partly company-reported.
+recommendation_confidence:
+  schema_version: 1
+  value: 0.6
+  basis: Provisional recommendation is favored now but is explicitly contingent on unresolved high-materiality checks.
+model_stability:
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.6666666667
+  runs_total: 9
+  runs_supporting: 6
+unresolved_evidence_gaps:
+  - Need independent confirmation of retention durability across two additional quarters [E-002].
+  - Need tighter downside distribution estimates for delayed milestones [E-003].
+major_risks:
+  - "Reversal uncertainty: if retention falls below 110% for two consecutive quarters, staged entry may no longer dominate [E-002, A-001]."
+  - "Reversal uncertainty: if milestone slippage exceeds two quarters, downside probability could invalidate current preference [E-003, A-002]."
+  - "Reversal uncertainty: if comparable-round base rates are overstated by survivorship bias, expected upside could be materially lower [E-001]."

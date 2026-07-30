@@ -1,0 +1,51 @@
+mode: repair
+proposals:
+  - schema_version: 1
+    task:
+      schema_version: 1
+      role: researcher
+      question: What independent evidence exists that enterprise buyers can switch from incumbents
+        within twelve months in this segment?
+      why_it_matters: Directly tests objection O-201 that adoption assumptions are too optimistic.
+      expected_information_gain: high
+      materiality: high
+      probability_of_changing_conclusion: 0.61
+      estimated_cost: 1.0
+      inputs:
+        - objection_record--O-201
+        - decision_spec
+      required_output: evidence_records on switching friction and sales-cycle constraints.
+      completion_criteria: At least two independent sources and one contrary finding.
+      priority: high
+      priority_score: 84
+      priority_rationale: Could invalidate core demand-side assumption supporting invest_now.
+    depends_on_indices: []
+    resolves_objections:
+      - O-201
+  - schema_version: 1
+    task:
+      schema_version: 1
+      role: analyst
+      question: If adoption lags by 6-12 months, does wait_for_milestone dominate invest_now on
+        expected utility?
+      why_it_matters: Resolves whether objection O-202 changes alternative ranking under delayed
+        traction.
+      expected_information_gain: high
+      materiality: high
+      probability_of_changing_conclusion: 0.58
+      estimated_cost: 1.2
+      inputs:
+        - objection_record--O-202
+        - analysis_baseline
+      required_output: analysis_result with delayed-adoption sensitivity and ranking comparison.
+      completion_criteria: Reproducible rerun with explicit delta assumptions and break-even
+        threshold.
+      priority: high
+      priority_score: 81
+      priority_rationale: Tests if timing risk reverses the preferred action.
+    depends_on_indices:
+      - 0
+    resolves_objections:
+      - O-202
+      - O-201
+schema_version: 1

@@ -1,0 +1,25 @@
+findings:
+- finding_type: duplicated_work
+  high_stakes_escalation: false
+  reason: Task T-21 duplicates task T-18 with equivalent question and inputs.
+  schema_version: 1
+  severity: medium
+  target_ids:
+  - T-21
+  - T-18
+schema_version: 1
+stop_input:
+  deadline: null
+  depth_limit_reached: false
+  expected_value_of_more_research_low: false
+  expected_value_of_more_research_low_reason: Material unresolved objections remain.
+  open_critical_evidence_gaps: true
+  open_critical_evidence_gaps_reason: Key base-rate evidence is still missing.
+  recommendation_stable: false
+  recommendation_stable_reason: Preferred alternative flips in sensitivity sweeps.
+  remaining_budget:
+    agent_invocations: 7
+    wall_clock_s: 1200
+  schema_version: 1
+  unresolved_material_objections: true
+  unresolved_material_objections_reason: Objection O-12 is unresolved and material.

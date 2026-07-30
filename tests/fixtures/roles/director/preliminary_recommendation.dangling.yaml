@@ -1,0 +1,31 @@
+schema_version: 1
+preferred_alternative: Invest in stages tied to milestones
+rationale:
+  - Staging reduces downside concentration while keeping exposure to upside [E-999, A-002].
+key_assumptions:
+  - A-002
+outcome_probabilities:
+  positive_return_within_5y [E-001]:
+    schema_version: 1
+    method: reference_class
+    reference_class: late-stage private software rounds, 5y horizon
+    base_rate: 0.57
+    point: 0.58
+    adjustments: []
+evidence_confidence:
+  schema_version: 1
+  value: 0.6
+  basis: Evidence is mixed quality with some independent coverage.
+recommendation_confidence:
+  schema_version: 1
+  value: 0.68
+  basis: Recommendation remains favored in current scenario analysis.
+model_stability:
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.8
+  runs_total: 10
+  runs_supporting: 8
+unresolved_evidence_gaps:
+  - Need third-party validation of operating metrics.
+major_risks:
+  - Growth slowdown could compress exit multiples [E-003].

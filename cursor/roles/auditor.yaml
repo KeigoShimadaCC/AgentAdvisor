@@ -5,9 +5,12 @@ read_only: true
 allow_shell: false
 projection_include:
   - decision_spec
+  - task_graph
+  - artifact_index
+  - budget_snapshot
   - task_records
   - evidence_records
   - assumptions
   - objections
-output_artifact_type: task_record
+output_artifact_type: audit_finding
 model_tier: low

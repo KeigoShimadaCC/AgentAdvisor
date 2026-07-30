@@ -1,0 +1,18 @@
+schema_version: 1
+decision_id: case-001-framing-vague
+question: What is the best career path to pursue next year?
+owner: user
+deadline: 2027-01-31
+alternatives:
+  - Stay in current role for one more year
+  - Apply to school for the next academic cycle
+  - Stay employed while pursuing part-time study
+  - Seek a role change without returning to school
+  - Delay major change for six months and revisit with new information
+objectives:
+  - Improve long-term career trajectory
+constraints:
+  - Maintain a feasible financial path during transition
+risk_tolerance: moderate
+reversibility: partially_reversible
+depth: standard

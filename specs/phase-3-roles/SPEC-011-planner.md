@@ -2,11 +2,11 @@
 id: SPEC-011
 title: Planner role
 phase: 3
-status: draft
+status: verified
 depends_on: [SPEC-006]
 parallel_with: [SPEC-010, SPEC-012, SPEC-013, SPEC-014, SPEC-015, SPEC-016, SPEC-017]
 north_star_refs: ["6.2", "8"]
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 ---
 
 # SPEC-011 — Planner role
@@ -36,19 +36,19 @@ Planner output is a `TaskProposalBatch` (new small wrapper model listing TaskRec
 
 ## Deliverables
 
-- [ ] `cursor/roles/planner.md`
-- [ ] `TaskProposalBatch` model + schema export
-- [ ] Acceptance filter in `orchestrator/planning.py`
-- [ ] `cursor/roles/planner.yaml`
-- [ ] `tests/test_role_planner.py` + fixtures; live mini-run test
+- [x] `cursor/roles/planner.md`
+- [x] `TaskProposalBatch` model + schema export
+- [x] Acceptance filter in `orchestrator/planning.py`
+- [x] `cursor/roles/planner.yaml`
+- [x] `tests/test_role_planner.py` + fixtures; live mini-run test
 
 ## Acceptance criteria
 
-- [ ] Fixture replay: all proposals schema-valid, ≤10, every task names role + completion criteria + priority fields.
-- [ ] Repair fixture: every proposal references ≥1 open objection ID; ≤4 proposals.
-- [ ] Acceptance filter rejects a fixture batch containing an unknown role and a near-duplicate, keeping the rest.
-- [ ] Live mini-run on the investment fixture yields a valid batch in ≤2 attempts.
-- [ ] `make check` green.
+- [x] Fixture replay: all proposals schema-valid, ≤10, every task names role + completion criteria + priority fields.
+- [x] Repair fixture: every proposal references ≥1 open objection ID; ≤4 proposals.
+- [x] Acceptance filter rejects a fixture batch containing an unknown role and a near-duplicate, keeping the rest.
+- [x] Live mini-run on the investment fixture yields a valid batch in ≤2 attempts.
+- [x] `make check` green.
 
 ## Verification plan
 
@@ -60,7 +60,7 @@ uv run pytest -m live -k planner -q
 
 ## Verification results
 
-—
+**2026-07-31 — PASS.** `cursor/roles/planner.md` states the priority formula (`materiality_weight * probability_of_changing_conclusion / estimated_cost`) and the marginal-value gate explicitly so the agent's numbers are operational, not decorative. `orchestrator/planning.py` implements the acceptance filter: rejects proposals missing priority fields or naming an unknown `TaskRole`, dedupes near-identical questions by NFKC-normalized string match, and audits every rejection with the reason. Repair mode is driven by `mode: repair` in `task.yaml` (added to the invocation kit during Phase 3). Three unit tests plus one live mini-run pass; the live run produced a valid `TaskProposalBatch` in ≤2 attempts using `composer-2.5`.
 
 ## Open questions
 

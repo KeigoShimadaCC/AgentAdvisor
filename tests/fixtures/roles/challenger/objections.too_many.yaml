@@ -1,0 +1,69 @@
+schema_version: 1
+mode: standard
+objections:
+  - schema_version: 1
+    objection_id: O-501
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Objection 1
+    materiality: high
+    reasoning: Material concern 1
+    reversal_evidence: Evidence 1
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-502
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Objection 2
+    materiality: medium
+    reasoning: Material concern 2
+    reversal_evidence: Evidence 2
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-503
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Objection 3
+    materiality: medium
+    reasoning: Material concern 3
+    reversal_evidence: Evidence 3
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-504
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Objection 4
+    materiality: low
+    reasoning: Material concern 4
+    reversal_evidence: Evidence 4
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-505
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Objection 5
+    materiality: low
+    reasoning: Material concern 5
+    reversal_evidence: Evidence 5
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-506
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Objection 6
+    materiality: low
+    reasoning: Material concern 6
+    reversal_evidence: Evidence 6
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []

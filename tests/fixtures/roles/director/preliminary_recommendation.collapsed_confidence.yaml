@@ -1,0 +1,31 @@
+schema_version: 1
+preferred_alternative: Invest in stages tied to milestones
+rationale:
+  - Staging reduces downside while preserving upside participation [E-003, A-002].
+key_assumptions:
+  - A-002
+outcome_probabilities:
+  positive_return_within_5y [E-001]:
+    schema_version: 1
+    method: reference_class
+    reference_class: late-stage private software rounds, 5y horizon
+    base_rate: 0.57
+    point: 0.59
+    adjustments: []
+evidence_confidence:
+  schema_version: 1
+  value: 0.66
+  basis: Same confidence statement reused for both fields.
+recommendation_confidence:
+  schema_version: 1
+  value: 0.66
+  basis: Same confidence statement reused for both fields.
+model_stability:
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.7
+  runs_total: 10
+  runs_supporting: 7
+unresolved_evidence_gaps:
+  - Need independent validation of pipeline conversion quality [E-002].
+major_risks:
+  - Execution slippage remains material under downside conditions [E-003].

@@ -1,0 +1,52 @@
+schema_version: 1
+preferred_alternative: invest_in_stages
+rationale:
+  - Staged entry preserves option value while evidence uncertainty remains material.
+key_assumptions:
+  - A-001
+outcome_probabilities:
+  positive_return_within_5y:
+    schema_version: 1
+    method: structured_subjective
+    reference_class: Growth-stage venture outcomes
+    base_rate: null
+    point: 0.57
+    interval_low: null
+    interval_high: null
+    adjustments:
+      - schema_version: 1
+        description: Retention metric strength in latest filing
+        delta: 0.07
+        evidence_ids:
+          - E-102
+  total_loss:
+    schema_version: 1
+    method: scenario_model
+    reference_class: null
+    base_rate: null
+    point: 0.21
+    interval_low: null
+    interval_high: null
+    adjustments:
+      - schema_version: 1
+        description: Downside concentration in aggressive entry cohorts
+        delta: 0.04
+        evidence_ids:
+          - E-101
+evidence_confidence:
+  schema_version: 1
+  value: 0.63
+  basis: Source reliability is mixed but includes one high-directness filing.
+recommendation_confidence:
+  schema_version: 1
+  value: 0.72
+  basis: Staged entry dominates under current downside asymmetry.
+model_stability:
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.8
+  runs_total: 20
+  runs_supporting: 16
+unresolved_evidence_gaps:
+  - Independent benchmark for retention durability by segment.
+major_risks:
+  - Competitor discounting intensifies within two quarters.

@@ -1,0 +1,17 @@
+schema_version: 1
+decision_id: case-001-synthesis
+question: Should the user invest in AAA now or in stages?
+owner: user
+deadline: 2026-12-31
+alternatives:
+  - invest_now
+  - invest_in_stages
+  - wait_for_milestone
+objectives:
+  - maximize risk-adjusted return
+  - preserve downside protection
+constraints:
+  - maximum acceptable loss is 30%
+risk_tolerance: moderate
+reversibility: partially_reversible
+depth: standard

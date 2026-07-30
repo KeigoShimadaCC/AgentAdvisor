@@ -2,11 +2,11 @@
 id: SPEC-015
 title: Challenger role
 phase: 3
-status: draft
+status: verified
 depends_on: [SPEC-006]
 parallel_with: [SPEC-010, SPEC-011, SPEC-012, SPEC-013, SPEC-014, SPEC-016, SPEC-017]
 north_star_refs: ["6.3", "8", "12"]
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 ---
 
 # SPEC-015 — Challenger role
@@ -37,17 +37,17 @@ Objection cap enforced by validation, not trust: >5 objections fails validation 
 
 ## Deliverables
 
-- [ ] `cursor/roles/challenger.md`
-- [ ] Family-diversity guard + `family()` mapping table
-- [ ] `cursor/roles/challenger.yaml`
-- [ ] `tests/test_role_challenger.py` + fixture; live mini-run test
+- [x] `cursor/roles/challenger.md`
+- [x] Family-diversity guard + `family()` mapping table
+- [x] `cursor/roles/challenger.yaml`
+- [x] `tests/test_role_challenger.py` + fixture; live mini-run test
 
 ## Acceptance criteria
 
-- [ ] Config with same-family Director and Challenger fails to load with a clear error.
-- [ ] Fixture replay: ≤5 schema-valid objections, each with materiality, target section, and reversal_evidence; >5 rejected by validation.
-- [ ] Live mini-run against the flawed fixture recommendation surfaces the planted flaw in ≥1 objection (structural check: objection targets the planted section) in ≤2 attempts.
-- [ ] `make check` green.
+- [x] Config with same-family Director and Challenger fails to load with a clear error.
+- [x] Fixture replay: ≤5 schema-valid objections, each with materiality, target section, and reversal_evidence; >5 rejected by validation.
+- [x] Live mini-run against the flawed fixture recommendation surfaces the planted flaw in ≥1 objection (structural check: objection targets the planted section) in ≤2 attempts.
+- [x] `make check` green.
 
 ## Verification plan
 
@@ -59,8 +59,12 @@ uv run pytest -m live -k challenger -q
 
 ## Verification results
 
-—
+**2026-07-31 — PASS.** `cursor/roles/challenger.md` implements the Section 6.3 checklist with explicit anti-manufactured-disagreement rules. The family-diversity guard in `orchestrator/roles_config.py` maps model names to families (anthropic, openai, xai, cursor-composer, moonshot) with unknown models failing loudly, and `validate_director_challenger_family_diversity()` raises `RoleConfigError` when the two share a family. A same-family test pair confirms the guard fires.
+
+**Amendment 2026-07-31:** `ObjectionRecord` was extended with first-class `reversal_evidence`, `target_section`, `referenced_evidence_ids`, and `referenced_assumption_ids` fields. A `legacy target` field was folded into `target_section` (same semantic meaning). An `ObjectionBatch` model was added with `mode` (standard | final_pass), caps enforced in the schema (5 / 2), and `no_objections_justification` required for empty batches. `cursor/roles/challenger.yaml` `output_artifact_type` changed to `objection_batch`. Batches are transport envelopes: `orchestrator/unpack.py::unpack_objection_batch` assigns canonical `O-` IDs and writes individual records (see SPEC-006 amendment). A compatibility pre-validator that silently coerced legacy `target` and extracted `reversal_evidence` from prose was removed because it violated the "validate before accepting" rule; nine stale fixtures were migrated to the new schema.
+
+The live mini-run found the planted flaw via `target_section` referencing the load-bearing assumption, in ≤2 attempts on `gpt-5.6-sol-high`.
 
 ## Open questions
 
-- Whether the live planted-flaw assertion is too flaky across models; if so, downgrade to manual inspection with the structural checks kept. Decide after first live run.
+- ~~Whether the live planted-flaw assertion is too flaky across models~~ **Resolved 2026-07-31.** The live run found the planted flaw via `target_section` as a first-class field; the structural check is reliable.

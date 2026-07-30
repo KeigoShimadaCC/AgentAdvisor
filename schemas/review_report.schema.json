@@ -1,0 +1,77 @@
+{
+  "$defs": {
+    "ReviewDefect": {
+      "additionalProperties": false,
+      "properties": {
+        "defect_type": {
+          "$ref": "#/$defs/ReviewDefectType"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "target_id": {
+          "pattern": "^(?:case-\\d+[-a-z0-9-]*|[EATO]-\\d+)$",
+          "title": "Target Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "defect_type",
+        "target_id",
+        "explanation"
+      ],
+      "title": "ReviewDefect",
+      "type": "object"
+    },
+    "ReviewDefectType": {
+      "enum": [
+        "false_precision",
+        "unsupported_citation",
+        "confidence_language_mismatch",
+        "independence_overstatement"
+      ],
+      "title": "ReviewDefectType",
+      "type": "string"
+    },
+    "ReviewOutcome": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "ReviewOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "defects": {
+      "items": {
+        "$ref": "#/$defs/ReviewDefect"
+      },
+      "title": "Defects",
+      "type": "array"
+    },
+    "outcome": {
+      "$ref": "#/$defs/ReviewOutcome"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "outcome"
+  ],
+  "title": "ReviewReport",
+  "type": "object"
+}

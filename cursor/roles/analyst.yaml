@@ -6,7 +6,8 @@ allow_shell: true
 projection_include:
   - decision_spec
   - task_records
-  - evidence_records
+  - key_evidence
   - assumptions
-output_artifact_type: evidence_record
+# Analyst additionally receives analysis/<task-id>/ as a writable working area.
+output_artifact_type: analysis_result
 model_tier: medium

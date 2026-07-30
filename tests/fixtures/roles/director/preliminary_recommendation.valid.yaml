@@ -1,0 +1,38 @@
+schema_version: 1
+preferred_alternative: Invest in stages tied to milestones
+rationale:
+  - Stage-gated investing preserves upside while limiting capital at risk if execution slips [E-003, A-002].
+  - Current retention trajectory supports selective exposure, but only with milestone controls [E-002, A-001].
+key_assumptions:
+  - A-001
+  - A-002
+outcome_probabilities:
+  positive_return_within_5y [E-001, A-001]:
+    schema_version: 1
+    method: reference_class
+    reference_class: late-stage private software rounds, 5y horizon
+    base_rate: 0.57
+    point: 0.61
+    adjustments:
+      - schema_version: 1
+        description: retention improvement supports modest upward adjustment
+        delta: 0.04
+        evidence_ids:
+          - E-002
+evidence_confidence:
+  schema_version: 1
+  value: 0.63
+  basis: Evidence quality is moderate with one company-reported metric and two independent contextual sources.
+recommendation_confidence:
+  schema_version: 1
+  value: 0.71
+  basis: Staged entry dominates full-size entry across analysis outputs while preserving optionality under downside triggers.
+model_stability:
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.75
+  runs_total: 12
+  runs_supporting: 9
+unresolved_evidence_gaps:
+  - Need independent verification of retention durability beyond one quarter [E-002].
+major_risks:
+  - Milestone slippage could erase expected value edge even with staging [E-003, A-002].

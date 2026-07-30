@@ -1,0 +1,108 @@
+decision_spec:
+  schema_version: 1
+  decision_id: case-001-challenger
+  question: Should the user invest in AAA now or wait for evidence of pricing durability?
+  owner: user
+  deadline: "2026-11-30"
+  alternatives:
+    - invest_now
+    - invest_in_stages
+    - wait_for_pricing_data
+    - decline_for_now
+  objectives:
+    - maximize risk-adjusted return
+    - avoid irreversible downside
+  constraints:
+    - keep emergency runway intact
+  risk_tolerance: moderate
+  reversibility: partially_reversible
+  depth: standard
+
+assumptions:
+  - schema_version: 1
+    assumption_id: A-301
+    claim: Customer churn remains below 2 percent after a 35 percent price increase.
+    type: forecast
+    estimate:
+      schema_version: 1
+      method: structured_subjective
+      point: 0.8
+      reference_class: null
+      base_rate: null
+      interval_low: null
+      interval_high: null
+      adjustments: []
+    confidence: low
+    materiality: high
+    evidence_for:
+      - E-301
+    evidence_against: []
+    status: unresolved
+
+evidence:
+  - schema_version: 1
+    evidence_id: E-301
+    claim: AAA reported stronger expansion revenue in the latest internal update.
+    source_title: AAA board update Q3 2026
+    publisher: AAA
+    source_url: https://example.com/aaa-q3-board-update
+    source_type: original_research
+    publication_date: "2026-09-20"
+    retrieval_date: "2026-10-01"
+    excerpt: Expansion ARR grew 24 percent quarter-over-quarter.
+    reliability: medium
+    directness: medium
+    independence_group: aaa_company_reporting
+    limitations:
+      - Company-reported metric without independent verification.
+    retrieved_by: researcher
+
+prior_resolved_objections:
+  - schema_version: 1
+    objection_id: O-210
+    target_section: preliminary_recommendation.rationale[0]
+    claim: Earlier thesis ignored downside dilution.
+    materiality: high
+    reasoning: Repair cycle added downside-case dilution analysis.
+    reversal_evidence: Direct evidence that downside dilution was already fully modeled in the prior thesis.
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: resolved
+    commissioned_tasks:
+      - T-212
+
+preliminary_recommendation:
+  schema_version: 1
+  preferred_alternative: invest_now
+  rationale:
+    - Current traction supports immediate entry at full size.
+    - We can assume churn stays below 2 percent after the planned 35 percent price increase even without direct external evidence.
+  key_assumptions:
+    - A-301
+  outcome_probabilities:
+    positive_return_within_5y:
+      schema_version: 1
+      method: structured_subjective
+      point: 0.82
+      reference_class: null
+      base_rate: null
+      interval_low: null
+      interval_high: null
+      adjustments: []
+  evidence_confidence:
+    schema_version: 1
+    value: 0.63
+    basis: Evidence quality is mixed and partly self-reported.
+  recommendation_confidence:
+    schema_version: 1
+    value: 0.91
+    basis: High conviction due to projected growth persistence.
+  model_stability:
+    schema_version: 1
+    share_of_sensitivity_runs_supporting_recommendation: 1.0
+    runs_total: 10
+    runs_supporting: 10
+  unresolved_evidence_gaps:
+    - No independent churn evidence after comparable price increases.
+  major_risks:
+    - Demand elasticity after repricing may be worse than assumed.

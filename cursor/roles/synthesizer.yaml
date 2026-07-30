@@ -8,6 +8,8 @@ projection_include:
   - evidence_records
   - assumptions
   - objections
+  - analysis_result
+  - disclosure_record
   - preliminary_recommendation
 output_artifact_type: final_recommendation
 model_tier: high

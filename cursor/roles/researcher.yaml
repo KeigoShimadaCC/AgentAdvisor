@@ -6,6 +6,5 @@ allow_shell: false
 projection_include:
   - decision_spec
   - task_records
-  - key_evidence
-output_artifact_type: evidence_record
+output_artifact_type: evidence_batch
 model_tier: low

@@ -4,6 +4,12 @@ commissioned_tasks:
 materiality: high
 objection_id: O-4
 reasoning: Competitive response assumptions are weakly supported.
+referenced_assumption_ids:
+- A-7
+referenced_evidence_ids:
+- E-12
 resolution_status: open
+reversal_evidence: A competitor pricing study showing sustained margin stability under
+  entry would retire this objection.
 schema_version: 1
-target: preliminary_recommendation_v2
+target_section: preliminary_recommendation.rationale[2]

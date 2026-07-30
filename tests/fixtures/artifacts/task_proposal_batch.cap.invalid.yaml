@@ -1,0 +1,103 @@
+mode: repair
+proposals:
+- depends_on_indices: []
+  resolves_objections:
+  - O-1
+  schema_version: 1
+  task:
+    completion_criteria: Complete.
+    estimated_cost: 1.0
+    expected_information_gain: medium
+    inputs:
+    - objection
+    materiality: medium
+    priority: medium
+    priority_rationale: Addresses objection.
+    priority_score: 50
+    probability_of_changing_conclusion: 0.4
+    question: Repair task 1
+    required_output: Output.
+    role: researcher
+    schema_version: 1
+    why_it_matters: Needed for repair.
+- depends_on_indices: []
+  resolves_objections:
+  - O-2
+  schema_version: 1
+  task:
+    completion_criteria: Complete.
+    estimated_cost: 1.0
+    expected_information_gain: medium
+    inputs:
+    - objection
+    materiality: medium
+    priority: medium
+    priority_rationale: Addresses objection.
+    priority_score: 50
+    probability_of_changing_conclusion: 0.4
+    question: Repair task 2
+    required_output: Output.
+    role: researcher
+    schema_version: 1
+    why_it_matters: Needed for repair.
+- depends_on_indices: []
+  resolves_objections:
+  - O-3
+  schema_version: 1
+  task:
+    completion_criteria: Complete.
+    estimated_cost: 1.0
+    expected_information_gain: medium
+    inputs:
+    - objection
+    materiality: medium
+    priority: medium
+    priority_rationale: Addresses objection.
+    priority_score: 50
+    probability_of_changing_conclusion: 0.4
+    question: Repair task 3
+    required_output: Output.
+    role: researcher
+    schema_version: 1
+    why_it_matters: Needed for repair.
+- depends_on_indices: []
+  resolves_objections:
+  - O-4
+  schema_version: 1
+  task:
+    completion_criteria: Complete.
+    estimated_cost: 1.0
+    expected_information_gain: medium
+    inputs:
+    - objection
+    materiality: medium
+    priority: medium
+    priority_rationale: Addresses objection.
+    priority_score: 50
+    probability_of_changing_conclusion: 0.4
+    question: Repair task 4
+    required_output: Output.
+    role: researcher
+    schema_version: 1
+    why_it_matters: Needed for repair.
+- depends_on_indices: []
+  resolves_objections:
+  - O-5
+  schema_version: 1
+  task:
+    completion_criteria: Complete.
+    estimated_cost: 1.0
+    expected_information_gain: medium
+    inputs:
+    - objection
+    materiality: medium
+    priority: medium
+    priority_rationale: Addresses objection.
+    priority_score: 50
+    probability_of_changing_conclusion: 0.4
+    question: Repair task 5
+    required_output: Output.
+    role: researcher
+    schema_version: 1
+    why_it_matters: Needed for repair.
+schema_version: 1

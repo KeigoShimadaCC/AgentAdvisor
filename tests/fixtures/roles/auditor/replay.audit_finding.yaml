@@ -1,0 +1,40 @@
+schema_version: 1
+findings:
+  - schema_version: 1
+    finding_type: duplicated_work
+    target_ids:
+      - T-102
+      - T-103
+    severity: medium
+    reason: T-103 duplicates the dilution-sensitivity objective already assigned to T-102.
+    high_stakes_escalation: false
+  - schema_version: 1
+    finding_type: irrelevant_task
+    target_ids:
+      - T-104
+    severity: high
+    reason: T-104 is unrelated to the decision question and consumes budget without decision value.
+    high_stakes_escalation: false
+  - schema_version: 1
+    finding_type: unsupported_claim
+    target_ids:
+      - A-001
+    severity: medium
+    reason: Assumption A-001 is asserted without a direct primary-source E- reference.
+    high_stakes_escalation: true
+stop_input:
+  schema_version: 1
+  open_critical_evidence_gaps: true
+  unresolved_material_objections: true
+  recommendation_stable: false
+  expected_value_of_more_research_low: false
+  remaining_budget:
+    agent_invocations: 18
+    research_tasks: 4
+    high_tier_calls: 3
+  deadline: null
+  depth_limit_reached: false
+  open_critical_evidence_gaps_reason: Critical downside sensitivity evidence is still incomplete.
+  unresolved_material_objections_reason: O-001 remains open and could change the recommendation.
+  recommendation_stable_reason: No completed sensitivity artifact yet to establish ranking stability.
+  expected_value_of_more_research_low_reason: Remaining targeted work has material chance to change the conclusion.

@@ -1,0 +1,197 @@
+{
+  "$defs": {
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "PlanningMode": {
+      "enum": [
+        "initial",
+        "repair"
+      ],
+      "title": "PlanningMode",
+      "type": "string"
+    },
+    "PriorityLevel": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "PriorityLevel",
+      "type": "string"
+    },
+    "TaskProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "depends_on_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Depends On Indices",
+          "type": "array"
+        },
+        "resolves_objections": {
+          "items": {
+            "pattern": "^O-\\d+$",
+            "type": "string"
+          },
+          "title": "Resolves Objections",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "task": {
+          "$ref": "#/$defs/TaskProposalRecord"
+        }
+      },
+      "required": [
+        "task"
+      ],
+      "title": "TaskProposal",
+      "type": "object"
+    },
+    "TaskProposalRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "completion_criteria": {
+          "minLength": 1,
+          "title": "Completion Criteria",
+          "type": "string"
+        },
+        "estimated_cost": {
+          "default": 1.0,
+          "description": "Estimated cost in expected agent-invocation units.",
+          "exclusiveMinimum": 0.0,
+          "title": "Estimated Cost",
+          "type": "number"
+        },
+        "expected_information_gain": {
+          "$ref": "#/$defs/Level"
+        },
+        "inputs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "materiality": {
+          "$ref": "#/$defs/Level"
+        },
+        "priority": {
+          "$ref": "#/$defs/PriorityLevel"
+        },
+        "priority_rationale": {
+          "minLength": 1,
+          "title": "Priority Rationale",
+          "type": "string"
+        },
+        "priority_score": {
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Priority Score",
+          "type": "integer"
+        },
+        "probability_of_changing_conclusion": {
+          "default": 0.5,
+          "description": "Estimated probability that this task's output changes the recommendation.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Probability Of Changing Conclusion",
+          "type": "number"
+        },
+        "question": {
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "required_output": {
+          "minLength": 1,
+          "title": "Required Output",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/TaskRole"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "why_it_matters": {
+          "minLength": 1,
+          "title": "Why It Matters",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "question",
+        "why_it_matters",
+        "expected_information_gain",
+        "materiality",
+        "inputs",
+        "required_output",
+        "completion_criteria",
+        "priority",
+        "priority_score",
+        "priority_rationale"
+      ],
+      "title": "TaskProposalRecord",
+      "type": "object"
+    },
+    "TaskRole": {
+      "enum": [
+        "intake",
+        "planner",
+        "director",
+        "challenger",
+        "auditor",
+        "researcher",
+        "analyst",
+        "synthesizer",
+        "reviewer",
+        "specialist"
+      ],
+      "title": "TaskRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "mode": {
+      "$ref": "#/$defs/PlanningMode"
+    },
+    "proposals": {
+      "items": {
+        "$ref": "#/$defs/TaskProposal"
+      },
+      "title": "Proposals",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "mode"
+  ],
+  "title": "TaskProposalBatch",
+  "type": "object"
+}

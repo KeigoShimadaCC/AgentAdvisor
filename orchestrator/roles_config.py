@@ -27,6 +27,7 @@ class RoleConfig:
     projection_include: tuple[str, ...]
     output_artifact_type: str
     model_tier: ModelTier
+    variant: str | None = None
 
 
 class RoleConfigError(RuntimeError):
@@ -34,14 +35,29 @@ class RoleConfigError(RuntimeError):
 
 
 _VALID_TIERS: frozenset[str] = frozenset({"low", "medium", "high"})
+_KNOWN_FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
+    ("claude-", "anthropic"),
+    ("gpt-", "openai"),
+    ("cursor-grok-", "xai"),
+    ("grok-", "xai"),
+    ("composer-", "cursor-composer"),
+    ("kimi-", "moonshot"),
+)
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _role_config_path(role: TaskRole) -> Path:
-    return _repo_root() / "cursor" / "roles" / f"{role.value}.yaml"
+def _role_config_path(role: TaskRole, variant: str | None = None) -> Path:
+    """Config path for a role, or for a named variant of it.
+
+    A variant is a distinct instruction set for the same underlying role, such as
+    the Director's framing pass, which needs its own model tier and projection
+    while still being the Director.
+    """
+    stem = role.value if variant is None else f"{role.value}-{variant}"
+    return _repo_root() / "cursor" / "roles" / f"{stem}.yaml"
 
 
 def _as_str(config: dict[str, Any], key: str) -> str:
@@ -74,24 +90,57 @@ def _coerce_role(role: TaskRole | str) -> TaskRole:
         raise RoleConfigError(f"Unknown role '{role}'.") from exc
 
 
-def family(model_id: str) -> str:
+def family(model_id: str, *, canonical: bool = False) -> str:
+    """Return model family for a model identifier.
+
+    Unknown models raise RoleConfigError instead of falling back to a guessed
+    prefix. Silent fallback would let a same-family Director/Challenger pair
+    slip through startup validation when model names churn.
+    """
+
     model = model_id.strip().lower()
-    if model.startswith("claude-"):
-        return "anthropic"
-    if model.startswith("gpt-"):
-        return "openai"
-    if model.startswith("composer-") or model.startswith("cursor-"):
-        return "cursor"
-    if model.startswith("kimi-"):
-        return "moonshot"
-    if "-" in model:
-        return model.split("-", 1)[0]
-    return model
+    if not model:
+        raise RoleConfigError("Model id must be a non-empty string.")
+
+    for prefix, mapped_family in _KNOWN_FAMILY_PREFIXES:
+        if model.startswith(prefix):
+            if canonical:
+                return mapped_family
+            # Backward-compatible alias used in existing tests and callers.
+            if mapped_family in {"cursor-composer", "xai"}:
+                return "cursor"
+            return mapped_family
+
+    raise RoleConfigError(
+        "Unknown model family for model "
+        f"'{model_id}'. Add it to _KNOWN_FAMILY_PREFIXES in orchestrator/roles_config.py."
+    )
 
 
-def load_role_config(role: TaskRole | str) -> RoleConfig:
+def validate_director_challenger_family_diversity(
+    *,
+    director_variant: str | None = None,
+    challenger_variant: str | None = None,
+) -> None:
+    """Startup guard: Director and Challenger must use different model families."""
+
+    director = load_role_config(TaskRole.DIRECTOR, director_variant)
+    challenger = load_role_config(TaskRole.CHALLENGER, challenger_variant)
+    director_family = family(director.default_model, canonical=True)
+    challenger_family = family(challenger.default_model, canonical=True)
+
+    if director_family == challenger_family:
+        raise RoleConfigError(
+            "Director/Challenger family diversity guard failed: "
+            f"director={director.default_model} ({director_family}), "
+            f"challenger={challenger.default_model} ({challenger_family}). "
+            "Configure different model families."
+        )
+
+
+def load_role_config(role: TaskRole | str, variant: str | None = None) -> RoleConfig:
     role_enum = _coerce_role(role)
-    config_path = _role_config_path(role_enum)
+    config_path = _role_config_path(role_enum, variant)
     if not config_path.exists():
         raise RoleConfigError(f"Role config file not found: {config_path}")
 
@@ -122,6 +171,7 @@ def load_role_config(role: TaskRole | str) -> RoleConfig:
 
     return RoleConfig(
         role=role_enum,
+        variant=variant,
         role_md_path=role_md_path,
         default_model=default_model,
         escalation_model=escalation_model,

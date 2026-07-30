@@ -1,0 +1,61 @@
+{
+  "$defs": {
+    "FramingDecision": {
+      "enum": [
+        "approve",
+        "edit",
+        "answer_clarifications"
+      ],
+      "title": "FramingDecision",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "approved_at": {
+      "format": "date-time",
+      "title": "Approved At",
+      "type": "string"
+    },
+    "approved_by": {
+      "minLength": 1,
+      "title": "Approved By",
+      "type": "string"
+    },
+    "clarification_answers": {
+      "additionalProperties": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Clarification Answers",
+      "type": "object"
+    },
+    "decision": {
+      "$ref": "#/$defs/FramingDecision"
+    },
+    "edits": {
+      "additionalProperties": true,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Edits",
+      "type": "object"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "decision",
+    "approved_by",
+    "approved_at"
+  ],
+  "title": "FramingApproval",
+  "type": "object"
+}

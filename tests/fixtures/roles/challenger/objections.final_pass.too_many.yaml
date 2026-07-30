@@ -1,0 +1,36 @@
+schema_version: 1
+mode: final_pass
+objections:
+  - schema_version: 1
+    objection_id: O-601
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Final pass objection 1
+    materiality: high
+    reasoning: Final-pass concern 1
+    reversal_evidence: Evidence FP1
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-602
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Final pass objection 2
+    materiality: medium
+    reasoning: Final-pass concern 2
+    reversal_evidence: Evidence FP2
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-603
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Final pass objection 3
+    materiality: medium
+    reasoning: Final-pass concern 3
+    reversal_evidence: Evidence FP3
+    referenced_evidence_ids: []
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []

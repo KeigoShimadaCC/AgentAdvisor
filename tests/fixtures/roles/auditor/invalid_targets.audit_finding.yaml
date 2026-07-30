@@ -1,0 +1,31 @@
+schema_version: 1
+findings:
+  - schema_version: 1
+    finding_type: duplicated_work
+    target_ids:
+      - T-999
+      - T-104
+    severity: medium
+    reason: References an unknown task id for validation-failure fixture coverage.
+    high_stakes_escalation: false
+  - schema_version: 1
+    finding_type: unsupported_claim
+    target_ids:
+      - E-999
+    severity: low
+    reason: References unknown evidence id for validation-failure fixture coverage.
+    high_stakes_escalation: false
+stop_input:
+  schema_version: 1
+  open_critical_evidence_gaps: true
+  unresolved_material_objections: true
+  recommendation_stable: false
+  expected_value_of_more_research_low: false
+  remaining_budget:
+    agent_invocations: 18
+  deadline: null
+  depth_limit_reached: false
+  open_critical_evidence_gaps_reason: Fixture reason.
+  unresolved_material_objections_reason: Fixture reason.
+  recommendation_stable_reason: Fixture reason.
+  expected_value_of_more_research_low_reason: Fixture reason.

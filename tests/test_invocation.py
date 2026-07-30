@@ -147,7 +147,9 @@ def test_happy_path_valid_artifact_first_try(
 ) -> None:
     case, runtime_root = _build_case(tmp_path, monkeypatch)
     config = _role_config(tmp_path)
-    monkeypatch.setattr("orchestrator.invoke_role.load_role_config", lambda _role: config)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
     backend = StubBackend([_ok_result()], side_effects=[_write_output(_evidence())])
 
     artifact = invoke(case, "researcher", _task(), backend=backend)
@@ -170,7 +172,9 @@ def test_invalid_output_retries_same_model_and_applies_feedback(
 ) -> None:
     case, _ = _build_case(tmp_path, monkeypatch)
     config = _role_config(tmp_path)
-    monkeypatch.setattr("orchestrator.invoke_role.load_role_config", lambda _role: config)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
     backend = StubBackend(
         [_ok_result(), _ok_result()],
         side_effects=[_write_invalid_output, _write_output(_evidence())],
@@ -194,7 +198,9 @@ def test_retry_then_escalate_changes_model(
 ) -> None:
     case, _ = _build_case(tmp_path, monkeypatch)
     config = _role_config(tmp_path)
-    monkeypatch.setattr("orchestrator.invoke_role.load_role_config", lambda _role: config)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
     backend = StubBackend(
         [_ok_result(), _ok_result(), _ok_result()],
         side_effects=[_write_invalid_output, _write_invalid_output, _write_output(_evidence())],
@@ -212,7 +218,9 @@ def test_escalation_fail_raises_and_archives_all_attempts(
 ) -> None:
     case, runtime_root = _build_case(tmp_path, monkeypatch)
     config = _role_config(tmp_path)
-    monkeypatch.setattr("orchestrator.invoke_role.load_role_config", lambda _role: config)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
     backend = StubBackend(
         [_ok_result(), _ok_result(), _ok_result()],
         side_effects=[_write_invalid_output, _write_invalid_output, _write_invalid_output],
@@ -324,7 +332,9 @@ def test_read_only_variant_collects_stdout_artifact(
 ) -> None:
     case, _ = _build_case(tmp_path, monkeypatch)
     config = _role_config(tmp_path, read_only=True)
-    monkeypatch.setattr("orchestrator.invoke_role.load_role_config", lambda _role: config)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
     yaml_text = dump_model_to_yaml_text(_evidence())
     backend = StubBackend([_ok_result(result_text=f"```yaml\n{yaml_text}```")])
 
@@ -340,7 +350,9 @@ def test_cross_field_hook_can_reject_schema_valid_output(
 ) -> None:
     case, _ = _build_case(tmp_path, monkeypatch)
     config = _role_config(tmp_path)
-    monkeypatch.setattr("orchestrator.invoke_role.load_role_config", lambda _role: config)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
     backend = StubBackend(
         [_ok_result(), _ok_result(), _ok_result()],
         side_effects=[
@@ -392,7 +404,9 @@ def test_mini_run_live(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         output_artifact_type="evidence_record",
         model_tier="low",
     )
-    monkeypatch.setattr("orchestrator.invoke_role.load_role_config", lambda _role: config)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
 
     artifact = invoke(case, "researcher", _task("T-700"), backend=CursorCLIBackend())
 

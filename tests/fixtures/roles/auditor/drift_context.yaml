@@ -1,0 +1,164 @@
+decision_spec:
+  schema_version: 1
+  decision_id: case-001-auditor
+  question: Should the user invest in startup AAA now, stage in, or wait?
+  owner: user
+  deadline: "2026-10-01"
+  alternatives:
+    - invest_now
+    - stage_in
+    - wait
+    - decline
+  objectives:
+    - maximize risk-adjusted return
+    - limit downside loss
+  constraints:
+    - max_loss_25_percent
+    - decision_within_30_days
+  risk_tolerance: moderate
+  reversibility: partially_reversible
+  depth: standard
+
+tasks:
+  - schema_version: 1
+    task_id: T-101
+    role: researcher
+    question: What are five-year downside base rates for comparable startups?
+    why_it_matters: Anchors scenario priors for downside risk.
+    expected_information_gain: high
+    materiality: high
+    probability_of_changing_conclusion: 0.65
+    estimated_cost: 1.0
+    inputs: [decision_spec]
+    required_output: evidence_record
+    completion_criteria: Provide three independent base-rate estimates.
+    status: completed
+    priority: high
+    priority_score: 88
+    priority_rationale: Base rates drive scenario probabilities.
+  - schema_version: 1
+    task_id: T-102
+    role: analyst
+    question: How sensitive is the recommendation to dilution in bear and failure scenarios?
+    why_it_matters: Could flip invest_now versus wait.
+    expected_information_gain: high
+    materiality: high
+    probability_of_changing_conclusion: 0.58
+    estimated_cost: 1.3
+    inputs: [decision_spec, evidence_record--E-001]
+    required_output: analysis_result
+    completion_criteria: Deliver sensitivity table with break-even thresholds.
+    status: planned
+    priority: high
+    priority_score: 82
+    priority_rationale: Directly tests recommendation robustness.
+  - schema_version: 1
+    task_id: T-103
+    role: analyst
+    question: Quantify recommendation sensitivity to downside dilution assumptions.
+    why_it_matters: Nearly identical to T-102 and likely duplicates planned work.
+    expected_information_gain: medium
+    materiality: high
+    probability_of_changing_conclusion: 0.25
+    estimated_cost: 1.2
+    inputs: [decision_spec, evidence_record--E-001]
+    required_output: analysis_result
+    completion_criteria: Another dilution sensitivity table.
+    status: planned
+    priority: medium
+    priority_score: 49
+    priority_rationale: Candidate duplicate for audit testing.
+  - schema_version: 1
+    task_id: T-104
+    role: researcher
+    question: What is the best two-week family vacation itinerary in Kyoto?
+    why_it_matters: Off-topic and unrelated to the investment decision.
+    expected_information_gain: low
+    materiality: low
+    probability_of_changing_conclusion: 0.01
+    estimated_cost: 0.8
+    inputs: [decision_spec]
+    required_output: evidence_record
+    completion_criteria: Produce travel recommendation.
+    status: planned
+    priority: low
+    priority_score: 3
+    priority_rationale: Deliberate drift fixture.
+
+evidence_records:
+  - schema_version: 1
+    evidence_id: E-001
+    claim: Comparable investments show high downside dispersion.
+    source_title: Private market benchmark digest
+    publisher: Example Capital Insights
+    source_url: https://example.com/benchmark-aaa
+    source_type: reputable_secondary
+    publication_date: "2026-02-12"
+    retrieval_date: "2026-02-13"
+    excerpt: Downside tails widen when dilution risk increases.
+    reliability: medium
+    directness: medium
+    independence_group: benchmark-2026
+    limitations:
+      - Secondary synthesis
+    retrieved_by: researcher
+
+assumptions:
+  - schema_version: 1
+    assumption_id: A-001
+    claim: AAA reaches next financing milestone within 18 months.
+    type: forecast
+    estimate:
+      schema_version: 1
+      method: structured_subjective
+      point: 0.55
+      base_rate: null
+      reference_class: null
+      interval_low: null
+      interval_high: null
+      adjustments: []
+    confidence: medium
+    materiality: high
+    evidence_for: [E-001]
+    evidence_against: []
+    status: unresolved
+
+objections:
+  - schema_version: 1
+    objection_id: O-001
+    target_section: preliminary_recommendation.rationale[0]
+    claim: Recommendation may be brittle under dilution stress.
+    materiality: high
+    reasoning: No completed sensitivity artifact yet.
+    reversal_evidence: A completed dilution sensitivity table showing the ranking
+      holds across the modelled range.
+    resolution_status: open
+    commissioned_tasks: [T-102]
+
+task_graph:
+  nodes:
+    - task_id: T-101
+      depends_on: []
+    - task_id: T-102
+      depends_on: [T-101]
+    - task_id: T-103
+      depends_on: [T-101]
+    - task_id: T-104
+      depends_on: []
+
+artifact_index:
+  claims:
+    - artifact_id: E-001
+      claim: Comparable investments show high downside dispersion.
+      references: []
+    - artifact_id: A-001
+      claim: AAA reaches next financing milestone within 18 months.
+      references: [E-001]
+
+budget_snapshot:
+  remaining_budget:
+    agent_invocations: 18
+    research_tasks: 4
+    high_tier_calls: 3
+  deadline: null
+  depth_limit_reached: false

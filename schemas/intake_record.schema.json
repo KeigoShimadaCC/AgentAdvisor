@@ -1,0 +1,219 @@
+{
+  "$defs": {
+    "ClarificationQuestion": {
+      "additionalProperties": false,
+      "properties": {
+        "materiality_reason": {
+          "minLength": 1,
+          "title": "Materiality Reason",
+          "type": "string"
+        },
+        "question": {
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "question_id": {
+          "minLength": 1,
+          "title": "Question Id",
+          "type": "string"
+        },
+        "resolves_field": {
+          "$ref": "#/$defs/IntakeField"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "question_id",
+        "resolves_field",
+        "question",
+        "materiality_reason"
+      ],
+      "title": "ClarificationQuestion",
+      "type": "object"
+    },
+    "Depth": {
+      "enum": [
+        "light",
+        "standard",
+        "deep"
+      ],
+      "title": "Depth",
+      "type": "string"
+    },
+    "IntakeField": {
+      "enum": [
+        "decision_question",
+        "deadline",
+        "alternatives_mentioned",
+        "objectives",
+        "constraints",
+        "risk_tolerance",
+        "reversibility",
+        "depth"
+      ],
+      "title": "IntakeField",
+      "type": "string"
+    },
+    "Reversibility": {
+      "enum": [
+        "fully_reversible",
+        "partially_reversible",
+        "irreversible"
+      ],
+      "title": "Reversibility",
+      "type": "string"
+    },
+    "RiskTolerance": {
+      "enum": [
+        "low",
+        "moderate",
+        "high"
+      ],
+      "title": "RiskTolerance",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "alternatives_mentioned": {
+      "anyOf": [
+        {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Alternatives Mentioned"
+    },
+    "clarification_questions": {
+      "items": {
+        "$ref": "#/$defs/ClarificationQuestion"
+      },
+      "maxItems": 5,
+      "title": "Clarification Questions",
+      "type": "array"
+    },
+    "constraints": {
+      "anyOf": [
+        {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Constraints"
+    },
+    "deadline": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deadline"
+    },
+    "decision_question": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decision Question"
+    },
+    "depth": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Depth"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "objectives": {
+      "anyOf": [
+        {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Objectives"
+    },
+    "raw_prompt": {
+      "minLength": 1,
+      "title": "Raw Prompt",
+      "type": "string"
+    },
+    "reversibility": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Reversibility"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "risk_tolerance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RiskTolerance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "raw_prompt"
+  ],
+  "title": "IntakeRecord",
+  "type": "object"
+}

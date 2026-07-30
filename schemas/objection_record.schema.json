@@ -48,8 +48,29 @@
       "title": "Reasoning",
       "type": "string"
     },
+    "referenced_assumption_ids": {
+      "items": {
+        "pattern": "^A-\\d+$",
+        "type": "string"
+      },
+      "title": "Referenced Assumption Ids",
+      "type": "array"
+    },
+    "referenced_evidence_ids": {
+      "items": {
+        "pattern": "^E-\\d+$",
+        "type": "string"
+      },
+      "title": "Referenced Evidence Ids",
+      "type": "array"
+    },
     "resolution_status": {
       "$ref": "#/$defs/ObjectionResolutionStatus"
+    },
+    "reversal_evidence": {
+      "minLength": 1,
+      "title": "Reversal Evidence",
+      "type": "string"
     },
     "schema_version": {
       "default": 1,
@@ -57,18 +78,19 @@
       "title": "Schema Version",
       "type": "integer"
     },
-    "target": {
+    "target_section": {
       "minLength": 1,
-      "title": "Target",
+      "title": "Target Section",
       "type": "string"
     }
   },
   "required": [
     "objection_id",
-    "target",
+    "target_section",
     "claim",
     "materiality",
     "reasoning",
+    "reversal_evidence",
     "resolution_status"
   ],
   "title": "ObjectionRecord",

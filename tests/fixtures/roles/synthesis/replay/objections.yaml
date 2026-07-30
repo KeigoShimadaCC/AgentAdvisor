@@ -1,0 +1,11 @@
+- schema_version: 1
+  objection_id: O-001
+  target_section: preliminary_recommendation.rationale[0]
+  claim: Competitive pricing pressure could erase expected upside.
+  materiality: high
+  reasoning: Peer discounting cycles have historically compressed gross margins.
+  reversal_evidence: Three years of peer gross-margin data showing no discount-driven
+    compression would retire this objection.
+  resolution_status: partially_resolved
+  commissioned_tasks:
+    - T-301

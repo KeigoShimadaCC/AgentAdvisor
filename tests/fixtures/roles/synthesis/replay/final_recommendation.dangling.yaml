@@ -1,0 +1,74 @@
+schema_version: 1
+recommended_action: invest_in_stages
+timing: Start with a small tranche this quarter and gate follow-on on milestone checks.
+decision_confidence_summary: Evidence favors staged entry, but downside concentration and one open
+  objection remain material.
+alternatives_considered:
+  - schema_version: 1
+    alternative: invest_in_stages
+    rank: 1
+    rationale: Best downside-adjusted expected utility while retaining upside participation.
+key_reasons:
+  - Staged entry preserves option value while unresolved uncertainty is monitored.
+scenario_analysis:
+  - schema_version: 1
+    scenario_name: upside
+    summary: Retention durability holds and growth remains above plan.
+    probability:
+      schema_version: 1
+      method: structured_subjective
+      reference_class: Growth-stage SaaS outcomes with high retention
+      base_rate: null
+      point: 0.54
+      interval_low: null
+      interval_high: null
+      adjustments:
+        - schema_version: 1
+          description: Positive retention signal from filing
+          delta: 0.09
+          evidence_ids:
+            - E-102
+quantitative_findings:
+  - Expected utility favors staged entry by 8.5 points over invest_now in the base weighting.
+strongest_counterarguments:
+  - schema_version: 1
+    claim: Competitor discounting could invalidate near-term margin assumptions.
+    resolution: Partially resolved by lowering initial tranche size; still tracked as unresolved risk.
+    resolved: false
+critical_assumptions:
+  - A-001
+recommendation_change_triggers:
+  - If retention drops below 110% for two consecutive quarters, switch to wait_for_milestone.
+next_actions:
+  - Define tranche sizing and downside guardrails before execution.
+citations:
+  - E-102
+  - E-999
+outcome_probabilities:
+  positive_return_within_5y:
+    schema_version: 1
+    method: structured_subjective
+    reference_class: Growth-stage venture outcomes
+    base_rate: null
+    point: 0.59
+    interval_low: null
+    interval_high: null
+    adjustments:
+      - schema_version: 1
+        description: Retention strength adjustment
+        delta: 0.07
+        evidence_ids:
+          - E-102
+evidence_confidence:
+  schema_version: 1
+  value: 0.63
+  basis: One high-directness filing plus one medium-confidence comparative study with stated limits.
+recommendation_confidence:
+  schema_version: 1
+  value: 0.74
+  basis: Staged entry dominates alternatives across most tested sensitivities.
+model_stability:
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.8
+  runs_total: 20
+  runs_supporting: 16

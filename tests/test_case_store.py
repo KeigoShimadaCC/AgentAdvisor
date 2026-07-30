@@ -7,7 +7,21 @@ from pathlib import Path
 
 import pytest
 
-from orchestrator.artifacts import AuditEvent, EvidenceRecord, Level, SourceType
+from orchestrator.artifacts import (
+    AuditEvent,
+    ConfidenceAssessment,
+    EvidenceBatch,
+    EvidenceRecord,
+    FinalRecommendation,
+    Level,
+    ModelStability,
+    ObjectionBatch,
+    ObjectionMode,
+    PreliminaryRecommendation,
+    ProbabilityEstimate,
+    ProbabilityMethod,
+    SourceType,
+)
 from orchestrator.case_store import create_case, runtime_root
 
 
@@ -27,6 +41,64 @@ def _build_evidence(evidence_id: str) -> EvidenceRecord:
         independence_group="aaa-report",
         limitations=["Company-defined segment boundary"],
         retrieved_by="researcher-market",
+    )
+
+
+def _probability(point: float) -> ProbabilityEstimate:
+    return ProbabilityEstimate(method=ProbabilityMethod.STRUCTURED_SUBJECTIVE, point=point)
+
+
+def _confidence(value: float) -> ConfidenceAssessment:
+    return ConfidenceAssessment(value=value, basis="Calibrated from evidence quality.")
+
+
+def _stability() -> ModelStability:
+    return ModelStability(
+        share_of_sensitivity_runs_supporting_recommendation=0.75,
+        runs_total=4,
+        runs_supporting=3,
+    )
+
+
+def _preliminary_recommendation() -> PreliminaryRecommendation:
+    return PreliminaryRecommendation(
+        preferred_alternative="invest",
+        rationale=["Expected value dominates alternatives."],
+        key_assumptions=[],
+        outcome_probabilities={"success": _probability(0.6)},
+        evidence_confidence=_confidence(0.7),
+        recommendation_confidence=_confidence(0.65),
+        model_stability=_stability(),
+        unresolved_evidence_gaps=[],
+        major_risks=[],
+    )
+
+
+def _final_recommendation() -> FinalRecommendation:
+    return FinalRecommendation(
+        recommended_action="Proceed with a staged allocation.",
+        timing="Within current quarter.",
+        decision_confidence_summary="Moderate confidence with defined guardrails.",
+        alternatives_considered=[
+            {
+                "alternative": "wait",
+                "rank": 2,
+                "rationale": "Lower variance, lower expected return.",
+            }
+        ],
+        key_reasons=["Scenario-weighted expected value is highest."],
+        scenario_analysis=[
+            {
+                "scenario_name": "base",
+                "summary": "Base case supports entry.",
+                "probability": _probability(0.7),
+            }
+        ],
+        next_actions=["Monitor downside indicators monthly."],
+        outcome_probabilities={"success": _probability(0.6)},
+        evidence_confidence=_confidence(0.72),
+        recommendation_confidence=_confidence(0.66),
+        model_stability=_stability(),
     )
 
 
@@ -118,6 +190,23 @@ def test_write_and_read_artifact_round_trip(tmp_path: Path) -> None:
     assert case.list_artifacts(EvidenceRecord) == [evidence]
 
 
+def test_preliminary_and_final_recommendation_round_trip(tmp_path: Path) -> None:
+    case = create_case("recommendations", cases_root=tmp_path)
+    preliminary = _preliminary_recommendation()
+    final = _final_recommendation()
+
+    preliminary_path = case.write_artifact(preliminary)
+    final_path = case.write_artifact(final)
+
+    assert preliminary_path == case.root / "shared" / "preliminary_recommendation.yaml"
+    assert final_path == case.root / "outputs" / "final_recommendation.yaml"
+
+    assert case.read_artifact(PreliminaryRecommendation) == preliminary
+    assert case.read_artifact(FinalRecommendation) == final
+    assert case.list_artifacts(PreliminaryRecommendation) == [preliminary]
+    assert case.list_artifacts(FinalRecommendation) == [final]
+
+
 def test_runtime_root_is_outside_repo_and_respects_env(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -152,3 +241,30 @@ def test_archive_agent_workspace_copies_nested_tree(tmp_path: Path) -> None:
     )
     assert artifact_text == '{"ok": true}'
     assert workspace.exists()
+
+
+def test_write_artifact_rejects_batch_transport_envelopes_with_guidance(tmp_path: Path) -> None:
+    case = create_case("batch-write-error", cases_root=tmp_path)
+    evidence_batch = EvidenceBatch(
+        task_id="T-001",
+        question="Any evidence?",
+        records=[],
+        no_evidence_found=True,
+        search_notes="No sources found after scoped search.",
+    )
+    objection_batch = ObjectionBatch(
+        mode=ObjectionMode.FINAL_PASS,
+        objections=[],
+        no_objections_justification="No remaining material objections.",
+    )
+
+    with pytest.raises(
+        TypeError,
+        match=r"EvidenceBatch cannot be written directly.*orchestrator\.unpack",
+    ):
+        case.write_artifact(evidence_batch)
+    with pytest.raises(
+        TypeError,
+        match=r"ObjectionBatch cannot be written directly.*orchestrator\.unpack",
+    ):
+        case.write_artifact(objection_batch)

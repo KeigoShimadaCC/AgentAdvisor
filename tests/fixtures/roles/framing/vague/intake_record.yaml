@@ -1,0 +1,35 @@
+schema_version: 1
+raw_prompt: |
+  I need help deciding what to do next year with my career.
+  Maybe I should stay in my current role, or maybe I should go back to school.
+decision_question: What should I do next year in my career?
+deadline: null
+alternatives_mentioned:
+  - Stay in current role
+  - Go back to school
+objectives: null
+constraints: null
+risk_tolerance: null
+reversibility: null
+depth: null
+clarification_questions:
+  - question_id: CQ-001
+    resolves_field: deadline
+    question: By what date do you need to make this career decision?
+    materiality_reason: Timeline urgency changes what options are feasible.
+  - question_id: CQ-002
+    resolves_field: objectives
+    question: What outcomes matter most (income, learning, flexibility, long-term trajectory)?
+    materiality_reason: Objectives determine how alternatives are scored.
+  - question_id: CQ-003
+    resolves_field: constraints
+    question: What hard constraints should we honor (finances, location, family commitments)?
+    materiality_reason: Constraints eliminate infeasible options early.
+  - question_id: CQ-004
+    resolves_field: risk_tolerance
+    question: How much uncertainty in short-term income or role fit can you tolerate?
+    materiality_reason: Risk tolerance shifts preference between stable and high-variance paths.
+  - question_id: CQ-005
+    resolves_field: depth
+    question: Do you want a light, standard, or deep analysis?
+    materiality_reason: Analysis depth determines investigation scope before recommendation.

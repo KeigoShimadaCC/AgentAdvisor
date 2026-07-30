@@ -5,8 +5,9 @@ read_only: false
 allow_shell: false
 projection_include:
   - decision_spec
-  - evidence_records
+  - key_evidence
   - assumptions
+  - analysis_result
   - preliminary_recommendation
 output_artifact_type: preliminary_recommendation
 model_tier: high

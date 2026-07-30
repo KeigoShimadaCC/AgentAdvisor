@@ -1,0 +1,82 @@
+assumption_ids:
+  - A-001
+break_even_thresholds:
+  - favored_alternative_above: invest_now
+    favored_alternative_below: wait
+    parameter: bull_payoff
+    schema_version: 1
+    threshold_value: 132.0
+evidence_ids:
+  - E-001
+expected_values_by_alternative:
+  invest_now: 115.0
+  wait: 101.0
+results_path: analysis/T-900/results.yaml
+scenarios:
+  - probability:
+      adjustments:
+        - delta: 0.03
+          description: Strong distribution channel signal
+          evidence_ids:
+            - E-001
+          schema_version: 1
+      base_rate: 0.2
+      interval_high: 0.35
+      interval_low: 0.25
+      method: reference_class
+      point: null
+      reference_class: Comparable seed investments with category fit
+      schema_version: 1
+    scenario_name: bull
+    schema_version: 1
+  - probability:
+      adjustments: []
+      base_rate: 0.4
+      interval_high: 0.45
+      interval_low: 0.35
+      method: reference_class
+      point: null
+      reference_class: Comparable seed investments with category fit
+      schema_version: 1
+    scenario_name: base
+    schema_version: 1
+  - probability:
+      adjustments: []
+      base_rate: 0.25
+      interval_high: 0.25
+      interval_low: 0.15
+      method: reference_class
+      point: null
+      reference_class: Comparable seed investments with category fit
+      schema_version: 1
+    scenario_name: bear
+    schema_version: 1
+  - probability:
+      adjustments: []
+      base_rate: 0.12
+      interval_high: 0.15
+      interval_low: 0.08
+      method: reference_class
+      point: null
+      reference_class: Comparable seed investments with category fit
+      schema_version: 1
+    scenario_name: failure
+    schema_version: 1
+schema_version: 1
+script_path: analysis/T-900/model.py
+sensitivity_table:
+  - parameter: bull_payoff
+    parameter_value: 120.0
+    preferred_alternative: wait
+    resulting_expected_values:
+      invest_now: 96.0
+      wait: 99.0
+    schema_version: 1
+  - parameter: bull_payoff
+    parameter_value: 170.0
+    preferred_alternative: invest_now
+    resulting_expected_values:
+      invest_now: 120.0
+      wait: 101.0
+    schema_version: 1
+task_id: T-900

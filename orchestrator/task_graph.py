@@ -11,9 +11,17 @@ from typing import Any, Protocol
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field
 
-from orchestrator.artifacts import AuditEvent, Level, TaskRecord, TaskStatus
+from orchestrator.artifacts import (
+    AuditEvent,
+    EvidenceBatch,
+    Level,
+    ObjectionBatch,
+    TaskRecord,
+    TaskStatus,
+)
 from orchestrator.artifacts.yaml_io import dump_model_to_yaml_text
 from orchestrator.case_store import Case, atomic_write_text
+from orchestrator.unpack import unpack_evidence_batch, unpack_objection_batch
 
 type EdgeInput = Mapping[str, Sequence[str]] | Sequence[tuple[str, str]]
 
@@ -322,7 +330,12 @@ class TaskGraph:
 
     def _reconcile_success_unlocked(self, task_id: str, result: TaskExecutionResult) -> None:
         for artifact in result.artifacts:
-            self._case.write_artifact(artifact)
+            if isinstance(artifact, EvidenceBatch):
+                unpack_evidence_batch(self._case, artifact)
+            elif isinstance(artifact, ObjectionBatch):
+                unpack_objection_batch(self._case, artifact)
+            else:
+                self._case.write_artifact(artifact)
 
         if result.output_payload is not None:
             dumped = yaml.safe_dump(dict(result.output_payload), sort_keys=True)

@@ -1,0 +1,149 @@
+decision_spec:
+  schema_version: 1
+  decision_id: case-001-director
+  question: Should I invest in AAA this quarter, and if so under what structure?
+  owner: user
+  deadline: 2026-11-15
+  alternatives:
+    - Invest now at full size
+    - Invest in stages tied to milestones
+    - Wait for milestone before investing
+    - Decline for now and revisit
+  objectives:
+    - Maximize expected risk-adjusted return
+    - Preserve liquidity for near-term obligations
+  constraints:
+    - Keep at least 12 months of cash runway outside this investment
+  risk_tolerance: moderate
+  reversibility: partially_reversible
+  depth: standard
+evidence:
+  - schema_version: 1
+    evidence_id: E-001
+    claim: Comparable pre-IPO software rounds have a moderate positive-return hit rate over 5 years.
+    source_title: Historical outcomes of late-stage private software rounds
+    publisher: Market Data Consortium
+    source_url: https://example.com/base-rates
+    source_type: reputable_secondary
+    publication_date: 2025-05-12
+    retrieval_date: 2026-07-01
+    excerpt: In a comparable reference class, 57% produced positive nominal returns in five years.
+    reliability: medium
+    directness: high
+    independence_group: market_data_consortium
+    limitations:
+      - Includes only disclosed rounds and may undercount failures.
+    retrieved_by: researcher
+  - schema_version: 1
+    evidence_id: E-002
+    claim: AAA revenue retention improved and now exceeds prior-year level.
+    source_title: AAA board update Q2 2026
+    publisher: AAA
+    source_url: https://example.com/aaa-board-update
+    source_type: original_research
+    publication_date: 2026-06-20
+    retrieval_date: 2026-07-01
+    excerpt: Net dollar retention reached 118% in Q2 2026, up from 109% a year ago.
+    reliability: medium
+    directness: high
+    independence_group: aaa_company_reporting
+    limitations:
+      - Company-reported metric without external audit.
+    retrieved_by: researcher
+  - schema_version: 1
+    evidence_id: E-003
+    claim: Downside outcomes in the reference class are concentrated when milestone slippage persists.
+    source_title: Milestone slippage and late-stage downside outcomes
+    publisher: Venture Outcomes Review
+    source_url: https://example.com/slippage-risk
+    source_type: specialist_reporting
+    publication_date: 2024-10-01
+    retrieval_date: 2026-07-01
+    excerpt: Deals with >2 quarter milestone slippage had roughly 1.8x higher loss incidence.
+    reliability: medium
+    directness: medium
+    independence_group: venture_outcomes_review
+    limitations:
+      - Cross-sectional study with moderate sample size.
+    retrieved_by: researcher
+assumptions:
+  - schema_version: 1
+    assumption_id: A-001
+    claim: AAA can sustain retention above 115% over the next 12 months.
+    type: forecast
+    estimate:
+      schema_version: 1
+      method: structured_subjective
+      point: 0.62
+      adjustments: []
+    confidence: medium
+    materiality: high
+    evidence_for:
+      - E-002
+    evidence_against: []
+    status: unresolved
+  - schema_version: 1
+    assumption_id: A-002
+    claim: Milestone-based staging materially reduces loss severity if growth slows.
+    type: financial
+    estimate:
+      schema_version: 1
+      method: structured_subjective
+      point: 0.68
+      adjustments: []
+    confidence: medium
+    materiality: high
+    evidence_for:
+      - E-003
+    evidence_against: []
+    status: unresolved
+analysis:
+  schema_version: 1
+  task_id: T-101
+  script_path: analysis/staged_vs_lump_sum.py
+  results_path: analysis/staged_vs_lump_sum_results.json
+  scenarios:
+    - schema_version: 1
+      scenario_name: base_case
+      probability:
+        schema_version: 1
+        method: reference_class
+        reference_class: late-stage private software rounds, 5y horizon
+        base_rate: 0.57
+        point: 0.57
+        adjustments: []
+    - schema_version: 1
+      scenario_name: downside_case
+      probability:
+        schema_version: 1
+        method: structured_subjective
+        point: 0.26
+        adjustments: []
+  expected_values_by_alternative:
+    Invest now at full size: 1.09
+    Invest in stages tied to milestones: 1.15
+    Wait for milestone before investing: 1.04
+    Decline for now and revisit: 1.0
+  sensitivity_table:
+    - schema_version: 1
+      parameter: downside_probability
+      parameter_value: 0.2
+      resulting_expected_values:
+        Invest now at full size: 1.13
+        Invest in stages tied to milestones: 1.17
+        Wait for milestone before investing: 1.03
+        Decline for now and revisit: 1.0
+      preferred_alternative: Invest in stages tied to milestones
+  break_even_thresholds:
+    - schema_version: 1
+      parameter: downside_probability
+      threshold_value: 0.34
+      favored_alternative_below: Invest in stages tied to milestones
+      favored_alternative_above: Wait for milestone before investing
+  assumption_ids:
+    - A-001
+    - A-002
+  evidence_ids:
+    - E-001
+    - E-002
+    - E-003

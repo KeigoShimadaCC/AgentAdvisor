@@ -1,0 +1,343 @@
+{
+  "$defs": {
+    "AnalysisScenario": {
+      "additionalProperties": false,
+      "properties": {
+        "probability": {
+          "$ref": "#/$defs/ProbabilityEstimate"
+        },
+        "scenario_name": {
+          "minLength": 1,
+          "title": "Scenario Name",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scenario_name",
+        "probability"
+      ],
+      "title": "AnalysisScenario",
+      "type": "object"
+    },
+    "BreakEvenThreshold": {
+      "additionalProperties": false,
+      "properties": {
+        "favored_alternative_above": {
+          "minLength": 1,
+          "title": "Favored Alternative Above",
+          "type": "string"
+        },
+        "favored_alternative_below": {
+          "minLength": 1,
+          "title": "Favored Alternative Below",
+          "type": "string"
+        },
+        "parameter": {
+          "minLength": 1,
+          "title": "Parameter",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "threshold_value": {
+          "title": "Threshold Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "parameter",
+        "threshold_value",
+        "favored_alternative_below",
+        "favored_alternative_above"
+      ],
+      "title": "BreakEvenThreshold",
+      "type": "object"
+    },
+    "ProbabilityAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "description",
+        "delta",
+        "evidence_ids"
+      ],
+      "title": "ProbabilityAdjustment",
+      "type": "object"
+    },
+    "ProbabilityEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustments": {
+          "items": {
+            "$ref": "#/$defs/ProbabilityAdjustment"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        },
+        "base_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Rate"
+        },
+        "interval_high": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval High"
+        },
+        "interval_low": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Low"
+        },
+        "method": {
+          "$ref": "#/$defs/ProbabilityMethod"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point"
+        },
+        "reference_class": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Class"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "title": "ProbabilityEstimate",
+      "type": "object"
+    },
+    "ProbabilityMethod": {
+      "enum": [
+        "reference_class",
+        "scenario_model",
+        "structured_subjective"
+      ],
+      "title": "ProbabilityMethod",
+      "type": "string"
+    },
+    "SensitivityRow": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {
+          "minLength": 1,
+          "title": "Parameter",
+          "type": "string"
+        },
+        "parameter_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "minLength": 1,
+              "type": "string"
+            }
+          ],
+          "title": "Parameter Value"
+        },
+        "preferred_alternative": {
+          "minLength": 1,
+          "title": "Preferred Alternative",
+          "type": "string"
+        },
+        "resulting_expected_values": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Resulting Expected Values",
+          "type": "object"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "parameter",
+        "parameter_value",
+        "resulting_expected_values",
+        "preferred_alternative"
+      ],
+      "title": "SensitivityRow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assumption_ids": {
+      "items": {
+        "pattern": "^A-\\d+$",
+        "type": "string"
+      },
+      "title": "Assumption Ids",
+      "type": "array"
+    },
+    "break_even_thresholds": {
+      "items": {
+        "$ref": "#/$defs/BreakEvenThreshold"
+      },
+      "title": "Break Even Thresholds",
+      "type": "array"
+    },
+    "evidence_ids": {
+      "items": {
+        "pattern": "^E-\\d+$",
+        "type": "string"
+      },
+      "title": "Evidence Ids",
+      "type": "array"
+    },
+    "expected_values_by_alternative": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "minProperties": 1,
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Expected Values By Alternative",
+      "type": "object"
+    },
+    "results_path": {
+      "minLength": 1,
+      "title": "Results Path",
+      "type": "string"
+    },
+    "scenarios": {
+      "items": {
+        "$ref": "#/$defs/AnalysisScenario"
+      },
+      "minItems": 1,
+      "title": "Scenarios",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "script_path": {
+      "minLength": 1,
+      "title": "Script Path",
+      "type": "string"
+    },
+    "sensitivity_table": {
+      "items": {
+        "$ref": "#/$defs/SensitivityRow"
+      },
+      "minItems": 1,
+      "title": "Sensitivity Table",
+      "type": "array"
+    },
+    "task_id": {
+      "pattern": "^T-\\d+$",
+      "title": "Task Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task_id",
+    "script_path",
+    "results_path",
+    "scenarios",
+    "expected_values_by_alternative",
+    "sensitivity_table"
+  ],
+  "title": "AnalysisResult",
+  "type": "object"
+}

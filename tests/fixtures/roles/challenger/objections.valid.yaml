@@ -1,0 +1,39 @@
+schema_version: 1
+mode: standard
+objections:
+  - schema_version: 1
+    objection_id: O-401
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Uncited inferential leap on churn durability.
+    materiality: high
+    reasoning: The recommendation assumes a durable churn outcome without direct support.
+    reversal_evidence: Independent post-repricing churn data for comparable cohorts showing churn <= 2 percent.
+    referenced_evidence_ids: []
+    referenced_assumption_ids:
+      - A-301
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-402
+    target_section: preliminary_recommendation.key_assumptions[0]
+    claim: The load-bearing assumption has low confidence but drives the top-ranked alternative.
+    materiality: high
+    reasoning: A fragile high-materiality assumption can flip alternative ranking under modest downside stress.
+    reversal_evidence: A sensitivity run showing recommendation rank remains unchanged when churn increases to 4-5 percent.
+    referenced_evidence_ids: []
+    referenced_assumption_ids:
+      - A-301
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-403
+    target_section: preliminary_recommendation.recommendation_confidence
+    claim: Recommendation confidence appears overstated relative to evidence confidence.
+    materiality: medium
+    reasoning: Recommendation confidence at 0.91 is not aligned with mixed-source evidence quality.
+    reversal_evidence: Additional independent high-reliability sources that directly support pricing durability.
+    referenced_evidence_ids:
+      - E-301
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []

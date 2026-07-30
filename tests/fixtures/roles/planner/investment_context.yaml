@@ -1,0 +1,118 @@
+decision_spec:
+  schema_version: 1
+  decision_id: case-1-investment
+  question: Should the user invest in AAA now, stage in after milestones, or wait?
+  owner: user
+  deadline: "2026-09-15"
+  alternatives:
+    - invest_now
+    - invest_in_stages
+    - wait_for_milestone
+    - do_not_invest
+  objectives:
+    - maximize risk-adjusted expected return
+    - preserve downside protection
+    - maintain optionality
+  constraints:
+    - maximum_acceptable_loss
+    - liquidity_horizon_5y
+  risk_tolerance: moderate
+  reversibility: partially_reversible
+  depth: standard
+
+assumptions:
+  - schema_version: 1
+    assumption_id: A-101
+    claim: AAA can sustain 45 percent annual recurring revenue growth for three years.
+    type: forecast
+    estimate:
+      schema_version: 1
+      method: structured_subjective
+      point: null
+      base_rate: null
+      reference_class: null
+      adjustments: []
+      interval_low: 0.35
+      interval_high: 0.70
+    confidence: medium
+    materiality: high
+    status: unresolved
+    evidence_for: []
+    evidence_against: []
+  - schema_version: 1
+    assumption_id: A-102
+    claim: Down-round risk remains below 20 percent before the next major milestone.
+    type: financial
+    estimate:
+      schema_version: 1
+      method: structured_subjective
+      point: null
+      base_rate: null
+      reference_class: null
+      adjustments: []
+      interval_low: 0.25
+      interval_high: 0.60
+    confidence: low
+    materiality: high
+    status: unresolved
+    evidence_for: []
+    evidence_against: []
+
+objections:
+  - schema_version: 1
+    objection_id: O-201
+    target_section: preliminary_recommendation.rationale[1]
+    claim: Adoption assumptions may understate switching friction.
+    reasoning: Existing evidence is mostly vendor-authored and may not generalize.
+    reversal_evidence: An independent buyer survey measuring realized switching
+      costs would settle this.
+    materiality: high
+    resolution_status: open
+    commissioned_tasks: []
+  - schema_version: 1
+    objection_id: O-202
+    target_section: preliminary_recommendation.rationale[2]
+    claim: Timing recommendation may be brittle under dilution stress.
+    reasoning: No explicit sensitivity run ties dilution timing to alternative ranking.
+    reversal_evidence: A sensitivity run varying dilution timing that leaves the
+      preferred alternative unchanged.
+    materiality: high
+    resolution_status: open
+    commissioned_tasks: []
+
+tasks:
+  - schema_version: 1
+    task_id: T-101
+    role: researcher
+    question: What are comparable base rates for positive five-year outcomes in this segment?
+    why_it_matters: Anchors scenario priors.
+    expected_information_gain: high
+    materiality: high
+    probability_of_changing_conclusion: 0.70
+    estimated_cost: 1.0
+    inputs:
+      - decision_spec
+    required_output: evidence_records
+    completion_criteria: Three independent estimates with definitions.
+    status: completed
+    priority: high
+    priority_score: 90
+    priority_rationale: Foundation for scenario probabilities.
+  - schema_version: 1
+    task_id: T-102
+    role: analyst
+    question: How sensitive is recommendation ranking to downside-case dilution?
+    why_it_matters: Could flip invest_now versus staged entry.
+    expected_information_gain: high
+    materiality: high
+    probability_of_changing_conclusion: 0.62
+    estimated_cost: 1.2
+    inputs:
+      - decision_spec
+      - evidence_base_rates
+    required_output: analysis_result
+    completion_criteria: Reproducible sensitivity table with break-even thresholds.
+    status: planned
+    priority: high
+    priority_score: 85
+    priority_rationale: Directly tied to unresolved high-materiality objection.
