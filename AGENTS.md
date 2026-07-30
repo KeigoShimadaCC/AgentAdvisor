@@ -31,7 +31,10 @@ cursor/
 cases/         # runtime case blackboards, gitignored (cases/<case-id>/ per north star 7.3)
 benchmarks/    # benchmark decision cases for evaluation (north star Section 19)
 tests/         # unit tests for deterministic components
+report-and-findings/  # research reports, test findings, experiment writeups (dated files)
 ```
+
+Reports, research findings, and experiment writeups belong in `report-and-findings/`, named `YYYY-MM-DD-<topic>.md`.
 
 ## Spec-driven development
 
