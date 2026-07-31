@@ -1,0 +1,163 @@
+dimensions:
+  decision_completeness:
+    weight: 1.0
+    criteria:
+      - id: dc-1
+        name: alternative_breadth
+        description: "Identifies at least 3 serious alternatives beyond the binary the user arrived with"
+        score_range: [0, 2]
+        scoring:
+          0: "Only considers the binary posed by the user"
+          1: "Mentions 1-2 additional alternatives but does not seriously analyze them"
+          2: "Identifies and analyzes 3+ alternatives including non-obvious ones (staged entry, alternative vehicle, decline-and-revisit)"
+      - id: dc-2
+        name: objective_capture
+        description: "Captures the user's objectives and constraints explicitly"
+        score_range: [0, 2]
+        scoring:
+          0: "Objectives not stated or purely assumed"
+          1: "Objectives stated but incomplete"
+          2: "Objectives and constraints explicitly captured and used in ranking"
+      - id: dc-3
+        name: uncertainty_awareness
+        description: "Recognizes material uncertainties and states what information is missing"
+        score_range: [0, 2]
+        scoring:
+          0: "No uncertainty discussed"
+          1: "Uncertainty mentioned but not structured"
+          2: "Material uncertainties identified, missing information explicitly stated, impact on recommendation explained"
+
+  evidence_quality:
+    weight: 1.0
+    criteria:
+      - id: eq-1
+        name: source_authority
+        description: "Uses authoritative sources where available (primary data, filings, official statistics)"
+        score_range: [0, 2]
+        scoring:
+          0: "No sources cited or only unsourced assertions"
+          1: "Some sources but mostly secondary or low quality"
+          2: "Primary or authoritative sources cited for material claims"
+      - id: eq-2
+        name: citation_attachment
+        description: "Attaches citations to material claims, not just a bibliography"
+        score_range: [0, 2]
+        scoring:
+          0: "No inline citations"
+          1: "Bibliography only, claims not linked to specific sources"
+          2: "Citations placed next to the claims they support"
+      - id: eq-3
+        name: source_limitations
+        description: "Records limitations of cited sources"
+        score_range: [0, 2]
+        scoring:
+          0: "No limitations mentioned"
+          1: "Some limitations noted"
+          2: "Each material source has explicit limitations (staleness, bias, scope)"
+
+  analytical_quality:
+    weight: 1.0
+    criteria:
+      - id: aq-1
+        name: quantitative_rigor
+        description: "Performs reproducible quantitative work where appropriate"
+        score_range: [0, 2]
+        scoring:
+          0: "No quantitative analysis"
+          1: "Some numbers but not reproducible or not sensitivity-tested"
+          2: "Scenario model with probabilities, expected values, and sensitivity analysis"
+      - id: aq-2
+        name: assumption_fact_separation
+        description: "Distinguishes assumptions from facts clearly"
+        score_range: [0, 2]
+        scoring:
+          0: "Assumptions and facts intermingled"
+          1: "Some separation but not systematic"
+          2: "Every material claim labeled as sourced fact, assumption, calculation, or interpretation"
+      - id: aq-3
+        name: sensitivity_awareness
+        description: "Exposes sensitivity to material variables"
+        score_range: [0, 2]
+        scoring:
+          0: "No sensitivity analysis"
+          1: "Mentions that things could vary but no structured analysis"
+          2: "Sensitivity table showing how the recommendation changes under different assumptions"
+      - id: aq-4
+        name: false_precision_avoidance
+        description: "Avoids false precision in probability estimates"
+        score_range: [0, 2]
+        scoring:
+          0: "Spurious precision (e.g., 51.7% from weak evidence)"
+          1: "Some false precision"
+          2: "Ranges used where evidence is weak, point estimates only where justified"
+
+  adversarial_robustness:
+    weight: 1.0
+    criteria:
+      - id: ar-1
+        name: counterargument_identification
+        description: "Identifies credible counterarguments to the recommendation"
+        score_range: [0, 2]
+        scoring:
+          0: "No counterarguments"
+          1: "Weak or strawman counterarguments"
+          2: "Material objections with clear reasoning and reversal evidence"
+      - id: ar-2
+        name: thesis_revision
+        description: "Can revise its preliminary thesis when contradictory evidence appears"
+        score_range: [0, 2]
+        scoring:
+          0: "Recommendation unchanged regardless of evidence"
+          1: "Some acknowledgment of contradictory evidence"
+          2: "Repair cycle actually changes the recommendation or strengthens it with targeted work"
+      - id: ar-3
+        name: no_manufactured_disagreement
+        description: "Does not manufacture disagreement for appearance"
+        score_range: [0, 2]
+        scoring:
+          0: "Objections feel padded or artificial"
+          1: "Some real, some padded"
+          2: "Every objection is material and targeted"
+
+  relevance_efficiency:
+    weight: 1.0
+    criteria:
+      - id: re-1
+        name: decision_focus
+        description: "Remains tied to the original decision question"
+        score_range: [0, 2]
+        scoring:
+          0: "Wanders significantly from the decision"
+          1: "Some tangents but mostly relevant"
+          2: "All research and analysis directly serves the decision"
+      - id: re-2
+        name: stopping_discipline
+        description: "Stops when more research is unlikely to change the recommendation"
+        score_range: [0, 2]
+        scoring:
+          0: "No stopping awareness or excessive research"
+          1: "Stops but without explicit justification"
+          2: "Explicit stop reasoning with marginal-value justification"
+
+  traceability:
+    weight: 1.0
+    criteria:
+      - id: tr-1
+        name: evidence_chain
+        description: "Connects important conclusions to specific evidence and assumptions"
+        score_range: [0, 2]
+        scoring:
+          0: "Conclusions unsupported"
+          1: "Some conclusions linked to evidence"
+          2: "Every material claim traces to specific E-/A- IDs"
+      - id: tr-2
+        name: audit_completeness
+        description: "Preserves enough artifacts to audit the case"
+        score_range: [0, 2]
+        scoring:
+          0: "Cannot reconstruct the reasoning"
+          1: "Some artifacts but gaps"
+          2: "Complete chain: intake → framing → evidence → analysis → objections → recommendation"
+
+# Overall score: weighted average of dimension scores (each dimension 0-2, overall 0-2)
+# 0.0-0.5: poor, 0.5-1.0: fair, 1.0-1.5: good, 1.5-2.0: excellent

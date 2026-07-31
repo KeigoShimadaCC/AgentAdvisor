@@ -1,0 +1,19 @@
+id: scenario-04
+title: Big Tech Salary vs Series B Equity Upside
+prompt: >
+  I currently earn $180,000 per year at a stable big-tech role with strong benefits.
+  I have an offer from a Series B startup at $140,000 base plus 0.5% equity, and the mission is more exciting.
+  I am deciding whether to switch now, negotiate a different package, or stay for another 12-18 months before revisiting.
+  Please evaluate this as both a financial and career-capital decision.
+slug: career-transition
+budget_profile: small
+depth: standard
+framing_approval:
+  decision: approve
+  answers: {}
+notes: |
+  What a good answer must address:
+  - Compare risk-adjusted compensation, including equity dilution, vesting risk, and liquidity timing.
+  - Evaluate non-cash factors (learning velocity, role scope, burnout risk, and option value of waiting).
+  - Cite evidence for startup survival/exit distributions, compensation benchmarks, and tax considerations.
+  - Show uncertainty ranges for equity outcomes and explicit break-even assumptions versus staying.

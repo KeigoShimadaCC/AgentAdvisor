@@ -2,11 +2,11 @@
 id: SPEC-019
 title: User CLI
 phase: 4
-status: draft
+status: in_progress
 depends_on: [SPEC-018]
 parallel_with: []
 north_star_refs: ["15"]
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 ---
 
 # SPEC-019 — User CLI
@@ -38,6 +38,8 @@ Web UI, TUI dashboards, artifact browsing beyond printing paths, multi-user conc
 ## Design
 
 CLI is a thin adapter over case store + pipeline: parse → call → print. All output plain text (tables via string formatting); `--json` variants for status/list to keep future tooling possible. Exit codes: 0 ok, 2 user error (bad id, wrong stage for approve), 3 pipeline failure (case in FAILED with cause printed).
+
+**Approval mechanism.** `advisor approve <case-id>` writes a `FramingApproval` artifact to the case (at `shared/framing_approval.yaml`) with the user's decision (approve | edit | answers), then sets `CaseState.framing_approved = True` (or `final_approved = True` at the final gate) and saves state, then resumes the pipeline. The state flag is what the state machine's approval-gate check reads; the artifact is the auditable record of what the user decided.
 
 ## Deliverables
 

@@ -2,11 +2,11 @@
 id: SPEC-018
 title: Stage wiring (end-to-end pipeline)
 phase: 4
-status: draft
+status: in_progress
 depends_on: [SPEC-007, SPEC-008, SPEC-009, SPEC-010, SPEC-011, SPEC-012, SPEC-013, SPEC-014, SPEC-015, SPEC-016, SPEC-017]
 parallel_with: []
 north_star_refs: ["8", "14", "15"]
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 ---
 
 # SPEC-018 — Stage wiring (end-to-end pipeline)
@@ -42,11 +42,21 @@ CLI commands (SPEC-019), real-scale case (SPEC-020), any new role behavior.
 
 Handlers contain orchestration only; every substantive judgment stays inside role invocations. Two E2E tests: (1) full StubBackend run with scripted artifacts asserting the exact stage sequence, artifact set, audit-log completeness, and repair-loop bound; (2) `@pytest.mark.live_slow` toy-case run on cheap models asserting completion within budget and a rendered final_recommendation.md.
 
+**Startup registration.** The pipeline entry point registers cross-field validation hooks (`register_citation_hooks()` from `orchestrator/citations.py`) before any Director invocation, so citation-coverage validation is active from the first preliminary recommendation onward.
+
+**Auto-approval mode.** `pipeline.run(case, *, auto_approve=False)` supports unattended operation for benchmark runs: when `auto_approve=True`, the pipeline writes a default `FramingApproval` (approve, no edits) at the framing gate and sets `CaseState.framing_approved = True` before resuming; similarly at the final approval gate. The CLI (SPEC-019) uses `auto_approve=False` and halts at approval gates; the benchmark runner (SPEC-021) uses `auto_approve=True`.
+
+**INVESTIGATION dispatch.** The handler loops: dispatch all ready tasks via `TaskGraph.dispatch(runner, max_concurrent)`, normalize and unpack batch outputs (`EvidenceBatch` via `normalize_evidence_batch` then `unpack_evidence_batch`; `ObjectionBatch` via `unpack_objection_batch`), run the reproducibility gate for analyst tasks, then check for newly-ready tasks (dependencies satisfied). When no tasks remain ready, advance. Auditor checkpoint runs once after all waves complete for the MVP; per-wave auditing is an emergent refinement.
+
+**CHALLENGE mode.** The challenger uses `mode: standard` on the first pass (cap 5) and `mode: final_pass` (cap 2) when `state.repair_cycle > 0`, per north star Stage 5.3 step 5.
+
+**REPAIR handler.** Invokes planner in repair mode, runs the acceptance filter, adds repair tasks to the graph, dispatches them, then invokes the director in `preliminary_recommendation` mode to update the thesis with the new evidence. Transitions to CHALLENGE (final falsification).
+
 ## Deliverables
 
-- [ ] `orchestrator/stages.py` (+ pipeline entry `orchestrator/pipeline.py`)
-- [ ] Toy case fixture + cheap-model roles override
-- [ ] `tests/test_pipeline_stub.py`, `tests/test_pipeline_live.py` (`live_slow` marker)
+- [x] `orchestrator/stages.py` (+ pipeline entry `orchestrator/pipeline.py`)
+- [x] Toy case fixture + cheap-model roles override (5 benchmark scenarios + scoring framework)
+- [ ] `tests/test_pipeline_stub.py`, `tests/test_pipeline_live.py` (`live_slow` marker) — stub test not yet written; live test blocked by usage limit
 
 ## Acceptance criteria
 
@@ -66,7 +76,14 @@ uv run pytest -m live_slow tests/test_pipeline_live.py -q   # ~10-15 cheap invoc
 
 ## Verification results
 
-—
+**Unit tests**: 179 passed (including 13 live tests from Phase 3). `make check` green.
+
+**Live e2e (2026-07-31)**:
+- Scenario 01 reached synthesis (deepest run): 25 evidence, 4 objections, 8 tasks, 21 invocations (10 ok), 1.07M input tokens, score 1.23/2.0. Synthesis failed with 172 FinalRecommendation validation errors. Fix applied (YAML example in synthesizer.md), awaiting live re-test.
+- Scenarios 02-05: Failed at framing due to Cursor Pro usage limit (resets 2026-08-30).
+- Analytical quality: 0 analysis results produced (analyst issue under investigation).
+- Not yet tested: review stage, repair cycle, budget exhaustion, case resume, rendering.
+- Full report: `report-and-findings/2026-07-31-e2e-evaluation.md`
 
 ## Open questions
 

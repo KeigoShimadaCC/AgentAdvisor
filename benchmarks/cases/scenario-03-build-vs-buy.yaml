@@ -1,0 +1,19 @@
+id: scenario-03
+title: Build vs Buy Analytics Stack
+prompt: >
+  Our 10-person startup needs a customer analytics dashboard this quarter.
+  Option A is building a custom internal product that likely costs about $80,000 and four months of engineering time;
+  option B is buying a SaaS platform for about $2,000 per month and deploying immediately.
+  We need a recommendation that accounts for total cost, delivery risk, and impact on our core product roadmap.
+slug: build-vs-buy
+budget_profile: small
+depth: standard
+framing_approval:
+  decision: approve
+  answers: {}
+notes: |
+  What a good answer must address:
+  - Compare TCO across at least three alternatives (build, buy, and hybrid/staged migration).
+  - Quantify opportunity cost from diverting engineers from revenue-critical roadmap work.
+  - Use evidence on implementation timelines, integration constraints, and vendor lock-in/contract terms.
+  - Show sensitivity to headcount changes, usage growth, and reliability/security requirements.

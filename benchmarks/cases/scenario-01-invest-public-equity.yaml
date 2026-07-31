@@ -1,0 +1,19 @@
+id: scenario-01
+title: "Public Equity Timing: Nvidia vs Semiconductor ETF"
+prompt: >
+  I have $50,000 in cash and want semiconductor exposure, but I am unsure whether to buy Nvidia now,
+  wait until after the next earnings report, or put most of it into a broad semiconductor ETF like SOXX.
+  I can tolerate volatility, but I do not want a permanent capital loss that sets back my house down-payment plan.
+  Please compare these options and recommend a position-sizing and timing approach.
+slug: invest-public-equity
+budget_profile: small
+depth: standard
+framing_approval:
+  decision: approve
+  answers: {}
+notes: |
+  What a good answer must address:
+  - Compare at least three credible paths: buy now, staged entry around earnings, and ETF-heavy exposure.
+  - Separate valuation risk from business-quality conviction and show what evidence would invalidate the thesis.
+  - Cite primary inputs where possible (company filings, earnings transcripts, index methodology, macro rate context).
+  - Show sensitivity to earnings surprise, multiple compression, and concentration risk rather than a single-point forecast.

@@ -61,6 +61,12 @@ def validate_preliminary_recommendation_citations(artifact: BaseModel, case: Cas
 
     evidence_ids, assumption_ids = _existing_ids(case)
 
+    # Provisional thesis (Stage 3) runs before any evidence or assumptions exist.
+    # Citation requirements only apply once the blackboard has evidence/assumptions.
+    has_blackboard = bool(evidence_ids or assumption_ids)
+    if not has_blackboard:
+        return
+
     for index, reason in enumerate(artifact.rationale, start=1):
         reason_ids = _extract_reference_ids(reason)
         if not reason_ids:

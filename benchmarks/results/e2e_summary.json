@@ -1,0 +1,227 @@
+[
+  {
+    "scenario_id": "scenario-01",
+    "scenario_title": "Public Equity Timing: Nvidia vs Semiconductor ETF",
+    "case_id": "case-001-invest-public-equity",
+    "final_stage": "failed",
+    "elapsed_seconds": 73.0,
+    "metrics": {
+      "total_invocations": 4,
+      "successful_invocations": 1,
+      "failed_invocations": 3,
+      "total_input_tokens": 18058,
+      "total_output_tokens": 4765,
+      "total_cache_read_tokens": 0,
+      "total_duration_ms": 66245,
+      "evidence_records": 0,
+      "assumption_records": 0,
+      "objection_records": 0,
+      "analysis_results": 0,
+      "task_records": 0,
+      "has_final_recommendation": false
+    },
+    "scoring": {
+      "criterion_scores": {
+        "dc-1": 0,
+        "dc-2": 0,
+        "eq-1": 0,
+        "eq-2": 0,
+        "eq-3": 0,
+        "aq-1": 0,
+        "aq-3": 0,
+        "ar-1": 0,
+        "tr-1": 0,
+        "tr-2": 0
+      },
+      "dimension_scores": {
+        "decision_completeness": 0.0,
+        "evidence_quality": 0.0,
+        "analytical_quality": 0.0,
+        "adversarial_robustness": 0.0,
+        "traceability": 0.0
+      },
+      "overall_score": 0.0
+    },
+    "success": false
+  },
+  {
+    "scenario_id": "scenario-02",
+    "scenario_title": "Staged Angel Check for Friend's AI Startup",
+    "case_id": "case-002-invest-startup-staged",
+    "final_stage": "failed",
+    "elapsed_seconds": 121.4,
+    "metrics": {
+      "total_invocations": 4,
+      "successful_invocations": 1,
+      "failed_invocations": 3,
+      "total_input_tokens": 18472,
+      "total_output_tokens": 3955,
+      "total_cache_read_tokens": 0,
+      "total_duration_ms": 114631,
+      "evidence_records": 0,
+      "assumption_records": 0,
+      "objection_records": 0,
+      "analysis_results": 0,
+      "task_records": 0,
+      "has_final_recommendation": false
+    },
+    "scoring": {
+      "criterion_scores": {
+        "dc-1": 0,
+        "dc-2": 0,
+        "eq-1": 0,
+        "eq-2": 0,
+        "eq-3": 0,
+        "aq-1": 0,
+        "aq-3": 0,
+        "ar-1": 0,
+        "tr-1": 0,
+        "tr-2": 0
+      },
+      "dimension_scores": {
+        "decision_completeness": 0.0,
+        "evidence_quality": 0.0,
+        "analytical_quality": 0.0,
+        "adversarial_robustness": 0.0,
+        "traceability": 0.0
+      },
+      "overall_score": 0.0
+    },
+    "success": false
+  },
+  {
+    "scenario_id": "scenario-03",
+    "scenario_title": "Build vs Buy Analytics Stack",
+    "case_id": "case-003-build-vs-buy",
+    "final_stage": "failed",
+    "elapsed_seconds": 184.3,
+    "metrics": {
+      "total_invocations": 5,
+      "successful_invocations": 1,
+      "failed_invocations": 4,
+      "total_input_tokens": 41297,
+      "total_output_tokens": 9885,
+      "total_cache_read_tokens": 0,
+      "total_duration_ms": 171418,
+      "evidence_records": 0,
+      "assumption_records": 0,
+      "objection_records": 0,
+      "analysis_results": 0,
+      "task_records": 0,
+      "has_final_recommendation": false
+    },
+    "scoring": {
+      "criterion_scores": {
+        "dc-1": 0,
+        "dc-2": 0,
+        "eq-1": 0,
+        "eq-2": 0,
+        "eq-3": 0,
+        "aq-1": 0,
+        "aq-3": 0,
+        "ar-1": 0,
+        "tr-1": 0,
+        "tr-2": 0
+      },
+      "dimension_scores": {
+        "decision_completeness": 0.0,
+        "evidence_quality": 0.0,
+        "analytical_quality": 0.0,
+        "adversarial_robustness": 0.0,
+        "traceability": 0.0
+      },
+      "overall_score": 0.0
+    },
+    "success": false
+  },
+  {
+    "scenario_id": "scenario-04",
+    "scenario_title": "Big Tech Salary vs Series B Equity Upside",
+    "case_id": "case-004-career-transition",
+    "final_stage": "failed",
+    "elapsed_seconds": 63.2,
+    "metrics": {
+      "total_invocations": 4,
+      "successful_invocations": 1,
+      "failed_invocations": 3,
+      "total_input_tokens": 16712,
+      "total_output_tokens": 4021,
+      "total_cache_read_tokens": 0,
+      "total_duration_ms": 56670,
+      "evidence_records": 0,
+      "assumption_records": 0,
+      "objection_records": 0,
+      "analysis_results": 0,
+      "task_records": 0,
+      "has_final_recommendation": false
+    },
+    "scoring": {
+      "criterion_scores": {
+        "dc-1": 0,
+        "dc-2": 0,
+        "eq-1": 0,
+        "eq-2": 0,
+        "eq-3": 0,
+        "aq-1": 0,
+        "aq-3": 0,
+        "ar-1": 0,
+        "tr-1": 0,
+        "tr-2": 0
+      },
+      "dimension_scores": {
+        "decision_completeness": 0.0,
+        "evidence_quality": 0.0,
+        "analytical_quality": 0.0,
+        "adversarial_robustness": 0.0,
+        "traceability": 0.0
+      },
+      "overall_score": 0.0
+    },
+    "success": false
+  },
+  {
+    "scenario_id": "scenario-05",
+    "scenario_title": "Buy Condo Now vs Rent and Invest",
+    "case_id": "case-005-real-estate",
+    "final_stage": "failed",
+    "elapsed_seconds": 74.1,
+    "metrics": {
+      "total_invocations": 4,
+      "successful_invocations": 1,
+      "failed_invocations": 3,
+      "total_input_tokens": 15788,
+      "total_output_tokens": 5297,
+      "total_cache_read_tokens": 0,
+      "total_duration_ms": 67443,
+      "evidence_records": 0,
+      "assumption_records": 0,
+      "objection_records": 0,
+      "analysis_results": 0,
+      "task_records": 0,
+      "has_final_recommendation": false
+    },
+    "scoring": {
+      "criterion_scores": {
+        "dc-1": 0,
+        "dc-2": 0,
+        "eq-1": 0,
+        "eq-2": 0,
+        "eq-3": 0,
+        "aq-1": 0,
+        "aq-3": 0,
+        "ar-1": 0,
+        "tr-1": 0,
+        "tr-2": 0
+      },
+      "dimension_scores": {
+        "decision_completeness": 0.0,
+        "evidence_quality": 0.0,
+        "analytical_quality": 0.0,
+        "adversarial_robustness": 0.0,
+        "traceability": 0.0
+      },
+      "overall_score": 0.0
+    },
+    "success": false
+  }
+]

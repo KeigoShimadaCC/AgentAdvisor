@@ -13,7 +13,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 1 | Agent backend | done | 0 (parallel with 2) |
 | 2 | Orchestrator core | done | 0 (parallel with 1) |
 | 3 | Roles | done | 1, 0.3 (role specs mutually parallel) |
-| 4 | End-to-end workflow and CLI | not_started | 2, 3 |
+| 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | not_started | 4 |
 
 ---
@@ -94,19 +94,23 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 - (2026-07-31) Final-recommendation citation checking is currently in `orchestrator/render.py` and the synthesis test file; it should be consolidated with `orchestrator/citations.py` (owned by SPEC-014) in Phase 4.
 - (2026-07-31) Full suite: 176 unit tests + 13 live tests green.
 
-## Phase 4 — End-to-end workflow and CLI [not_started]
+## Phase 4 — End-to-end workflow and CLI [in_progress]
 
 **Specs**
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-018 | Stage wiring (end-to-end pipeline) | draft |
+| SPEC-018 | Stage wiring (end-to-end pipeline) | in_progress |
 | SPEC-019 | User CLI | draft |
 | SPEC-020 | First real decision case | draft |
 
 **Findings**
 
-- —
+- (2026-07-31) Pipeline implemented: `orchestrator/stages.py` (11 stage handlers) + `orchestrator/pipeline.py` (entry point with auto-approval, budget, citation hooks). 179 unit tests pass. Full details in `../report-and-findings/2026-07-31-e2e-evaluation.md`.
+- (2026-07-31) Live e2e run (scenario 01): pipeline reached synthesis with 25 evidence records, 4 objections, 8 tasks, score 1.23/2.0. Synthesis failed with 172 FinalRecommendation validation errors (nested objects where strings expected). Fix applied: added valid YAML example to synthesizer.md. Awaiting live re-test after usage limit resets.
+- (2026-07-31) Analytical quality gap: analyst produced 0 analysis results. Root cause not yet investigated. This is the most important issue to fix before the next live run.
+- (2026-07-31) Cursor Pro usage limit hit after ~30 invocations. Resets 2026-08-30. Director/Synthesizer switched from `claude-opus-5-thinking-high` to `gpt-5.2`; Reviewer switched to `composer-2.5` for family diversity. All 5 scenarios in the second run failed at framing due to the overall usage limit.
+- (2026-07-31) Citation hooks fixed: skip validation when blackboard is empty (provisional thesis stage). Task graph budget kind fixed to `agent_invocations`. Synthesizer timeout increased to 600s.
 
 ## Phase 5 — Evaluation and hardening [not_started]
 

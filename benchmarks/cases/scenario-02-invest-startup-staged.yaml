@@ -1,0 +1,19 @@
+id: scenario-02
+title: Staged Angel Check for Friend's AI Startup
+prompt: >
+  A close friend asked me to invest $25,000 in their pre-seed AI workflow startup at a $6M cap.
+  I am considering either investing the full amount now, staging it as $10,000 now and $15,000 after a signed pilot plus MVP,
+  or declining for now and revisiting in six months when there is traction data.
+  I want to protect the friendship while making a disciplined investment decision.
+slug: invest-startup-staged
+budget_profile: small
+depth: standard
+framing_approval:
+  decision: approve
+  answers: {}
+notes: |
+  What a good answer must address:
+  - Model dilution, round-risk, and expected ownership outcomes under plausible follow-on financing scenarios.
+  - Evaluate staged structures (milestones, pro-rata rights, side-letter mechanics) versus a single upfront check.
+  - Use evidence from comparable pre-seed outcomes, customer validation quality, and founder-execution indicators.
+  - Express uncertainty explicitly around failure rates, milestone slippage, and social-pressure bias.

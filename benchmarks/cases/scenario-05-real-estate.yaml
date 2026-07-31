@@ -1,0 +1,19 @@
+id: scenario-05
+title: Buy Condo Now vs Rent and Invest
+prompt: >
+  I am considering buying a $650,000 condo in my city with 20% down, but mortgage rates are still high.
+  The alternatives are renting for the next two years while investing the down-payment difference,
+  or waiting specifically for a lower-rate window before buying.
+  I care about long-term net worth, monthly cash-flow resilience, and not getting trapped by a bad timing decision.
+slug: real-estate
+budget_profile: small
+depth: standard
+framing_approval:
+  decision: approve
+  answers: {}
+notes: |
+  What a good answer must address:
+  - Compare rent-vs-buy economics using total carrying cost, expected appreciation, and transaction costs.
+  - Evaluate timing alternatives beyond binary buy/wait, including partial hedges and trigger-based entry.
+  - Use evidence from mortgage rate history, local inventory/rent trends, and tax/HOA assumptions.
+  - Provide sensitivity to rate moves, maintenance shocks, holding period, and market drawdown risk.
