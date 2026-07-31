@@ -75,11 +75,15 @@ def _build_task_runner(
         artifact_type = task.required_output
 
         # Map required_output to the actual output_artifact_type the role config expects.
-        # The researcher produces evidence_batch, the challenger produces objection_batch.
+        # The planner may produce descriptive strings; we override with canonical types.
         if role == "researcher":
             artifact_type = "evidence_batch"
         elif role == "challenger":
             artifact_type = "objection_batch"
+        elif role == "analyst":
+            artifact_type = "analysis_result"
+        elif role == "auditor":
+            artifact_type = "audit_finding"
 
         timeout = ANALYST_TIMEOUT_S if role == "analyst" else DEFAULT_TIMEOUT_S
         invoke_task = InvokeTask(
@@ -93,17 +97,11 @@ def _build_task_runner(
             timeout_s=timeout,
         )
 
-        config_role = role
-        if role == "researcher":
-            config_role = "researcher"
-        elif role == "analyst":
-            config_role = "analyst"
-
         try:
             if role == "auditor":
-                artifact = invoke_read_only(case, config_role, invoke_task, backend=backend)
+                artifact = invoke_read_only(case, role, invoke_task, backend=backend)
             else:
-                artifact = invoke(case, config_role, invoke_task, backend=backend)
+                artifact = invoke(case, role, invoke_task, backend=backend)
         except RoleInvocationFailed as exc:
             return TaskExecutionResult(
                 artifacts=(),

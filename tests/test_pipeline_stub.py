@@ -211,6 +211,25 @@ def _make_task_proposal_batch() -> TaskProposalBatch:
                     priority_rationale="Important but not likely to change the recommendation",
                 ),
             ),
+            TaskProposal(
+                task=TaskProposalRecord(
+                    role=TaskRole.ANALYST,
+                    question="Build a scenario model for NVDA vs ETF expected returns",
+                    why_it_matters="Quantitative analysis drives the recommendation",
+                    expected_information_gain=Level.HIGH,
+                    materiality=Level.HIGH,
+                    probability_of_changing_conclusion=0.6,
+                    estimated_cost=2.0,
+                    inputs=["decision_spec"],
+                    required_output="analysis_result",
+                    completion_criteria="Scenario model with probabilities and sensitivity table",
+                    priority=PriorityLevel.HIGH,
+                    priority_score=18,
+                    priority_rationale=(
+                        "Quantitative expected value comparison is decision-critical"
+                    ),
+                ),
+            ),
         ],
     )
 
@@ -625,6 +644,10 @@ def test_pipeline_stub_e2e(stub_env: Case):
     assert len(case.list_artifacts(PreliminaryRecommendation)) >= 1
     assert len(case.list_artifacts(EvidenceRecord)) >= 2
     assert len(case.list_artifacts(ObjectionRecord)) >= 1
+
+    # Analyst should produce at least 1 AnalysisResult
+    analysis_results = case.list_artifacts(AnalysisResult)
+    assert len(analysis_results) >= 1, "Analyst should produce at least 1 AnalysisResult"
 
     final = case.read_artifact(FinalRecommendation)
     assert final is not None

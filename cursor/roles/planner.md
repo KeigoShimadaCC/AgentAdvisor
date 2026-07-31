@@ -46,17 +46,21 @@ If none apply, do not propose the task.
 
 Every task must include:
 
-- `role`
+- `role`: one of `researcher`, `analyst`, or `auditor`
 - `question`
 - `why_it_matters` (specific to this decision and alternatives)
-- `expected_information_gain`
-- `materiality`
+- `expected_information_gain`: `high`, `medium`, or `low`
+- `materiality`: `high`, `medium`, or `low`
 - `probability_of_changing_conclusion` (0.0 to 1.0)
 - `estimated_cost` (> 0, expected agent-invocation units)
-- `inputs`
-- `required_output`
+- `inputs`: list of input names (e.g. `["decision_spec"]`)
+- `required_output`: MUST be the canonical artifact type name, NOT a description:
+  - `researcher` tasks → `required_output: evidence_batch`
+  - `analyst` tasks → `required_output: analysis_result`
+  - `auditor` tasks → `required_output: audit_finding`
 - `completion_criteria`
-- `priority`, `priority_score`, `priority_rationale`
+- `priority`: `high`, `medium`, or `low`
+- `priority_score` (integer 1-100), `priority_rationale`
 
 ## Make priority numbers honest (not decorative)
 
