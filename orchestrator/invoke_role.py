@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import re
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
 from orchestrator.artifacts import AuditEvent, AuditUsage, TaskRecord
 from orchestrator.artifacts.schema_export import MODEL_EXPORTS
-from orchestrator.artifacts.yaml_io import load_model_from_yaml_text
+from orchestrator.artifacts.yaml_io import coerce_payload_for_model, load_model_from_yaml_text
 from orchestrator.backend import (
     AgentBackend,
     CursorCLIBackend,
@@ -122,7 +124,16 @@ def _validate_output(
     case: Case,
 ) -> BaseModel:
     model_type = _artifact_model_type(artifact_type)
-    artifact = load_model_from_yaml_text(model_type, yaml_text)
+    try:
+        artifact = load_model_from_yaml_text(model_type, yaml_text)
+    except Exception:
+        # Try coercing common model formatting mistakes (nested objects -> strings, etc.)
+        payload = yaml.safe_load(yaml_text)
+        coerced = coerce_payload_for_model(model_type, payload)
+        if coerced is not payload:
+            artifact = model_type.model_validate(coerced)
+        else:
+            raise
     _apply_cross_field_validation(artifact_type=artifact_type, artifact=artifact, case=case)
     return artifact
 
@@ -262,6 +273,14 @@ def _invoke_internal(
                 yaml_text=output_yaml,
                 case=case,
             )
+
+            # Copy analysis/ directory from workspace to case root (for analyst role).
+            _analysis_src = layout.path / "analysis"
+            if _analysis_src.exists():
+                _analysis_dst = case.root / "analysis"
+                _analysis_dst.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(_analysis_src, _analysis_dst, dirs_exist_ok=True)
+
             _audit_attempt(
                 case=case,
                 role=role,

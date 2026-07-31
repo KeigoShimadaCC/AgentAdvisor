@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
+from typing import Any, cast, get_args, get_origin
 
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
@@ -43,3 +43,98 @@ def dump_model_to_yaml_text(model: BaseModel) -> str:
 def dump_model_to_yaml_path(model: BaseModel, path: str | Path) -> None:
     yaml_text = dump_model_to_yaml_text(model)
     Path(path).write_text(yaml_text, encoding="utf-8")
+
+
+def _flatten_to_string(value: Any) -> str | None:
+    """Try to coerce a value into a non-empty string."""
+    if isinstance(value, str):
+        return value if value.strip() else None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return str(value)
+    if isinstance(value, dict):
+        for key in ("headline", "title", "summary", "action", "text", "description", "detail"):
+            if key in value and isinstance(value[key], str):
+                return value[key].strip() or None
+        parts = [str(v) for v in value.values() if isinstance(v, (str, int, float))]
+        joined = " ".join(parts).strip()
+        return joined or None
+    if isinstance(value, list):
+        parts = [str(item) for item in value if isinstance(item, (str, int, float))]
+        joined = " ".join(parts).strip()
+        return joined or None
+    return None
+
+
+def _base_type(annotation: Any) -> Any:
+    """Extract the underlying type from Annotated[T, ...]."""
+    origin = get_origin(annotation)
+    if origin is not None:
+        args = get_args(annotation)
+        if args:
+            return args[0]
+    return annotation
+
+
+def _is_str_type(annotation: Any) -> bool:
+    """Check if annotation expects a string type (including Annotated[str, ...])."""
+    base = _base_type(annotation)
+    return base is str or (isinstance(base, type) and issubclass(base, str))
+
+
+def _is_list_of_str_type(annotation: Any) -> bool:
+    """Check if annotation expects a list of strings (including list[NonEmptyStr])."""
+    origin = get_origin(annotation)
+    if origin is list:
+        args = get_args(annotation)
+        if args:
+            return _is_str_type(args[0])
+    return False
+
+
+def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
+    """Coerce common model formatting mistakes before validation.
+
+    Handles:
+    - Nested objects/lists where strings expected (flattens to string)
+    - List items that are dicts where strings expected (flattens each item)
+    - Numbers where strings expected (converts to string)
+
+    Returns the coerced payload (may be unchanged if no coercion needed).
+    """
+    if not isinstance(payload, dict):
+        return payload
+
+    coerced = dict(payload)
+    changed = False
+
+    for field_name, field_info in model_type.model_fields.items():
+        if field_name not in coerced:
+            continue
+
+        value = coerced[field_name]
+        annotation = field_info.annotation
+
+        if _is_str_type(annotation) and not isinstance(value, str):
+            flattened = _flatten_to_string(value)
+            if flattened is not None:
+                coerced[field_name] = flattened
+                changed = True
+
+        elif _is_list_of_str_type(annotation) and isinstance(value, list):
+            new_items: list[Any] = []
+            any_coerced = False
+            for item in value:
+                if isinstance(item, str):
+                    new_items.append(item)
+                else:
+                    flattened = _flatten_to_string(item)
+                    if flattened is not None:
+                        new_items.append(flattened)
+                        any_coerced = True
+                    else:
+                        new_items.append(item)
+            if any_coerced:
+                coerced[field_name] = new_items
+                changed = True
+
+    return coerced if changed else payload
