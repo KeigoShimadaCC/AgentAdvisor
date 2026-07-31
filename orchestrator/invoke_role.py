@@ -12,7 +12,11 @@ from pydantic import BaseModel
 
 from orchestrator.artifacts import AuditEvent, AuditUsage, TaskRecord
 from orchestrator.artifacts.schema_export import MODEL_EXPORTS
-from orchestrator.artifacts.yaml_io import coerce_payload_for_model, load_model_from_yaml_text
+from orchestrator.artifacts.yaml_io import (
+    coerce_payload_for_model,
+    fill_missing_required_defaults,
+    load_model_from_yaml_text,
+)
 from orchestrator.backend import (
     AgentBackend,
     CursorCLIBackend,
@@ -128,10 +132,12 @@ def _validate_output(
         artifact = load_model_from_yaml_text(model_type, yaml_text)
     except Exception:
         # Try coercing common model formatting mistakes (nested objects -> strings, etc.)
+        # Then try filling missing required fields with conservative defaults.
         payload = yaml.safe_load(yaml_text)
         coerced = coerce_payload_for_model(model_type, payload)
-        if coerced is not payload:
-            artifact = model_type.model_validate(coerced)
+        filled = fill_missing_required_defaults(model_type, coerced)
+        if filled is not payload:
+            artifact = model_type.model_validate(filled)
         else:
             raise
     _apply_cross_field_validation(artifact_type=artifact_type, artifact=artifact, case=case)

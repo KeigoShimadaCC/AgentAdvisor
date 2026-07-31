@@ -138,3 +138,48 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
                 changed = True
 
     return coerced if changed else payload
+
+
+# Defaults for commonly-missing required fields whose types allow a
+# conservative fallback.  String/list fields cannot be defaulted because
+# they carry decision-specific content.
+_DEFAULT_FILLERS: dict[str, dict[str, Any]] = {
+    "model_stability": {
+        "share_of_sensitivity_runs_supporting_recommendation": 0.0,
+        "runs_total": 1,
+        "runs_supporting": 0,
+    },
+    "evidence_confidence": {
+        "value": 0.5,
+        "basis": "Not independently assessed",
+    },
+    "recommendation_confidence": {
+        "value": 0.5,
+        "basis": "Not independently assessed",
+    },
+}
+
+
+def fill_missing_required_defaults(model_type: type[BaseModel], payload: Any) -> Any:
+    """Fill in missing required fields with conservative defaults.
+
+    Only fills fields that have a known safe default (model_stability,
+    evidence_confidence, recommendation_confidence).  String and list
+    fields are left untouched because they carry decision-specific content.
+
+    Returns the filled payload (may be unchanged if nothing was missing).
+    """
+    if not isinstance(payload, dict):
+        return payload
+
+    filled = dict(payload)
+    changed = False
+
+    for field_name in model_type.model_fields:
+        if field_name in filled:
+            continue
+        if field_name in _DEFAULT_FILLERS:
+            filled[field_name] = dict(_DEFAULT_FILLERS[field_name])
+            changed = True
+
+    return filled if changed else payload
