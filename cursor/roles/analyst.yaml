@@ -1,6 +1,6 @@
 role_md_path: cursor/roles/analyst.md
-default_model: gpt-5.3-codex
-escalation_model: gpt-5.6-sol-high
+default_model: composer-2.5
+escalation_model: cursor-grok-4.5-low
 read_only: false
 allow_shell: true
 projection_include:

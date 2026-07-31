@@ -130,8 +130,8 @@ def _count_attempts(case: Case, task_id: str) -> int:
 def test_challenger_role_config_loads_expected_model_and_projection() -> None:
     config = load_role_config("challenger")
 
-    assert config.default_model == "gpt-5.6-sol-high"
-    assert config.escalation_model == "gpt-5.6-sol-high"
+    assert config.default_model == "composer-2.5"
+    assert config.escalation_model == "cursor-grok-4.5-low"
     assert config.output_artifact_type == "objection_batch"
     assert "decision_spec" in config.projection_include
     assert "preliminary_recommendation" in config.projection_include

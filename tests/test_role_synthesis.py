@@ -137,7 +137,9 @@ def test_role_configs_use_distinct_model_families_and_expected_output_types() ->
     assert synthesizer.output_artifact_type == "final_recommendation"
     assert reviewer.output_artifact_type == "review_report"
     assert reviewer.read_only is False
-    assert family(synthesizer.default_model) != family(reviewer.default_model)
+    assert family(synthesizer.default_model, canonical=True) != family(
+        reviewer.default_model, canonical=True
+    )
 
 
 def test_synthesizer_fixture_replay_has_section16_blocks_and_distinct_uncertainty_fields(

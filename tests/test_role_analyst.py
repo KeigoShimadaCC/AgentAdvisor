@@ -108,7 +108,7 @@ def _seed_case_inputs(case) -> None:
 def test_analyst_role_config_loads_expected_permissions_and_output_type() -> None:
     config = load_role_config(TaskRole.ANALYST)
 
-    assert config.default_model == "gpt-5.3-codex"
+    assert config.default_model == "composer-2.5"
     assert config.permission_profile.allow_shell is True
     assert config.output_artifact_type == "analysis_result"
     assert "decision_spec" in config.projection_include
