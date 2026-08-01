@@ -44,7 +44,7 @@ For each objection in `objections`, populate:
 - `reversal_evidence` (concrete evidence that would reverse or materially weaken the recommendation)
 - `referenced_evidence_ids` (empty list if none)
 - `referenced_assumption_ids` (empty list if none)
-- `resolution_status`
+- `resolution_status` (MUST be one of: `open`, `partially_resolved`, `resolved`, `dismissed` — NOT "unresolved")
 - `commissioned_tasks`
 
 ## Objection-count policy

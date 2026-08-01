@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, cast, get_args, get_origin
 
@@ -91,6 +92,65 @@ def _is_list_of_str_type(annotation: Any) -> bool:
     return False
 
 
+def _is_strenum_type(annotation: Any) -> bool:
+    """Check if annotation is a StrEnum subclass."""
+    base = _base_type(annotation)
+    return isinstance(base, type) and issubclass(base, StrEnum)
+
+
+def _is_list_of_model_type(annotation: Any) -> bool:
+    """Check if annotation is a list of BaseModel subclasses."""
+    origin = get_origin(annotation)
+    if origin is list:
+        args = get_args(annotation)
+        if args:
+            base = _base_type(args[0])
+            return isinstance(base, type) and issubclass(base, BaseModel)
+    return False
+
+
+def _is_model_type(annotation: Any) -> bool:
+    """Check if annotation is a BaseModel subclass."""
+    base = _base_type(annotation)
+    return isinstance(base, type) and issubclass(base, BaseModel)
+
+
+# Common enum value mistakes the models make.
+# Maps (enum_class_name, wrong_value) -> correct_value.
+_ENUM_ALIASES: dict[tuple[str, str], str] = {
+    ("ObjectionResolutionStatus", "unresolved"): "open",
+    ("ObjectionResolutionStatus", "unknown"): "open",
+    ("ObjectionResolutionStatus", "new"): "open",
+    ("ObjectionResolutionStatus", "addressed"): "resolved",
+    ("ObjectionResolutionStatus", "closed"): "resolved",
+    ("AssumptionStatus", "open"): "unresolved",
+    ("AssumptionStatus", "unknown"): "unresolved",
+    ("TaskStatus", "pending"): "planned",
+    ("TaskStatus", "running"): "active",
+    ("TaskStatus", "done"): "completed",
+    ("TaskStatus", "error"): "failed",
+}
+
+
+def _coerce_enum_value(enum_class: type[StrEnum], value: Any) -> Any:
+    """Try to coerce a value to a valid enum member."""
+    if not isinstance(value, str):
+        return value
+    # Check if value already matches
+    valid_values = {m.value for m in enum_class.__members__.values()}
+    if value in valid_values:
+        return value
+    # Try alias mapping
+    key = (enum_class.__name__, value.lower())
+    if key in _ENUM_ALIASES:
+        return _ENUM_ALIASES[key]
+    # Try case-insensitive match
+    for v in valid_values:
+        if v.lower() == value.lower():
+            return v
+    return value
+
+
 def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
     """Coerce common model formatting mistakes before validation.
 
@@ -98,6 +158,8 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
     - Nested objects/lists where strings expected (flattens to string)
     - List items that are dicts where strings expected (flattens each item)
     - Numbers where strings expected (converts to string)
+    - Invalid enum values (maps common mistakes to valid values)
+    - Nested model fields (recursively coerces dicts inside lists)
 
     Returns the coerced payload (may be unchanged if no coercion needed).
     """
@@ -135,6 +197,38 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
                         new_items.append(item)
             if any_coerced:
                 coerced[field_name] = new_items
+                changed = True
+
+        elif _is_strenum_type(annotation) and isinstance(value, str):
+            enum_class = _base_type(annotation)
+            coerced_val = _coerce_enum_value(enum_class, value)
+            if coerced_val is not value:
+                coerced[field_name] = coerced_val
+                changed = True
+
+        elif _is_list_of_model_type(annotation) and isinstance(value, list):
+            item_type = _base_type(get_args(annotation)[0])
+            coerced_items: list[Any] = []
+            any_coerced = False
+            for item in value:
+                if isinstance(item, dict):
+                    coerced_item = coerce_payload_for_model(item_type, item)
+                    if coerced_item is not item:
+                        coerced_items.append(coerced_item)
+                        any_coerced = True
+                    else:
+                        coerced_items.append(item)
+                else:
+                    coerced_items.append(item)
+            if any_coerced:
+                coerced[field_name] = coerced_items
+                changed = True
+
+        elif _is_model_type(annotation) and isinstance(value, dict):
+            nested_type = _base_type(annotation)
+            coerced_nested = coerce_payload_for_model(nested_type, value)
+            if coerced_nested is not value:
+                coerced[field_name] = coerced_nested
                 changed = True
 
     return coerced if changed else payload
