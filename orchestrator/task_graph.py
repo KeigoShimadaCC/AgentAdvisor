@@ -34,6 +34,7 @@ _LEVEL_WEIGHT: dict[Level, int] = {
 
 class BudgetLedgerLike(Protocol):
     def try_consume(self, kind: str, model: str | None = None) -> bool: ...
+    def is_high_tier_model(self, model: str) -> bool: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +42,10 @@ class _PermissiveLedger:
     def try_consume(self, kind: str, model: str | None = None) -> bool:
         del kind, model
         return True
+
+    def is_high_tier_model(self, model: str) -> bool:
+        del model
+        return False
 
 
 class TaskRunner(Protocol):

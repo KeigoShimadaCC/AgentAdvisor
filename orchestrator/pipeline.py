@@ -7,11 +7,18 @@ supports both interactive (halt at approval gates) and unattended
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
-from orchestrator.artifacts import AuditEvent, FramingApproval, FramingDecision
+from orchestrator.artifacts import (
+    AuditEvent,
+    DecisionSpec,
+    FramingApproval,
+    FramingDecision,
+    IntakeRecord,
+)
+from orchestrator.artifacts.common import Depth
 from orchestrator.backend import AgentBackend, CursorCLIBackend
 from orchestrator.budget import BudgetConfig, BudgetLedger
 from orchestrator.case_store import Case, create_case
@@ -50,7 +57,25 @@ SMALL_BUDGET = BudgetConfig(
 
 DEFAULT_BUDGET = BudgetConfig()
 
+DEEP_BUDGET = BudgetConfig(
+    max_agent_invocations=60,
+    max_concurrent_workers=3,
+    max_repair_cycles=2,
+    max_research_tasks=25,
+    max_high_tier_calls=10,
+    max_wall_clock_s=10800,
+)
+
 MAX_SYNTHESIS_RETRIES = 1
+
+
+def select_budget_for_depth(depth: Depth) -> tuple[BudgetConfig, str]:
+    """Map a decision depth to a budget preset and its profile name."""
+    if depth is Depth.LIGHT:
+        return SMALL_BUDGET, "light"
+    if depth is Depth.DEEP:
+        return DEEP_BUDGET, "deep"
+    return DEFAULT_BUDGET, "standard"
 
 
 def run(
@@ -63,6 +88,8 @@ def run(
     model_tier_map: dict[str, str] | None = None,
     memory_store: MemoryStore | None = None,
     dual_track: bool = True,
+    depth: Depth | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> CaseState:
     """Run the full decision pipeline on a case.
 
@@ -75,20 +102,59 @@ def run(
     backend:
         Agent backend (defaults to ``CursorCLIBackend``).
     budget_config:
-        Budget configuration (defaults to ``DEFAULT_BUDGET``).
+        Budget configuration.  If ``None``, the budget is selected from
+        ``depth`` (light → SMALL, standard → DEFAULT, deep → DEEP).
     auto_approve:
         If True, automatically approve at both gates without halting.
         Used for unattended benchmark runs.
     model_tier_map:
         Model name to tier mapping for budget accounting.
+    depth:
+        Decision depth for budget profile selection when ``budget_config``
+        is ``None``.  Falls back to the intake/decision-spec depth if
+        available, else ``DEFAULT_BUDGET``.
+    clock:
+        Injectable clock for wall-clock tracking (testing).
 
     Returns
     -------
     Final case state.
     """
     backend_impl = backend or CursorCLIBackend()
-    budget = budget_config or DEFAULT_BUDGET
+    clock_fn = clock or (lambda: datetime.now(UTC))
     tier_map = model_tier_map or _DEFAULT_MODEL_TIER_MAP
+
+    # Resolve the effective budget and profile name.
+    effective_depth = depth
+    if effective_depth is None:
+        # Try to read depth from an existing intake record or decision spec.
+        try:
+            intake = case.read_artifact(IntakeRecord)
+            effective_depth = intake.depth
+        except FileNotFoundError:
+            try:
+                spec = case.read_artifact(DecisionSpec)
+                effective_depth = spec.depth
+            except FileNotFoundError:
+                pass
+
+    if budget_config is not None:
+        budget = budget_config
+        profile_name = "explicit"
+    elif effective_depth is not None:
+        budget, profile_name = select_budget_for_depth(effective_depth)
+    else:
+        budget = DEFAULT_BUDGET
+        profile_name = "standard"
+
+    case.audit(
+        AuditEvent(
+            ts=clock_fn(),
+            actor="orchestrator",
+            event_type="budget_profile_selected",
+            payload={"profile": profile_name},
+        )
+    )
 
     # Register citation hooks before any Director invocation
     register_citation_hooks()
@@ -100,6 +166,8 @@ def run(
 
     # Initialize budget ledger from current state
     state = load_case_state(case)
+    if state.started_at_run is None:
+        state = state.model_copy(update={"started_at_run": clock_fn()})
     ledger = BudgetLedger(state, budget, tier_map)
 
     # Initialize task graph
@@ -117,6 +185,7 @@ def run(
         raw_prompt=raw_prompt,
         model_tier_map=tier_map,
         dual_track=dual_track,
+        clock=clock_fn,
     )
     handlers._budget_ledger = ledger
     handlers._task_graph = task_graph
@@ -124,13 +193,14 @@ def run(
     handler_map = handlers.handlers()
 
     if auto_approve:
-        final_state = _run_unattended(case, handler_map, budget, state)
+        final_state = _run_unattended(case, handler_map, budget, state, clock_fn)
     else:
         final_state = run_case(
             case,
             handler_map,
             max_synthesis_retries=MAX_SYNTHESIS_RETRIES,
             initial_state=state,
+            clock=clock_fn,
         )
 
     if final_state.stage is CaseStage.DONE:
@@ -171,6 +241,7 @@ def _run_unattended(
     handler_map: Mapping[str, StepHandler],
     budget: BudgetConfig,
     state: CaseState,
+    clock: Callable[[], datetime] | None = None,
 ) -> CaseState:
     """Run the pipeline with auto-approval at both gates."""
     while True:
@@ -180,6 +251,7 @@ def _run_unattended(
             max_repair_cycles=budget.max_repair_cycles,
             max_synthesis_retries=MAX_SYNTHESIS_RETRIES,
             initial_state=state,
+            clock=clock,
         )
 
         if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:

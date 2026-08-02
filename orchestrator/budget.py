@@ -58,6 +58,15 @@ class BudgetLedger:
         self._model_tier_map = model_tier_map
         self._lock = Lock()
 
+    def has_capacity(self, kind: str) -> bool:
+        """Check whether *kind* has room for one more consume, without consuming."""
+        try:
+            budget_kind = BudgetKind(kind)
+        except ValueError:
+            return False
+        with self._lock:
+            return self._can_consume_all(self._counters, [budget_kind])
+
     def try_consume(self, kind: str, model: str | None = None) -> bool:
         try:
             budget_kind = BudgetKind(kind)
@@ -92,6 +101,10 @@ class BudgetLedger:
             if count >= cap:
                 return False
         return True
+
+    def is_high_tier_model(self, model: str) -> bool:
+        """Return True if ``model`` is mapped to the high tier."""
+        return self._is_high_tier_model(model)
 
     def _is_high_tier_model(self, model: str) -> bool:
         tier = self._model_tier_map.get(model)

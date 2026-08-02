@@ -2,7 +2,7 @@
 id: SPEC-029
 title: Budget truth and disclosed stops
 phase: 7
-status: draft
+status: implemented
 depends_on: [SPEC-028]
 parallel_with: [SPEC-031]
 north_star_refs: ["8", "13"]

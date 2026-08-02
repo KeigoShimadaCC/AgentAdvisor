@@ -45,6 +45,8 @@ class CaseState(ArtifactModel):
     framing_revisions: int = Field(default=0, ge=0)
     final_revisions: int = Field(default=0, ge=0)
     budget_counters: dict[str, int] = Field(default_factory=dict)
+    started_at_run: datetime | None = Field(default=None)
+    elapsed_s: float = Field(default=0.0)
     framing_approved: bool = False
     final_approved: bool = False
     failure_cause: str | None = None
@@ -349,9 +351,22 @@ def _is_approval_granted(state: CaseState) -> bool:
     return False
 
 
-def _checkpoint_state(case: Case, state: CaseState) -> None:
-    checkpointed = state.model_copy(update={"updated_at": _utc_now()})
+def _checkpoint_state(
+    case: Case, state: CaseState, clock: Callable[[], datetime] | None = None
+) -> CaseState:
+    now = (clock or _utc_now)()
+    elapsed_s = state.elapsed_s
+    if state.started_at_run is not None:
+        elapsed_s += (now - state.started_at_run).total_seconds()
+    checkpointed = state.model_copy(
+        update={
+            "updated_at": now,
+            "elapsed_s": elapsed_s,
+            "started_at_run": now,
+        }
+    )
     save_case_state(case, checkpointed)
+    return checkpointed
 
 
 def run_case(
@@ -362,6 +377,7 @@ def run_case(
     max_repair_cycles: int = 2,
     max_synthesis_retries: int = 1,
     initial_state: CaseState | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> CaseState:
     # Callers holding a BudgetLedger must pass their own state: the ledger mutates
     # state.budget_counters in place, and re-loading here would strand those counters
@@ -392,4 +408,4 @@ def run_case(
             max_repair_cycles=max_repair_cycles,
             max_synthesis_retries=max_synthesis_retries,
         )
-        _checkpoint_state(case, state)
+        state = _checkpoint_state(case, state, clock=clock)

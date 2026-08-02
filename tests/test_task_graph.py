@@ -18,10 +18,18 @@ class _AlwaysAllowLedger:
         del kind, model
         return True
 
+    def is_high_tier_model(self, model: str) -> bool:
+        del model
+        return False
+
 
 class _RefusingLedger:
     def try_consume(self, kind: str, model: str | None = None) -> bool:
         del kind, model
+        return False
+
+    def is_high_tier_model(self, model: str) -> bool:
+        del model
         return False
 
 

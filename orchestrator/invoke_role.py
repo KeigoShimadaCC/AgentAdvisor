@@ -26,11 +26,13 @@ from orchestrator.backend import (
     RoleInvocation,
     RoleResult,
 )
+from orchestrator.budget import BudgetKind
 from orchestrator.case_store import Case
 from orchestrator.isolation import WorkspaceNotIsolated, assert_isolated
 from orchestrator.projection import project
 from orchestrator.roles_config import RoleConfig, load_role_config
 from orchestrator.skills import SkillPack, select_packs
+from orchestrator.task_graph import BudgetLedgerLike
 from orchestrator.workspace import (
     WorkspaceTask,
     archive_attempt,
@@ -240,6 +242,8 @@ def _invoke_internal(
     backend: AgentBackend | None,
     read_only_stdout: bool,
     variant: str | None,
+    budget_ledger: BudgetLedgerLike | None = None,
+    consume_agent_invocations: bool = True,
 ) -> BaseModel:
     config = load_role_config(role, variant)
     normalized_task = _coerce_task(task)
@@ -248,6 +252,11 @@ def _invoke_internal(
             "Task output artifact type does not match role config: "
             f"task={normalized_task.output_artifact_type}, role={config.output_artifact_type}"
         )
+
+    # Consume one agent_invocation per invoke() call (not per attempt).
+    # The retry ladder stays an internal reliability mechanism.
+    if budget_ledger is not None and consume_agent_invocations:
+        budget_ledger.try_consume(BudgetKind.AGENT_INVOCATIONS.value)
 
     projected_inputs = project(
         case=case,
@@ -261,6 +270,15 @@ def _invoke_internal(
     workspace_path: Path | None = None
 
     for attempt_index, model in enumerate(attempts, start=1):
+        # An attempt on the escalation model with a high model_tier consumes
+        # high_tier_calls.  This is per-attempt, not per-invocation.
+        if (
+            budget_ledger is not None
+            and model == config.escalation_model
+            and budget_ledger.is_high_tier_model(model)
+        ):
+            budget_ledger.try_consume(BudgetKind.HIGH_TIER_CALLS.value)
+
         feedback = errors[-1] if errors else None
         workspace_task = WorkspaceTask(
             task_id=normalized_task.task_id,
@@ -395,6 +413,8 @@ def invoke(
     *,
     backend: AgentBackend | None = None,
     variant: str | None = None,
+    budget_ledger: BudgetLedgerLike | None = None,
+    consume_agent_invocations: bool = True,
 ) -> BaseModel:
     return _invoke_internal(
         case=case,
@@ -403,6 +423,8 @@ def invoke(
         backend=backend,
         read_only_stdout=False,
         variant=variant,
+        budget_ledger=budget_ledger,
+        consume_agent_invocations=consume_agent_invocations,
     )
 
 
@@ -413,6 +435,8 @@ def invoke_read_only(
     *,
     backend: AgentBackend | None = None,
     variant: str | None = None,
+    budget_ledger: BudgetLedgerLike | None = None,
+    consume_agent_invocations: bool = True,
 ) -> BaseModel:
     return _invoke_internal(
         case=case,
@@ -421,4 +445,6 @@ def invoke_read_only(
         backend=backend,
         read_only_stdout=True,
         variant=variant,
+        budget_ledger=budget_ledger,
+        consume_agent_invocations=consume_agent_invocations,
     )

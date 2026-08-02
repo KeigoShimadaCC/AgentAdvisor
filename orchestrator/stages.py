@@ -8,6 +8,7 @@ inside role invocations.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -35,7 +36,7 @@ from orchestrator.artifacts import (
     ThesisTrigger,
 )
 from orchestrator.backend import AgentBackend
-from orchestrator.budget import BudgetConfig, BudgetLedger, StopEvaluator
+from orchestrator.budget import BudgetConfig, BudgetKind, BudgetLedger, StopEvaluator
 from orchestrator.case_store import Case
 from orchestrator.evidence_critic import critique_case_evidence
 from orchestrator.gates import blocking_findings, run_stage_gate
@@ -98,6 +99,12 @@ def _build_task_runner(
         elif role == "auditor":
             artifact_type = "audit_finding"
 
+        # Dispatching a researcher task additionally consumes research_tasks.
+        # The task graph already consumed agent_invocations, so the invoke()
+        # call below must not double-count (consume_agent_invocations=False).
+        if role == "researcher":
+            budget_ledger.try_consume(BudgetKind.RESEARCH_TASKS.value)
+
         timeout = ANALYST_TIMEOUT_S if role == "analyst" else DEFAULT_TIMEOUT_S
         invoke_task = InvokeTask(
             task_id=task.task_id,
@@ -112,9 +119,23 @@ def _build_task_runner(
 
         try:
             if role == "auditor":
-                artifact = invoke_read_only(case, role, invoke_task, backend=backend)
+                artifact = invoke_read_only(
+                    case,
+                    role,
+                    invoke_task,
+                    backend=backend,
+                    budget_ledger=budget_ledger,
+                    consume_agent_invocations=False,
+                )
             else:
-                artifact = invoke(case, role, invoke_task, backend=backend)
+                artifact = invoke(
+                    case,
+                    role,
+                    invoke_task,
+                    backend=backend,
+                    budget_ledger=budget_ledger,
+                    consume_agent_invocations=False,
+                )
         except RoleInvocationFailed as exc:
             return TaskExecutionResult(
                 artifacts=(),
@@ -205,6 +226,7 @@ class StageHandlers:
         raw_prompt: str,
         model_tier_map: dict[str, str] | None = None,
         dual_track: bool = True,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._backend = backend
         self._budget_config = budget_config
@@ -213,6 +235,7 @@ class StageHandlers:
         self._dual_track = dual_track
         self._budget_ledger: BudgetLedger | None = None
         self._task_graph: TaskGraph | None = None
+        self._clock: Callable[[], datetime] = clock or (lambda: datetime.now(UTC))
 
     @property
     def budget_ledger(self) -> BudgetLedger:
@@ -225,6 +248,16 @@ class StageHandlers:
         if self._task_graph is None:
             raise RuntimeError("Task graph not initialized; call run() first.")
         return self._task_graph
+
+    def _elapsed_s(self, state: CaseState) -> float:
+        """Total elapsed wall-clock seconds including the current run segment."""
+        elapsed = state.elapsed_s
+        if state.started_at_run is not None:
+            elapsed += (self._clock() - state.started_at_run).total_seconds()
+        return elapsed
+
+    def _wall_clock_exceeded(self, state: CaseState) -> bool:
+        return self._elapsed_s(state) >= self._budget_config.max_wall_clock_s
 
     def handlers(self) -> dict[str, StepHandler]:
         return {
@@ -267,7 +300,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "intake", task, backend=self._backend)
+            artifact = invoke(
+                case, "intake", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Intake failed: {exc}")
         assert isinstance(artifact, IntakeRecord)
@@ -286,7 +321,14 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "director", task, backend=self._backend, variant="framing")
+            artifact = invoke(
+                case,
+                "director",
+                task,
+                backend=self._backend,
+                variant="framing",
+                budget_ledger=self.budget_ledger,
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Framing failed: {exc}")
         assert isinstance(artifact, DecisionSpec)
@@ -309,7 +351,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "structurer", task, backend=self._backend)
+            artifact = invoke(
+                case, "structurer", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Structuring failed: {exc}")
         assert isinstance(artifact, IssueTree)
@@ -339,7 +383,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "director", task, backend=self._backend)
+            artifact = invoke(
+                case, "director", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Provisional thesis failed: {exc}")
         assert isinstance(artifact, PreliminaryRecommendation)
@@ -363,7 +409,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "planner", task, backend=self._backend)
+            artifact = invoke(
+                case, "planner", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Planning failed: {exc}")
         assert isinstance(artifact, TaskProposalBatch)
@@ -435,6 +483,14 @@ class StageHandlers:
 
         # Dispatch waves until no more ready tasks
         while True:
+            # Wall-clock check before each dispatch wave.
+            if self._wall_clock_exceeded(state):
+                _audit(
+                    case,
+                    "wall_clock_exceeded",
+                    {"elapsed_s": self._elapsed_s(state)},
+                )
+                break
             summary = self.task_graph.dispatch(
                 runner,
                 max_concurrent=self._budget_config.max_concurrent_workers,
@@ -500,7 +556,13 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "assumption_analyst", task, backend=self._backend)
+            artifact = invoke(
+                case,
+                "assumption_analyst",
+                task,
+                backend=self._backend,
+                budget_ledger=self.budget_ledger,
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Assumption extraction failed: {exc}")
         assert isinstance(artifact, AssumptionBatch)
@@ -540,7 +602,14 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "director", task, backend=self._backend, variant="b")
+            artifact = invoke(
+                case,
+                "director",
+                task,
+                backend=self._backend,
+                variant="b",
+                budget_ledger=self.budget_ledger,
+            )
         except RoleInvocationFailed as exc:
             _audit(case, "dual_track_skipped", {"reason": str(exc)})
             return
@@ -600,7 +669,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "director", task, backend=self._backend)
+            artifact = invoke(
+                case, "director", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Preliminary recommendation failed: {exc}")
         assert isinstance(artifact, PreliminaryRecommendation)
@@ -627,7 +698,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "premortem", task, backend=self._backend)
+            artifact = invoke(
+                case, "premortem", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             # A missing pre-mortem weakens the case but should not destroy the run.
             _audit(case, "pre_mortem_skipped", {"reason": str(exc)})
@@ -662,7 +735,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "challenger", task, backend=self._backend)
+            artifact = invoke(
+                case, "challenger", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Challenge failed: {exc}")
         assert isinstance(artifact, ObjectionBatch)
@@ -696,7 +771,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "planner", task, backend=self._backend)
+            artifact = invoke(
+                case, "planner", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Repair planning failed: {exc}")
         assert isinstance(artifact, TaskProposalBatch)
@@ -759,7 +836,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            rec_artifact = invoke(case, "director", rec_task, backend=self._backend)
+            rec_artifact = invoke(
+                case, "director", rec_task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Repair recommendation update failed: {exc}")
         assert isinstance(rec_artifact, PreliminaryRecommendation)
@@ -829,9 +908,23 @@ class StageHandlers:
             "high_tier_calls": max(
                 0, self._budget_config.max_high_tier_calls - counters.get("high_tier_calls", 0)
             ),
+            "research_tasks": max(
+                0, self._budget_config.max_research_tasks - counters.get("research_tasks", 0)
+            ),
         }
 
-        evaluator = StopEvaluator(clock=datetime.now)
+        # Deadline from the decision spec (if available).
+        deadline_dt: datetime | None = None
+        try:
+            spec = case.read_artifact(DecisionSpec)
+            if spec.deadline is not None:
+                deadline_dt = datetime.combine(spec.deadline, datetime.min.time(), tzinfo=UTC)
+        except FileNotFoundError:
+            pass
+
+        depth_limit_reached = self._wall_clock_exceeded(state)
+
+        evaluator = StopEvaluator(clock=self._clock)
         from orchestrator.budget import StopEvaluatorInputs
 
         inputs = StopEvaluatorInputs(
@@ -840,6 +933,8 @@ class StageHandlers:
             recommendation_stable=recommendation_stable,
             expected_value_of_more_research_low=not critical_gaps,
             remaining_budget=remaining,
+            deadline=deadline_dt,
+            depth_limit_reached=depth_limit_reached,
         )
         decision = evaluator.evaluate(inputs)
 
@@ -904,7 +999,9 @@ class StageHandlers:
             timeout_s=ANALYST_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "synthesizer", task, backend=self._backend)
+            artifact = invoke(
+                case, "synthesizer", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Synthesis failed: {exc}")
         assert isinstance(artifact, FinalRecommendation)
@@ -940,7 +1037,9 @@ class StageHandlers:
             timeout_s=DEFAULT_TIMEOUT_S,
         )
         try:
-            artifact = invoke(case, "reviewer", task, backend=self._backend)
+            artifact = invoke(
+                case, "reviewer", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Review failed: {exc}")
         assert isinstance(artifact, ReviewReport)
