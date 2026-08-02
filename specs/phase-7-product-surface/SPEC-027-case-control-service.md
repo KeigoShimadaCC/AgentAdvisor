@@ -2,7 +2,7 @@
 id: SPEC-027
 title: Case control service and run supervisor
 phase: 7
-status: draft
+status: implemented
 depends_on: [SPEC-018]
 parallel_with: [SPEC-031]
 north_star_refs: ["5.4", "14", "15"]

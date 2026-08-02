@@ -4,6 +4,7 @@ from orchestrator.artifacts.analysis import (
     BreakEvenThreshold,
     SensitivityRow,
 )
+from orchestrator.artifacts.approvals import FinalApproval, FinalDecision
 from orchestrator.artifacts.assumptions import (
     MAX_ASSUMPTION_RECORDS_PER_BATCH,
     AssumptionBatch,
@@ -141,6 +142,8 @@ __all__ = [
     "EvidenceFlag",
     "EvidenceId",
     "FailureMode",
+    "FinalApproval",
+    "FinalDecision",
     "GateFinding",
     "GateReport",
     "GateSeverity",

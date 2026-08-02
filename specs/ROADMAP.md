@@ -181,7 +181,7 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-027 | Case control service and run supervisor | draft |
+| SPEC-027 | Case control service and run supervisor | implemented |
 | SPEC-028 | Framing revision loop and final send-back | draft |
 | SPEC-029 | Budget truth and disclosed stops | draft |
 | SPEC-030 | Safe resume and delivery-integrity persistence | draft |

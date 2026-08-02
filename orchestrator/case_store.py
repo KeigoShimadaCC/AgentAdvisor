@@ -38,6 +38,7 @@ from orchestrator.artifacts import (
     EvidenceBatch,
     EvidenceCritique,
     EvidenceRecord,
+    FinalApproval,
     FinalRecommendation,
     FramingApproval,
     GateReport,
@@ -186,6 +187,8 @@ def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
         return case_root / "shared" / "preliminary_recommendation.yaml"
     if isinstance(model, FinalRecommendation):
         return case_root / "outputs" / "final_recommendation.yaml"
+    if isinstance(model, FinalApproval):
+        return case_root / "outputs" / "final_approval.yaml"
     if isinstance(model, TaskProposalBatch):
         return case_root / "shared" / "task_proposal_batch.yaml"
     if isinstance(model, AnalysisResult):
@@ -242,6 +245,8 @@ def _artifact_path_for_read(
         return case_root / "shared" / "preliminary_recommendation.yaml"
     if issubclass(model_type, FinalRecommendation):
         return case_root / "outputs" / "final_recommendation.yaml"
+    if issubclass(model_type, FinalApproval):
+        return case_root / "outputs" / "final_approval.yaml"
     if issubclass(model_type, TaskProposalBatch):
         return case_root / "shared" / "task_proposal_batch.yaml"
     if issubclass(model_type, AnalysisResult):
@@ -281,6 +286,8 @@ def _artifact_dir_for_list(case_root: Path, model_type: type[BaseModel]) -> Path
     if issubclass(model_type, PreliminaryRecommendation):
         return case_root / "shared"
     if issubclass(model_type, FinalRecommendation):
+        return case_root / "outputs"
+    if issubclass(model_type, FinalApproval):
         return case_root / "outputs"
     if issubclass(model_type, TaskProposalBatch):
         return case_root / "shared"
@@ -380,6 +387,11 @@ class Case:
             if not final_path.exists():
                 return []
             return [load_model_from_yaml_path(model_type, final_path)]
+        if issubclass(model_type, FinalApproval):
+            final_approval_path = self.root / "outputs" / "final_approval.yaml"
+            if not final_approval_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, final_approval_path)]
         if issubclass(model_type, TaskProposalBatch):
             proposal_path = self.root / "shared" / "task_proposal_batch.yaml"
             if not proposal_path.exists():
