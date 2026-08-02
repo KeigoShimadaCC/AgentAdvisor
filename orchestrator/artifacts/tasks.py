@@ -4,6 +4,7 @@ from pydantic import Field
 
 from orchestrator.artifacts.common import (
     ArtifactModel,
+    IssueNodeId,
     Level,
     NonEmptyStr,
     PriorityLevel,
@@ -16,6 +17,7 @@ from orchestrator.artifacts.common import (
 class TaskRecord(ArtifactModel):
     task_id: TaskId
     role: TaskRole
+    issue_node_id: IssueNodeId | None = None
     question: NonEmptyStr
     why_it_matters: NonEmptyStr
     expected_information_gain: Level

@@ -1,0 +1,111 @@
+# Domain specialist skill packs (north star 6.7).
+#
+# A pack is plain markdown appended to the role instructions inside an isolated
+# workspace. The orchestrator selects packs by keyword score; the agent never
+# chooses its own pack and never spawns a specialist.
+#
+# `roles` lists the roles a pack is allowed to reach. Verification and review roles
+# are deliberately excluded so domain framing cannot bias the check on the work.
+
+packs:
+  - id: public-equity
+    title: Public equity and listed-security investing
+    path: cursor/skills/public-equity/SKILL.md
+    roles: [researcher, analyst, director, structurer, premortem, assumption_analyst]
+    keywords:
+      - stock
+      - stocks
+      - equity
+      - equities
+      - etf
+      - index
+      - shares
+      - ticker
+      - nasdaq
+      - valuation
+      - earnings
+      - dividend
+      - portfolio
+      - brokerage
+      - semiconductor
+      - nvidia
+
+  - id: startup-investing
+    title: Private and early-stage investing
+    path: cursor/skills/startup-investing/SKILL.md
+    roles: [researcher, analyst, director, structurer, premortem, assumption_analyst]
+    keywords:
+      - startup
+      - seed
+      - preseed
+      - angel
+      - safe
+      - valuation cap
+      - cap table
+      - dilution
+      - founder
+      - runway
+      - venture
+      - series
+      - term sheet
+      - pro rata
+
+  - id: real-estate
+    title: Residential real estate and housing finance
+    path: cursor/skills/real-estate/SKILL.md
+    roles: [researcher, analyst, director, structurer, premortem, assumption_analyst]
+    keywords:
+      - condo
+      - house
+      - home
+      - mortgage
+      - rent
+      - renting
+      - landlord
+      - property
+      - hoa
+      - down payment
+      - closing costs
+      - interest rate
+      - housing
+      - apartment
+
+  - id: career-compensation
+    title: Career moves and compensation
+    path: cursor/skills/career-compensation/SKILL.md
+    roles: [researcher, analyst, director, structurer, premortem, assumption_analyst]
+    keywords:
+      - job
+      - career
+      - offer
+      - salary
+      - compensation
+      - equity grant
+      - rsu
+      - options
+      - vesting
+      - promotion
+      - employer
+      - role
+      - startup job
+      - big tech
+
+  - id: build-vs-buy
+    title: Build versus buy and vendor selection
+    path: cursor/skills/build-vs-buy/SKILL.md
+    roles: [researcher, analyst, director, structurer, premortem, assumption_analyst]
+    keywords:
+      - build
+      - buy
+      - saas
+      - vendor
+      - in-house
+      - custom
+      - license
+      - subscription
+      - platform
+      - integration
+      - migration
+      - total cost of ownership
+      - engineering time
+      - analytics stack

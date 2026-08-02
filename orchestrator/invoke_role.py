@@ -10,7 +10,7 @@ from pathlib import Path
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
-from orchestrator.artifacts import AuditEvent, AuditUsage, TaskRecord
+from orchestrator.artifacts import AuditEvent, AuditUsage, DecisionSpec, IntakeRecord, TaskRecord
 from orchestrator.artifacts.schema_export import MODEL_EXPORTS
 from orchestrator.artifacts.yaml_io import (
     coerce_payload_for_model,
@@ -28,6 +28,7 @@ from orchestrator.case_store import Case
 from orchestrator.isolation import WorkspaceNotIsolated, assert_isolated
 from orchestrator.projection import project
 from orchestrator.roles_config import RoleConfig, load_role_config
+from orchestrator.skills import SkillPack, select_packs
 from orchestrator.workspace import (
     WorkspaceTask,
     archive_attempt,
@@ -96,6 +97,25 @@ def _coerce_task(task: TaskRecord | InvokeTask) -> InvokeTask:
 
 def _build_attempt_plan(config: RoleConfig) -> list[str]:
     return [config.default_model, config.default_model, config.escalation_model]
+
+
+def _case_decision_text(case: Case) -> str:
+    specs = case.list_artifacts(DecisionSpec)
+    if specs:
+        spec = specs[0]
+        return " ".join([spec.question, *spec.alternatives, *spec.objectives])
+    intakes = case.list_artifacts(IntakeRecord)
+    if intakes:
+        return intakes[0].decision_question or intakes[0].raw_prompt
+    return ""
+
+
+def _case_skill_packs(case: Case) -> list[SkillPack]:
+    """Packs are chosen from the decision question by the orchestrator, never by an agent."""
+    text = _case_decision_text(case)
+    if not text:
+        return []
+    return select_packs(text)
 
 
 def _required_output_filename(artifact_type: str) -> str:
@@ -207,6 +227,7 @@ def _invoke_internal(
         budget_chars=normalized_task.projection_budget_chars,
     )
     backend_impl = backend or CursorCLIBackend()
+    skill_packs = _case_skill_packs(case)
     attempts = _build_attempt_plan(config)
     errors: list[str] = []
     workspace_path: Path | None = None
@@ -229,6 +250,7 @@ def _invoke_internal(
             role=role,
             task=workspace_task,
             projected_inputs=projected_inputs,
+            skill_packs=skill_packs,
         )
         workspace_path = layout.path
 

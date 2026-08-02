@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "TrackPosition": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "model_family": {
+          "minLength": 1,
+          "title": "Model Family",
+          "type": "string"
+        },
+        "preferred_alternative": {
+          "minLength": 1,
+          "title": "Preferred Alternative",
+          "type": "string"
+        },
+        "recommendation_confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Recommendation Confidence",
+          "type": "number"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "top_reason": {
+          "minLength": 1,
+          "title": "Top Reason",
+          "type": "string"
+        },
+        "track_id": {
+          "minLength": 1,
+          "title": "Track Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "track_id",
+        "model",
+        "model_family",
+        "preferred_alternative",
+        "top_reason",
+        "recommendation_confidence"
+      ],
+      "title": "TrackPosition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Result of running two independent theses on different model families.\n\nThis is a diversity signal, not a probability. It never feeds ``model_stability``\nand the positions are never averaged; disagreement is reported as disagreement.",
+  "properties": {
+    "agreement": {
+      "title": "Agreement",
+      "type": "boolean"
+    },
+    "divergence_summary": {
+      "minLength": 1,
+      "title": "Divergence Summary",
+      "type": "string"
+    },
+    "positions": {
+      "items": {
+        "$ref": "#/$defs/TrackPosition"
+      },
+      "minItems": 2,
+      "title": "Positions",
+      "type": "array"
+    },
+    "reconciled_alternative": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reconciled Alternative"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "stage": {
+      "minLength": 1,
+      "title": "Stage",
+      "type": "string"
+    }
+  },
+  "required": [
+    "stage",
+    "positions",
+    "agreement",
+    "divergence_summary"
+  ],
+  "title": "TrackDivergence",
+  "type": "object"
+}

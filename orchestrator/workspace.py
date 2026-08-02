@@ -10,6 +10,7 @@ import yaml  # type: ignore[import-untyped]
 from orchestrator.case_store import Case, runtime_root
 from orchestrator.projection import ProjectedArtifact
 from orchestrator.roles_config import RoleConfig
+from orchestrator.skills import SkillPack, packs_for_role, render_pack_section
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,6 +53,7 @@ def build_workspace(
     role: str,
     task: WorkspaceTask,
     projected_inputs: list[ProjectedArtifact],
+    skill_packs: list[SkillPack] | None = None,
 ) -> WorkspaceLayout:
     workspace_path = _workspace_path(case, role=role, task_id=task.task_id)
     if workspace_path.exists():
@@ -61,7 +63,10 @@ def build_workspace(
     (workspace_path / ".cursor").mkdir(parents=True, exist_ok=True)
 
     role_md_text = role_config.role_md_path.read_text(encoding="utf-8")
-    (workspace_path / "AGENTS.md").write_text(role_md_text, encoding="utf-8")
+    applicable = packs_for_role(skill_packs or [], role_config.role.value)
+    (workspace_path / "AGENTS.md").write_text(
+        role_md_text + render_pack_section(applicable), encoding="utf-8"
+    )
 
     for projected in projected_inputs:
         (workspace_path / "inputs" / projected.filename).write_text(

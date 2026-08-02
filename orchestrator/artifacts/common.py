@@ -12,6 +12,7 @@ EvidenceId = Annotated[str, Field(pattern=r"^E-\d+$")]
 AssumptionId = Annotated[str, Field(pattern=r"^A-\d+$")]
 TaskId = Annotated[str, Field(pattern=r"^T-\d+$")]
 ObjectionId = Annotated[str, Field(pattern=r"^O-\d+$")]
+IssueNodeId = Annotated[str, Field(pattern=r"^Q-\d+(?:\.\d+)*$")]
 CaseId = Annotated[str, Field(pattern=r"^case-\d+[-a-z0-9-]*$")]
 
 
@@ -71,10 +72,13 @@ class TaskRole(StrEnum):
     INTAKE = "intake"
     PLANNER = "planner"
     DIRECTOR = "director"
+    STRUCTURER = "structurer"
     CHALLENGER = "challenger"
+    PREMORTEM = "premortem"
     AUDITOR = "auditor"
     RESEARCHER = "researcher"
     ANALYST = "analyst"
+    ASSUMPTION_ANALYST = "assumption_analyst"
     SYNTHESIZER = "synthesizer"
     REVIEWER = "reviewer"
     SPECIALIST = "specialist"

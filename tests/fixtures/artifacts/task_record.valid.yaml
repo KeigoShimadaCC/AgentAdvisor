@@ -5,6 +5,7 @@ inputs:
 - decision_spec
 - E-102
 - E-117
+issue_node_id: null
 materiality: high
 priority: high
 priority_rationale: Directly affects alternative ranking.

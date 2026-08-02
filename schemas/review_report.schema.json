@@ -1,5 +1,37 @@
 {
   "$defs": {
+    "CitationVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "item_id": {
+          "minLength": 1,
+          "title": "Item Id",
+          "type": "string"
+        },
+        "justification": {
+          "minLength": 1,
+          "title": "Justification",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "supported": {
+          "title": "Supported",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "item_id",
+        "supported",
+        "justification"
+      ],
+      "title": "CitationVerdict",
+      "type": "object"
+    },
     "ReviewDefect": {
       "additionalProperties": false,
       "properties": {
@@ -52,6 +84,13 @@
   },
   "additionalProperties": false,
   "properties": {
+    "citation_verdicts": {
+      "items": {
+        "$ref": "#/$defs/CitationVerdict"
+      },
+      "title": "Citation Verdicts",
+      "type": "array"
+    },
     "defects": {
       "items": {
         "$ref": "#/$defs/ReviewDefect"

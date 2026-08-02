@@ -6,6 +6,7 @@ from typing import Annotated
 from pydantic import Field, model_validator
 
 from orchestrator.artifacts.common import ArtifactModel, NonEmptyStr
+from orchestrator.artifacts.verification import CitationVerdict
 
 ReviewTargetId = Annotated[str, Field(pattern=r"^(?:case-\d+[-a-z0-9-]*|[EATO]-\d+)$")]
 
@@ -31,6 +32,7 @@ class ReviewDefect(ArtifactModel):
 class ReviewReport(ArtifactModel):
     outcome: ReviewOutcome
     defects: list[ReviewDefect] = Field(default_factory=list)
+    citation_verdicts: list[CitationVerdict] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_outcome_defect_consistency(self) -> ReviewReport:

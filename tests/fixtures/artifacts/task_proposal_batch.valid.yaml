@@ -10,6 +10,7 @@ proposals:
     expected_information_gain: high
     inputs:
     - decision_spec
+    issue_node_id: null
     materiality: high
     priority: high
     priority_rationale: Directly informs base-rate construction.
@@ -30,6 +31,7 @@ proposals:
     expected_information_gain: high
     inputs:
     - evidence_base_rates
+    issue_node_id: null
     materiality: high
     priority: high
     priority_rationale: Produces expected values used in recommendation.

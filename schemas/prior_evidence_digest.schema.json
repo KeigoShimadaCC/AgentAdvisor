@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "PriorEvidenceEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_score": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Authority Score",
+          "type": "number"
+        },
+        "claim": {
+          "minLength": 1,
+          "title": "Claim",
+          "type": "string"
+        },
+        "from_case_id": {
+          "pattern": "^case-\\d+[-a-z0-9-]*$",
+          "title": "From Case Id",
+          "type": "string"
+        },
+        "publication_date": {
+          "format": "date",
+          "title": "Publication Date",
+          "type": "string"
+        },
+        "publisher": {
+          "minLength": 1,
+          "title": "Publisher",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_title": {
+          "minLength": 1,
+          "title": "Source Title",
+          "type": "string"
+        },
+        "source_type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "source_url": {
+          "minLength": 1,
+          "title": "Source Url",
+          "type": "string"
+        },
+        "topics": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Topics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "claim",
+        "source_title",
+        "publisher",
+        "source_url",
+        "source_type",
+        "publication_date",
+        "from_case_id",
+        "authority_score"
+      ],
+      "title": "PriorEvidenceEntry",
+      "type": "object"
+    },
+    "SourceType": {
+      "enum": [
+        "regulatory_filing",
+        "official_statistic",
+        "law_or_standard",
+        "original_research",
+        "reputable_secondary",
+        "specialist_reporting",
+        "other"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Standing-research-program output: evidence carried over from earlier cases.\n\nRecords here are stale by construction and must be re-verified before citation;\nthey are never written to the blackboard by the orchestrator.",
+  "properties": {
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/PriorEvidenceEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "staleness_warning": {
+      "minLength": 1,
+      "title": "Staleness Warning",
+      "type": "string"
+    }
+  },
+  "required": [
+    "generated_at",
+    "staleness_warning"
+  ],
+  "title": "PriorEvidenceDigest",
+  "type": "object"
+}

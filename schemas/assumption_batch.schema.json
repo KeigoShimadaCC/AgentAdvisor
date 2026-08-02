@@ -1,0 +1,276 @@
+{
+  "$defs": {
+    "AssumptionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "assumption_id": {
+          "pattern": "^A-\\d+$",
+          "title": "Assumption Id",
+          "type": "string"
+        },
+        "claim": {
+          "minLength": 1,
+          "title": "Claim",
+          "type": "string"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Level"
+        },
+        "estimate": {
+          "$ref": "#/$defs/ProbabilityEstimate"
+        },
+        "evidence_against": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "title": "Evidence Against",
+          "type": "array"
+        },
+        "evidence_for": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "title": "Evidence For",
+          "type": "array"
+        },
+        "materiality": {
+          "$ref": "#/$defs/Level"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/AssumptionStatus"
+        },
+        "type": {
+          "$ref": "#/$defs/AssumptionType"
+        }
+      },
+      "required": [
+        "assumption_id",
+        "claim",
+        "type",
+        "estimate",
+        "confidence",
+        "materiality",
+        "status"
+      ],
+      "title": "AssumptionRecord",
+      "type": "object"
+    },
+    "AssumptionStatus": {
+      "enum": [
+        "unresolved",
+        "supported",
+        "contradicted",
+        "retired"
+      ],
+      "title": "AssumptionStatus",
+      "type": "string"
+    },
+    "AssumptionType": {
+      "enum": [
+        "forecast",
+        "structural",
+        "operational",
+        "financial",
+        "regulatory",
+        "behavioral"
+      ],
+      "title": "AssumptionType",
+      "type": "string"
+    },
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "ProbabilityAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "description",
+        "delta",
+        "evidence_ids"
+      ],
+      "title": "ProbabilityAdjustment",
+      "type": "object"
+    },
+    "ProbabilityEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustments": {
+          "items": {
+            "$ref": "#/$defs/ProbabilityAdjustment"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        },
+        "base_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Rate"
+        },
+        "interval_high": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval High"
+        },
+        "interval_low": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Low"
+        },
+        "method": {
+          "$ref": "#/$defs/ProbabilityMethod"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point"
+        },
+        "reference_class": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Class"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "title": "ProbabilityEstimate",
+      "type": "object"
+    },
+    "ProbabilityMethod": {
+      "enum": [
+        "reference_class",
+        "scenario_model",
+        "structured_subjective"
+      ],
+      "title": "ProbabilityMethod",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One assumption-extraction pass over the whole blackboard.\n\nMirrors ``EvidenceBatch``: a transport envelope the orchestrator unpacks into\ncanonical ``A-`` records. Finding nothing is an explicit outcome, never silence.",
+  "properties": {
+    "extraction_notes": {
+      "minLength": 1,
+      "title": "Extraction Notes",
+      "type": "string"
+    },
+    "no_assumptions_found": {
+      "default": false,
+      "title": "No Assumptions Found",
+      "type": "boolean"
+    },
+    "records": {
+      "items": {
+        "$ref": "#/$defs/AssumptionRecord"
+      },
+      "title": "Records",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_scope": {
+      "minLength": 1,
+      "title": "Source Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_scope",
+    "extraction_notes"
+  ],
+  "title": "AssumptionBatch",
+  "type": "object"
+}

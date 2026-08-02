@@ -19,10 +19,14 @@ class CaseStage(Enum):
     INTAKE = "intake"
     FRAMING = "framing"
     AWAITING_FRAMING_APPROVAL = "awaiting_framing_approval"
+    STRUCTURING = "structuring"
     PROVISIONAL_THESIS = "provisional_thesis"
     PLANNING = "planning"
     INVESTIGATION = "investigation"
+    EVIDENCE_CRITIQUE = "evidence_critique"
+    ASSUMPTION_LEDGER = "assumption_ledger"
     PRELIMINARY_RECOMMENDATION = "preliminary_recommendation"
+    PRE_MORTEM = "pre_mortem"
     CHALLENGE = "challenge"
     REPAIR = "repair"
     STOP_DECISION = "stop_decision"
@@ -37,6 +41,7 @@ class CaseState(ArtifactModel):
     case_id: CaseId
     stage: CaseStage = CaseStage.INTAKE
     repair_cycle: int = Field(default=0, ge=0)
+    synthesis_retries: int = Field(default=0, ge=0)
     budget_counters: dict[str, int] = Field(default_factory=dict)
     framing_approved: bool = False
     final_approved: bool = False
@@ -48,6 +53,7 @@ class CaseState(ArtifactModel):
 class StepOutcome(Enum):
     ADVANCE = "advance"
     NEEDS_REPAIR = "needs_repair"
+    NEEDS_RESYNTHESIS = "needs_resynthesis"
     ERROR = "error"
 
 
@@ -83,10 +89,14 @@ ACTIVE_STAGES: tuple[CaseStage, ...] = (
     CaseStage.INTAKE,
     CaseStage.FRAMING,
     CaseStage.AWAITING_FRAMING_APPROVAL,
+    CaseStage.STRUCTURING,
     CaseStage.PROVISIONAL_THESIS,
     CaseStage.PLANNING,
     CaseStage.INVESTIGATION,
+    CaseStage.EVIDENCE_CRITIQUE,
+    CaseStage.ASSUMPTION_LEDGER,
     CaseStage.PRELIMINARY_RECOMMENDATION,
+    CaseStage.PRE_MORTEM,
     CaseStage.CHALLENGE,
     CaseStage.REPAIR,
     CaseStage.STOP_DECISION,
@@ -98,18 +108,24 @@ ACTIVE_STAGES: tuple[CaseStage, ...] = (
 ALLOWED_TRANSITIONS: dict[CaseStage, frozenset[CaseStage]] = {
     CaseStage.INTAKE: frozenset({CaseStage.FRAMING, CaseStage.FAILED}),
     CaseStage.FRAMING: frozenset({CaseStage.AWAITING_FRAMING_APPROVAL, CaseStage.FAILED}),
-    CaseStage.AWAITING_FRAMING_APPROVAL: frozenset(
-        {CaseStage.PROVISIONAL_THESIS, CaseStage.FAILED}
-    ),
+    CaseStage.AWAITING_FRAMING_APPROVAL: frozenset({CaseStage.STRUCTURING, CaseStage.FAILED}),
+    CaseStage.STRUCTURING: frozenset({CaseStage.PROVISIONAL_THESIS, CaseStage.FAILED}),
     CaseStage.PROVISIONAL_THESIS: frozenset({CaseStage.PLANNING, CaseStage.FAILED}),
     CaseStage.PLANNING: frozenset({CaseStage.INVESTIGATION, CaseStage.FAILED}),
-    CaseStage.INVESTIGATION: frozenset({CaseStage.PRELIMINARY_RECOMMENDATION, CaseStage.FAILED}),
-    CaseStage.PRELIMINARY_RECOMMENDATION: frozenset({CaseStage.CHALLENGE, CaseStage.FAILED}),
+    CaseStage.INVESTIGATION: frozenset({CaseStage.EVIDENCE_CRITIQUE, CaseStage.FAILED}),
+    CaseStage.EVIDENCE_CRITIQUE: frozenset({CaseStage.ASSUMPTION_LEDGER, CaseStage.FAILED}),
+    CaseStage.ASSUMPTION_LEDGER: frozenset(
+        {CaseStage.PRELIMINARY_RECOMMENDATION, CaseStage.FAILED}
+    ),
+    CaseStage.PRELIMINARY_RECOMMENDATION: frozenset({CaseStage.PRE_MORTEM, CaseStage.FAILED}),
+    CaseStage.PRE_MORTEM: frozenset({CaseStage.CHALLENGE, CaseStage.FAILED}),
     CaseStage.CHALLENGE: frozenset({CaseStage.STOP_DECISION, CaseStage.FAILED}),
     CaseStage.REPAIR: frozenset({CaseStage.CHALLENGE, CaseStage.FAILED}),
     CaseStage.STOP_DECISION: frozenset({CaseStage.REPAIR, CaseStage.SYNTHESIS, CaseStage.FAILED}),
     CaseStage.SYNTHESIS: frozenset({CaseStage.REVIEW, CaseStage.FAILED}),
-    CaseStage.REVIEW: frozenset({CaseStage.AWAITING_FINAL_APPROVAL, CaseStage.FAILED}),
+    CaseStage.REVIEW: frozenset(
+        {CaseStage.AWAITING_FINAL_APPROVAL, CaseStage.SYNTHESIS, CaseStage.FAILED}
+    ),
     CaseStage.AWAITING_FINAL_APPROVAL: frozenset({CaseStage.DONE, CaseStage.FAILED}),
     CaseStage.DONE: frozenset(),
     CaseStage.FAILED: frozenset(),
@@ -121,6 +137,7 @@ _FLOW_PLANS: dict[CaseStage, StepPlan] = {
     CaseStage.AWAITING_FRAMING_APPROVAL: StepPlan(
         CaseStage.AWAITING_FRAMING_APPROVAL, None, tuple(), approval_gate=True
     ),
+    CaseStage.STRUCTURING: StepPlan(CaseStage.STRUCTURING, "structuring", (TaskRole.STRUCTURER,)),
     CaseStage.PROVISIONAL_THESIS: StepPlan(
         CaseStage.PROVISIONAL_THESIS, "provisional_thesis", (TaskRole.DIRECTOR,)
     ),
@@ -128,9 +145,17 @@ _FLOW_PLANS: dict[CaseStage, StepPlan] = {
     CaseStage.INVESTIGATION: StepPlan(
         CaseStage.INVESTIGATION, "investigation", (TaskRole.RESEARCHER, TaskRole.ANALYST)
     ),
+    # No roles: the evidence critique is computed deterministically from the blackboard.
+    CaseStage.EVIDENCE_CRITIQUE: StepPlan(
+        CaseStage.EVIDENCE_CRITIQUE, "evidence_critique", tuple()
+    ),
+    CaseStage.ASSUMPTION_LEDGER: StepPlan(
+        CaseStage.ASSUMPTION_LEDGER, "assumption_ledger", (TaskRole.ASSUMPTION_ANALYST,)
+    ),
     CaseStage.PRELIMINARY_RECOMMENDATION: StepPlan(
         CaseStage.PRELIMINARY_RECOMMENDATION, "preliminary_recommendation", (TaskRole.DIRECTOR,)
     ),
+    CaseStage.PRE_MORTEM: StepPlan(CaseStage.PRE_MORTEM, "pre_mortem", (TaskRole.PREMORTEM,)),
     CaseStage.CHALLENGE: StepPlan(
         CaseStage.CHALLENGE, "challenge", (TaskRole.CHALLENGER, TaskRole.AUDITOR)
     ),
@@ -184,52 +209,82 @@ def route(state: CaseState) -> StepPlan:
     return _FLOW_PLANS[state.stage]
 
 
+@dataclass(frozen=True, slots=True)
+class _Transition:
+    stage: CaseStage
+    repair_cycle: int
+    synthesis_retries: int
+
+
 def _resolve_next_stage(
-    state: CaseState, result: StepResult, max_repair_cycles: int
-) -> tuple[CaseStage, int]:
+    state: CaseState,
+    result: StepResult,
+    max_repair_cycles: int,
+    max_synthesis_retries: int,
+) -> _Transition:
     if result.outcome is StepOutcome.ERROR:
-        return CaseStage.FAILED, state.repair_cycle
+        return _Transition(CaseStage.FAILED, state.repair_cycle, state.synthesis_retries)
 
     if state.stage is CaseStage.STOP_DECISION:
         if result.outcome is StepOutcome.NEEDS_REPAIR and state.repair_cycle < max_repair_cycles:
-            return CaseStage.REPAIR, state.repair_cycle + 1
-        return CaseStage.SYNTHESIS, state.repair_cycle
+            return _Transition(CaseStage.REPAIR, state.repair_cycle + 1, state.synthesis_retries)
+        return _Transition(CaseStage.SYNTHESIS, state.repair_cycle, state.synthesis_retries)
+
+    if state.stage is CaseStage.REVIEW:
+        if (
+            result.outcome is StepOutcome.NEEDS_RESYNTHESIS
+            and state.synthesis_retries < max_synthesis_retries
+        ):
+            return _Transition(CaseStage.SYNTHESIS, state.repair_cycle, state.synthesis_retries + 1)
+        return _Transition(
+            CaseStage.AWAITING_FINAL_APPROVAL, state.repair_cycle, state.synthesis_retries
+        )
 
     if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
-        return CaseStage.PROVISIONAL_THESIS, state.repair_cycle
+        return _Transition(CaseStage.STRUCTURING, state.repair_cycle, state.synthesis_retries)
 
     if state.stage is CaseStage.AWAITING_FINAL_APPROVAL:
-        return CaseStage.DONE, state.repair_cycle
+        return _Transition(CaseStage.DONE, state.repair_cycle, state.synthesis_retries)
 
     next_by_stage: dict[CaseStage, CaseStage] = {
         CaseStage.INTAKE: CaseStage.FRAMING,
         CaseStage.FRAMING: CaseStage.AWAITING_FRAMING_APPROVAL,
+        CaseStage.STRUCTURING: CaseStage.PROVISIONAL_THESIS,
         CaseStage.PROVISIONAL_THESIS: CaseStage.PLANNING,
         CaseStage.PLANNING: CaseStage.INVESTIGATION,
-        CaseStage.INVESTIGATION: CaseStage.PRELIMINARY_RECOMMENDATION,
-        CaseStage.PRELIMINARY_RECOMMENDATION: CaseStage.CHALLENGE,
+        CaseStage.INVESTIGATION: CaseStage.EVIDENCE_CRITIQUE,
+        CaseStage.EVIDENCE_CRITIQUE: CaseStage.ASSUMPTION_LEDGER,
+        CaseStage.ASSUMPTION_LEDGER: CaseStage.PRELIMINARY_RECOMMENDATION,
+        CaseStage.PRELIMINARY_RECOMMENDATION: CaseStage.PRE_MORTEM,
+        CaseStage.PRE_MORTEM: CaseStage.CHALLENGE,
         CaseStage.CHALLENGE: CaseStage.STOP_DECISION,
         CaseStage.REPAIR: CaseStage.CHALLENGE,
         CaseStage.SYNTHESIS: CaseStage.REVIEW,
-        CaseStage.REVIEW: CaseStage.AWAITING_FINAL_APPROVAL,
     }
     if state.stage not in next_by_stage:
         raise IllegalTransition(f"Illegal transition: {state.stage.name} -> <unresolved>")
-    return next_by_stage[state.stage], state.repair_cycle
+    return _Transition(next_by_stage[state.stage], state.repair_cycle, state.synthesis_retries)
 
 
-def reduce(state: CaseState, result: StepResult, max_repair_cycles: int = 2) -> CaseState:
+def reduce(
+    state: CaseState,
+    result: StepResult,
+    max_repair_cycles: int = 2,
+    *,
+    max_synthesis_retries: int = 1,
+) -> CaseState:
     if state.stage in (CaseStage.DONE, CaseStage.FAILED):
         raise IllegalTransition(f"Illegal transition: {state.stage.name} -> <reduced>")
 
-    next_stage, next_repair_cycle = _resolve_next_stage(state, result, max_repair_cycles)
-    _next_or_raise(state.stage, next_stage)
+    transition = _resolve_next_stage(state, result, max_repair_cycles, max_synthesis_retries)
+    _next_or_raise(state.stage, transition.stage)
 
-    failure_cause = result.error_cause if next_stage is CaseStage.FAILED else None
+    failure_cause = result.error_cause if transition.stage is CaseStage.FAILED else None
     return state.model_copy(
         update={
-            "stage": next_stage,
-            "repair_cycle": next_repair_cycle,
+            "stage": transition.stage,
+            "repair_cycle": transition.repair_cycle,
+            "synthesis_retries": transition.synthesis_retries,
             "failure_cause": failure_cause,
         }
     )
@@ -254,6 +309,7 @@ def run_case(
     until: CaseStage | None = None,
     *,
     max_repair_cycles: int = 2,
+    max_synthesis_retries: int = 1,
 ) -> CaseState:
     state = load_case_state(case)
 
@@ -275,5 +331,10 @@ def run_case(
                 raise KeyError(f"Missing handler for '{plan.handler_name}'")
             result = handlers[plan.handler_name](case, state, plan)
 
-        state = reduce(state, result, max_repair_cycles=max_repair_cycles)
+        state = reduce(
+            state,
+            result,
+            max_repair_cycles=max_repair_cycles,
+            max_synthesis_retries=max_synthesis_retries,
+        )
         _checkpoint_state(case, state)

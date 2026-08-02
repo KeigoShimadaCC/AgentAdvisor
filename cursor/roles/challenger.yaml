@@ -8,6 +8,9 @@ projection_include:
   - preliminary_recommendation
   - high_materiality_assumptions
   - key_evidence
+  - evidence_critique
+  - premortem_report
+  - track_divergence
   - objections
 output_artifact_type: objection_batch
 model_tier: high

@@ -1,0 +1,419 @@
+{
+  "$defs": {
+    "CalibrationSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "brier_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Brier Score"
+        },
+        "interpretation": {
+          "minLength": 1,
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "mean_forecast": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Forecast"
+        },
+        "mean_realized": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Realized"
+        },
+        "sample_size": {
+          "minimum": 0,
+          "title": "Sample Size",
+          "type": "integer"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sample_size",
+        "interpretation"
+      ],
+      "title": "CalibrationSummary",
+      "type": "object"
+    },
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "OutcomeRecord": {
+      "additionalProperties": false,
+      "description": "A realized outcome attached to a completed case, recorded by the user.",
+      "properties": {
+        "forecast_outcome_name": {
+          "minLength": 1,
+          "title": "Forecast Outcome Name",
+          "type": "string"
+        },
+        "forecast_probability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Forecast Probability",
+          "type": "number"
+        },
+        "outcome_summary": {
+          "minLength": 1,
+          "title": "Outcome Summary",
+          "type": "string"
+        },
+        "realized": {
+          "title": "Realized",
+          "type": "boolean"
+        },
+        "recommendation_followed": {
+          "title": "Recommendation Followed",
+          "type": "boolean"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "recorded_at",
+        "outcome_summary",
+        "recommendation_followed",
+        "forecast_outcome_name",
+        "forecast_probability",
+        "realized"
+      ],
+      "title": "OutcomeRecord",
+      "type": "object"
+    },
+    "PriorCaseEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "alternatives_considered": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Alternatives Considered",
+          "type": "array"
+        },
+        "case_id": {
+          "pattern": "^case-\\d+[-a-z0-9-]*$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "completed_at": {
+          "format": "date-time",
+          "title": "Completed At",
+          "type": "string"
+        },
+        "decision_question": {
+          "minLength": 1,
+          "title": "Decision Question",
+          "type": "string"
+        },
+        "domains": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "evidence_confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Evidence Confidence",
+          "type": "number"
+        },
+        "headline_outcome_name": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Headline Outcome Name"
+        },
+        "headline_outcome_probability": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Headline Outcome Probability"
+        },
+        "keywords": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OutcomeRecord"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recommendation_confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Recommendation Confidence",
+          "type": "number"
+        },
+        "recommended_action": {
+          "minLength": 1,
+          "title": "Recommended Action",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "case_id",
+        "decision_question",
+        "recommended_action",
+        "recommendation_confidence",
+        "evidence_confidence",
+        "completed_at"
+      ],
+      "title": "PriorCaseEntry",
+      "type": "object"
+    },
+    "RecurringAssumption": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ids": {
+          "items": {
+            "pattern": "^case-\\d+[-a-z0-9-]*$",
+            "type": "string"
+          },
+          "title": "Case Ids",
+          "type": "array"
+        },
+        "example_claim": {
+          "minLength": 1,
+          "title": "Example Claim",
+          "type": "string"
+        },
+        "max_materiality": {
+          "$ref": "#/$defs/Level"
+        },
+        "normalized_claim": {
+          "minLength": 1,
+          "title": "Normalized Claim",
+          "type": "string"
+        },
+        "occurrences": {
+          "minimum": 1,
+          "title": "Occurrences",
+          "type": "integer"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "normalized_claim",
+        "example_claim",
+        "occurrences",
+        "max_materiality"
+      ],
+      "title": "RecurringAssumption",
+      "type": "object"
+    },
+    "SourceReputation": {
+      "additionalProperties": false,
+      "properties": {
+        "case_ids": {
+          "items": {
+            "pattern": "^case-\\d+[-a-z0-9-]*$",
+            "type": "string"
+          },
+          "title": "Case Ids",
+          "type": "array"
+        },
+        "domain": {
+          "minLength": 1,
+          "title": "Domain",
+          "type": "string"
+        },
+        "mean_authority": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Mean Authority",
+          "type": "number"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_types": {
+          "items": {
+            "$ref": "#/$defs/SourceType"
+          },
+          "title": "Source Types",
+          "type": "array"
+        },
+        "times_cited": {
+          "minimum": 0,
+          "title": "Times Cited",
+          "type": "integer"
+        },
+        "times_contradicted": {
+          "minimum": 0,
+          "title": "Times Contradicted",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "domain",
+        "times_cited",
+        "times_contradicted",
+        "mean_authority"
+      ],
+      "title": "SourceReputation",
+      "type": "object"
+    },
+    "SourceType": {
+      "enum": [
+        "regulatory_filing",
+        "official_statistic",
+        "law_or_standard",
+        "original_research",
+        "reputable_secondary",
+        "specialist_reporting",
+        "other"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The compact cross-case brief projected into a live case.\n\nEverything here is prior context, not evidence. Nothing in this digest may be\ncited; it exists to stop the system from starting every case with an empty head.",
+  "properties": {
+    "calibration": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CalibrationSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "prior_cases": {
+      "items": {
+        "$ref": "#/$defs/PriorCaseEntry"
+      },
+      "title": "Prior Cases",
+      "type": "array"
+    },
+    "recurring_assumptions": {
+      "items": {
+        "$ref": "#/$defs/RecurringAssumption"
+      },
+      "title": "Recurring Assumptions",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_reputations": {
+      "items": {
+        "$ref": "#/$defs/SourceReputation"
+      },
+      "title": "Source Reputations",
+      "type": "array"
+    },
+    "usage_note": {
+      "minLength": 1,
+      "title": "Usage Note",
+      "type": "string"
+    }
+  },
+  "required": [
+    "generated_at",
+    "usage_note"
+  ],
+  "title": "CaseMemoryDigest",
+  "type": "object"
+}

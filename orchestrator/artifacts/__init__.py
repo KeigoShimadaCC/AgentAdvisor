@@ -4,7 +4,11 @@ from orchestrator.artifacts.analysis import (
     BreakEvenThreshold,
     SensitivityRow,
 )
-from orchestrator.artifacts.assumptions import AssumptionRecord
+from orchestrator.artifacts.assumptions import (
+    MAX_ASSUMPTION_RECORDS_PER_BATCH,
+    AssumptionBatch,
+    AssumptionRecord,
+)
 from orchestrator.artifacts.audit import AuditEvent, AuditUsage
 from orchestrator.artifacts.audit_findings import (
     AuditFinding,
@@ -19,6 +23,7 @@ from orchestrator.artifacts.common import (
     CaseId,
     Depth,
     EvidenceId,
+    IssueNodeId,
     Level,
     ObjectionId,
     ObjectionResolutionStatus,
@@ -39,6 +44,21 @@ from orchestrator.artifacts.evidence import (
     EvidenceBatch,
     EvidenceRecord,
 )
+from orchestrator.artifacts.evidence_critique import (
+    SOURCE_TIER_BY_TYPE,
+    SOURCE_TIER_WEIGHT,
+    EvidenceAuthorityScore,
+    EvidenceCritique,
+    EvidenceFlag,
+    IndependenceCluster,
+    SourceTier,
+)
+from orchestrator.artifacts.gates import (
+    GateFinding,
+    GateReport,
+    GateSeverity,
+    max_severity,
+)
 from orchestrator.artifacts.intake import (
     ClarificationQuestion,
     FramingApproval,
@@ -46,7 +66,19 @@ from orchestrator.artifacts.intake import (
     IntakeField,
     IntakeRecord,
 )
+from orchestrator.artifacts.issue_tree import IssueNode, IssueNodeType, IssueTree
+from orchestrator.artifacts.memory import (
+    CalibrationSummary,
+    CaseMemoryDigest,
+    OutcomeRecord,
+    PriorCaseEntry,
+    PriorEvidenceDigest,
+    PriorEvidenceEntry,
+    RecurringAssumption,
+    SourceReputation,
+)
 from orchestrator.artifacts.objections import ObjectionBatch, ObjectionMode, ObjectionRecord
+from orchestrator.artifacts.premortem import MAX_FAILURE_MODES, FailureMode, PreMortemReport
 from orchestrator.artifacts.probability import ProbabilityAdjustment, ProbabilityEstimate
 from orchestrator.artifacts.recommendations import (
     AlternativeAssessment,
@@ -69,11 +101,19 @@ from orchestrator.artifacts.task_proposals import (
     TaskProposalRecord,
 )
 from orchestrator.artifacts.tasks import TaskRecord
+from orchestrator.artifacts.thesis import ThesisRevision, ThesisTrigger
+from orchestrator.artifacts.tracks import TrackDivergence, TrackPosition
+from orchestrator.artifacts.verification import (
+    CitationCheckItem,
+    CitationVerdict,
+    VerificationWorksheet,
+)
 
 __all__ = [
     "AnalysisResult",
     "AnalysisScenario",
     "AlternativeAssessment",
+    "AssumptionBatch",
     "AssumptionId",
     "AssumptionRecord",
     "AssumptionStatus",
@@ -85,15 +125,33 @@ __all__ = [
     "AuditStopInput",
     "AuditUsage",
     "BreakEvenThreshold",
+    "CalibrationSummary",
     "CaseId",
+    "CaseMemoryDigest",
+    "CitationCheckItem",
+    "CitationVerdict",
     "ClarificationQuestion",
     "ConfidenceAssessment",
     "Counterargument",
     "DecisionSpec",
     "DisclosureRecord",
     "Depth",
+    "EvidenceAuthorityScore",
+    "EvidenceCritique",
+    "EvidenceFlag",
     "EvidenceId",
+    "FailureMode",
+    "GateFinding",
+    "GateReport",
+    "GateSeverity",
+    "IndependenceCluster",
+    "IssueNode",
+    "IssueNodeId",
+    "IssueNodeType",
+    "IssueTree",
+    "MAX_ASSUMPTION_RECORDS_PER_BATCH",
     "MAX_EVIDENCE_RECORDS_PER_BATCH",
+    "MAX_FAILURE_MODES",
     "EvidenceBatch",
     "EvidenceRecord",
     "FinalRecommendation",
@@ -108,19 +166,29 @@ __all__ = [
     "ObjectionMode",
     "ObjectionRecord",
     "ObjectionResolutionStatus",
+    "OutcomeRecord",
+    "PreMortemReport",
     "PreliminaryRecommendation",
+    "PriorCaseEntry",
+    "PriorEvidenceDigest",
+    "PriorEvidenceEntry",
     "PriorityLevel",
     "ProbabilityAdjustment",
     "ProbabilityEstimate",
     "ProbabilityMethod",
+    "RecurringAssumption",
     "Reversibility",
     "ReviewDefect",
     "ReviewDefectType",
     "ReviewOutcome",
     "ReviewReport",
     "RiskTolerance",
+    "SOURCE_TIER_BY_TYPE",
+    "SOURCE_TIER_WEIGHT",
     "ScenarioAssessment",
     "SensitivityRow",
+    "SourceReputation",
+    "SourceTier",
     "SourceType",
     "StopReason",
     "TaskId",
@@ -131,4 +199,10 @@ __all__ = [
     "TaskRecord",
     "TaskRole",
     "TaskStatus",
+    "ThesisRevision",
+    "ThesisTrigger",
+    "TrackDivergence",
+    "TrackPosition",
+    "VerificationWorksheet",
+    "max_severity",
 ]

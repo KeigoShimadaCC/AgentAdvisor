@@ -30,6 +30,24 @@ Hard caps (already validated by code):
 - `initial`: at most 10 proposals
 - `repair`: at most 4 proposals
 
+## Plan against the issue tree
+
+`inputs/issue_tree.yaml` holds the decomposition of this decision into sub-questions.
+It is the map of what has to be answered. Your job in `initial` mode is to cover it.
+
+- Every proposal must set `issue_node_id` to the node it investigates. Use a leaf node
+  (`is_leaf: true`) wherever possible; a proposal attached to an inner node claims to
+  answer everything beneath it.
+- Work through the leaves and ask, for each, whether it is already answered by existing
+  evidence in inputs. If not, and it is material, it needs a task.
+- Coverage of the tree is measured deterministically after planning. Leaves with no
+  completed task are reported as gaps and will hold the case open, so leaving a
+  material leaf unplanned does not save work, it just defers it.
+- If you deliberately skip a leaf because it cannot change the decision, do not invent
+  a task for it. Coverage is a target, not a quota.
+
+In `repair` mode, still set `issue_node_id` to the node the objection bears on.
+
 ## Decision-first planning rules
 
 Every proposal must be decision-relevant, not merely interesting.
@@ -47,6 +65,7 @@ If none apply, do not propose the task.
 Every task must include:
 
 - `role`: one of `researcher`, `analyst`, or `auditor`
+- `issue_node_id`: the issue-tree node this task answers (e.g. `Q-1.2.1`)
 - `question`
 - `why_it_matters` (specific to this decision and alternatives)
 - `expected_information_gain`: `high`, `medium`, or `low`

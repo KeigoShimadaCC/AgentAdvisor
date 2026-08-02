@@ -11,11 +11,12 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
-from orchestrator.artifacts import FramingApproval, FramingDecision
+from orchestrator.artifacts import AuditEvent, FramingApproval, FramingDecision
 from orchestrator.backend import AgentBackend, CursorCLIBackend
 from orchestrator.budget import BudgetConfig, BudgetLedger
 from orchestrator.case_store import Case, create_case
 from orchestrator.citations import register_citation_hooks
+from orchestrator.memory import MemoryStore, write_digests
 from orchestrator.stages import StageHandlers
 from orchestrator.state_machine import (
     CaseStage,
@@ -49,6 +50,8 @@ SMALL_BUDGET = BudgetConfig(
 
 DEFAULT_BUDGET = BudgetConfig()
 
+MAX_SYNTHESIS_RETRIES = 1
+
 
 def run(
     case: Case,
@@ -58,6 +61,8 @@ def run(
     budget_config: BudgetConfig | None = None,
     auto_approve: bool = False,
     model_tier_map: dict[str, str] | None = None,
+    memory_store: MemoryStore | None = None,
+    dual_track: bool = True,
 ) -> CaseState:
     """Run the full decision pipeline on a case.
 
@@ -88,6 +93,11 @@ def run(
     # Register citation hooks before any Director invocation
     register_citation_hooks()
 
+    # Prior-case recall, written before the first invocation so it can be projected.
+    # Nothing in it is citable; it is context, not evidence.
+    store = memory_store or MemoryStore()
+    write_digests(case, question=raw_prompt, store=store)
+
     # Initialize budget ledger from current state
     state = load_case_state(case)
     ledger = BudgetLedger(state, budget, tier_map)
@@ -106,6 +116,7 @@ def run(
         budget_config=budget,
         raw_prompt=raw_prompt,
         model_tier_map=tier_map,
+        dual_track=dual_track,
     )
     handlers._budget_ledger = ledger
     handlers._task_graph = task_graph
@@ -113,8 +124,41 @@ def run(
     handler_map = handlers.handlers()
 
     if auto_approve:
-        return _run_unattended(case, handler_map, budget, state)
-    return run_case(case, handler_map)
+        final_state = _run_unattended(case, handler_map, budget, state)
+    else:
+        final_state = run_case(case, handler_map, max_synthesis_retries=MAX_SYNTHESIS_RETRIES)
+
+    if final_state.stage is CaseStage.DONE:
+        _record_into_memory(case, store)
+    return final_state
+
+
+def _record_into_memory(case: Case, store: MemoryStore) -> None:
+    """Snapshot a completed case so later cases can recall it. Never fatal."""
+    try:
+        entry = store.record_case(case)
+    except Exception as exc:  # noqa: BLE001
+        case.audit(
+            AuditEvent(
+                ts=datetime.now(UTC),
+                actor="memory",
+                event_type="case_memory_write_failed",
+                payload={"error": str(exc)},
+            )
+        )
+        return
+    case.audit(
+        AuditEvent(
+            ts=datetime.now(UTC),
+            actor="memory",
+            event_type="case_recorded_to_memory",
+            payload={
+                "case_id": entry.case_id,
+                "recommended_action": entry.recommended_action,
+                "memory_root": str(store.root),
+            },
+        )
+    )
 
 
 def _run_unattended(
@@ -125,7 +169,12 @@ def _run_unattended(
 ) -> CaseState:
     """Run the pipeline with auto-approval at both gates."""
     while True:
-        state = run_case(case, handler_map, max_repair_cycles=budget.max_repair_cycles)
+        state = run_case(
+            case,
+            handler_map,
+            max_repair_cycles=budget.max_repair_cycles,
+            max_synthesis_retries=MAX_SYNTHESIS_RETRIES,
+        )
 
         if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
             # Auto-approve framing
@@ -156,6 +205,8 @@ def run_scenario(
     budget_config: BudgetConfig | None = None,
     backend: AgentBackend | None = None,
     cases_root: Path | None = None,
+    memory_store: MemoryStore | None = None,
+    dual_track: bool = True,
 ) -> tuple[Case, CaseState]:
     """Create a case and run it unattended end-to-end.
 
@@ -168,5 +219,7 @@ def run_scenario(
         backend=backend,
         budget_config=budget_config or SMALL_BUDGET,
         auto_approve=True,
+        memory_store=memory_store,
+        dual_track=dual_track,
     )
     return case, state

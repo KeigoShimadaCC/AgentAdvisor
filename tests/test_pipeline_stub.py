@@ -1,6 +1,6 @@
 """Stub E2E pipeline test.
 
-Verifies the full pipeline runs through all 11 stages using a StubBackend
+Verifies the full pipeline runs through all 15 stages using a StubBackend
 with scripted artifacts. No live model invocations.
 """
 
@@ -17,18 +17,26 @@ from orchestrator.artifacts import (
     AlternativeAssessment,
     AnalysisResult,
     AnalysisScenario,
+    AssumptionBatch,
     AssumptionRecord,
     AssumptionStatus,
     AssumptionType,
     BreakEvenThreshold,
+    CitationVerdict,
     ConfidenceAssessment,
     Counterargument,
     DecisionSpec,
     Depth,
     EvidenceBatch,
+    EvidenceCritique,
     EvidenceRecord,
+    FailureMode,
     FinalRecommendation,
+    GateReport,
     IntakeRecord,
+    IssueNode,
+    IssueNodeType,
+    IssueTree,
     Level,
     ModelStability,
     ObjectionBatch,
@@ -37,6 +45,7 @@ from orchestrator.artifacts import (
     ObjectionResolutionStatus,
     PlanningMode,
     PreliminaryRecommendation,
+    PreMortemReport,
     PriorityLevel,
     ProbabilityAdjustment,
     ProbabilityEstimate,
@@ -52,12 +61,20 @@ from orchestrator.artifacts import (
     TaskProposalBatch,
     TaskProposalRecord,
     TaskRole,
+    ThesisRevision,
+    TrackDivergence,
+    VerificationWorksheet,
 )
-from orchestrator.artifacts.yaml_io import coerce_payload_for_model, dump_model_to_yaml_text
+from orchestrator.artifacts.yaml_io import (
+    coerce_payload_for_model,
+    dump_model_to_yaml_text,
+    load_model_from_yaml_text,
+)
 from orchestrator.backend import ResultStatus, RoleInvocation, RoleResult, TokenUsage
 from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, create_case
 from orchestrator.invoke_role import clear_cross_field_validation_hooks
+from orchestrator.memory import MemoryStore
 from orchestrator.pipeline import run
 from orchestrator.state_machine import CaseStage
 
@@ -170,6 +187,95 @@ def _make_preliminary_recommendation(mode: str) -> PreliminaryRecommendation:
         ),
         unresolved_evidence_gaps=["limited independent sources on NVDA valuation"],
         major_risks=["earnings miss could trigger 15% drawdown"],
+    )
+
+
+def _make_issue_tree() -> IssueTree:
+    return IssueTree(
+        decision_question="Should I invest $50k in Nvidia vs semiconductor ETF?",
+        nodes=[
+            IssueNode(
+                node_id="Q-1",
+                question="Should I invest $50k in Nvidia vs semiconductor ETF?",
+                node_type=IssueNodeType.ROOT,
+                materiality=Level.HIGH,
+                resolution_criteria="A ranked recommendation with an allocation and timing.",
+            ),
+            IssueNode(
+                node_id="Q-1.1",
+                parent_id="Q-1",
+                question="Is NVDA's current valuation justified by growth?",
+                node_type=IssueNodeType.DRIVER,
+                materiality=Level.HIGH,
+                resolution_criteria="Forward multiple compared against growth and history.",
+            ),
+            IssueNode(
+                node_id="Q-1.2",
+                parent_id="Q-1",
+                question="How much concentration risk does a single-stock position add?",
+                node_type=IssueNodeType.DRIVER,
+                materiality=Level.MEDIUM,
+                resolution_criteria="Sector concentration quantified against the ETF baseline.",
+            ),
+        ],
+        mece_justification=(
+            "Valuation and concentration are the two drivers that separate the alternatives; "
+            "tax treatment is excluded because it is identical across them."
+        ),
+    )
+
+
+def _make_assumption_batch() -> AssumptionBatch:
+    return AssumptionBatch(
+        source_scope="preliminary evidence and analysis results",
+        no_assumptions_found=False,
+        extraction_notes=(
+            "Checked the evidence records and the analysis inputs; the growth extrapolation "
+            "is the only unestablished proposition the reasoning depends on."
+        ),
+        records=[
+            AssumptionRecord(
+                assumption_id="A-1",
+                claim="NVDA revenue growth stays above 50% year over year for four quarters",
+                type=AssumptionType.FORECAST,
+                estimate=ProbabilityEstimate(
+                    method=ProbabilityMethod.STRUCTURED_SUBJECTIVE,
+                    point=0.55,
+                    adjustments=[],
+                ),
+                confidence=Level.MEDIUM,
+                materiality=Level.HIGH,
+                evidence_for=["E-002"],
+                evidence_against=[],
+                status=AssumptionStatus.UNRESOLVED,
+            ),
+        ],
+    )
+
+
+def _make_premortem_report() -> PreMortemReport:
+    return PreMortemReport(
+        horizon="24 months from decision",
+        assumed_outcome="The staged position lost 40% and was closed at a loss.",
+        most_likely_failure_mode="growth-decelerated-faster-than-modeled",
+        failure_modes=[
+            FailureMode(
+                failure_mode="growth-decelerated-faster-than-modeled",
+                narrative=(
+                    "Datacenter orders peaked two quarters after entry, growth fell to 15%, "
+                    "and the multiple compressed from 45x to 22x."
+                ),
+                probability=_prob(0.30),
+                severity=Level.HIGH,
+                leading_indicators=[
+                    "Sequential datacenter revenue growth below 5% in any quarter",
+                    "Hyperscaler capex guidance revised down",
+                ],
+                preventive_action="Cap the position and set a review trigger on quarterly guidance.",
+                referenced_evidence_ids=["E-002"],
+                referenced_assumption_ids=[],
+            ),
+        ],
     )
 
 
@@ -422,10 +528,19 @@ def _make_final_recommendation() -> FinalRecommendation:
     )
 
 
-def _make_review_report() -> ReviewReport:
+def _make_review_report(worksheet: VerificationWorksheet | None) -> ReviewReport:
+    items = worksheet.items if worksheet is not None else []
     return ReviewReport(
         outcome=ReviewOutcome.PASS,
         defects=[],
+        citation_verdicts=[
+            CitationVerdict(
+                item_id=item.item_id,
+                supported=True,
+                justification="The quoted excerpt states the figure the claim relies on.",
+            )
+            for item in items
+        ],
     )
 
 
@@ -537,6 +652,13 @@ sensitivity_table:
 # ── Stub backend ─────────────────────────────────────────────────────────────
 
 
+def _read_worksheet(workspace: Path) -> VerificationWorksheet | None:
+    path = workspace / "inputs" / "verification_worksheet.yaml"
+    if not path.exists():
+        return None
+    return load_model_from_yaml_text(VerificationWorksheet, path.read_text(encoding="utf-8"))
+
+
 class PipelineStubBackend:
     """Backend that returns scripted artifacts based on the workspace's task.yaml."""
 
@@ -548,6 +670,8 @@ class PipelineStubBackend:
     def _seed_assumption(self) -> None:
         """Seed an AssumptionRecord to the case (called during investigation)."""
         if not self._assumption_seeded:
+            # Mint through the case counter so the later ledger unpack cannot collide.
+            self._case.next_id("A-")
             self._case.write_artifact(_make_assumption())
             self._assumption_seeded = True
 
@@ -585,10 +709,16 @@ class PipelineStubBackend:
             (analysis_dir / "results.yaml").write_text(_RESULTS_YAML)
         elif output_schema == "objection_batch":
             artifact = _make_objection_batch()
+        elif output_schema == "issue_tree":
+            artifact = _make_issue_tree()
+        elif output_schema == "assumption_batch":
+            artifact = _make_assumption_batch()
+        elif output_schema == "premortem_report":
+            artifact = _make_premortem_report()
         elif output_schema == "final_recommendation":
             artifact = _make_final_recommendation()
         elif output_schema == "review_report":
-            artifact = _make_review_report()
+            artifact = _make_review_report(_read_worksheet(workspace))
         else:
             raise ValueError(f"Unknown output schema: {output_schema}")
 
@@ -608,23 +738,25 @@ def stub_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     cases_root = tmp_path / "cases"
     runtime = tmp_path / "runtime"
     monkeypatch.setenv("AGENTADVISOR_RUNTIME_ROOT", str(runtime))
+    monkeypatch.setenv("AGENTADVISOR_MEMORY_ROOT", str(tmp_path / "memory"))
     case = create_case("stub-e2e", cases_root=cases_root)
     clear_cross_field_validation_hooks()
     yield case
     clear_cross_field_validation_hooks()
 
 
-def test_pipeline_stub_e2e(stub_env: Case):
-    """Full pipeline run with stub backend: all 11 stages, happy path."""
+def test_pipeline_stub_e2e(stub_env: Case, tmp_path: Path):
+    """Full pipeline run with stub backend: all 15 stages, happy path."""
     case = stub_env
     backend = PipelineStubBackend(case)
+    store = MemoryStore(tmp_path / "memory")
 
     budget = BudgetConfig(
-        max_agent_invocations=15,
+        max_agent_invocations=25,
         max_concurrent_workers=1,
         max_repair_cycles=1,
         max_research_tasks=8,
-        max_high_tier_calls=10,
+        max_high_tier_calls=20,
         max_wall_clock_s=3600,
     )
 
@@ -634,6 +766,7 @@ def test_pipeline_stub_e2e(stub_env: Case):
         backend=backend,
         budget_config=budget,
         auto_approve=True,
+        memory_store=store,
     )
 
     assert state.stage is CaseStage.DONE, f"Pipeline ended at {state.stage}, not DONE"
@@ -666,6 +799,79 @@ def test_pipeline_stub_e2e(stub_env: Case):
 
     # Backend invocations
     assert len(backend.invocations) >= 8
+
+
+def test_pipeline_stub_produces_thinktank_artifacts(stub_env: Case, tmp_path: Path):
+    """The Phase 6 stages must leave inspectable artifacts, not just run."""
+    case = stub_env
+    backend = PipelineStubBackend(case)
+    store = MemoryStore(tmp_path / "memory")
+
+    state = run(
+        case,
+        raw_prompt="I have $50k and want semiconductor exposure. Nvidia or ETF?",
+        backend=backend,
+        budget_config=BudgetConfig(
+            max_agent_invocations=25,
+            max_concurrent_workers=1,
+            max_repair_cycles=1,
+            max_research_tasks=8,
+            max_high_tier_calls=20,
+            max_wall_clock_s=3600,
+        ),
+        auto_approve=True,
+        memory_store=store,
+    )
+    assert state.stage is CaseStage.DONE
+
+    tree = case.read_artifact(IssueTree)
+    assert len(tree.nodes) == 3
+    assert tree.leaf_node_ids() == ["Q-1.1", "Q-1.2"]
+
+    critique = case.read_artifact(EvidenceCritique)
+    assert critique.evidence_count >= 2
+    assert critique.independent_group_count >= 1
+
+    # The ledger assumption is unpacked under a fresh canonical ID, not the seed's.
+    assumptions = case.list_artifacts(AssumptionRecord)
+    assert len(assumptions) >= 2
+    assert len({record.assumption_id for record in assumptions}) == len(assumptions)
+
+    premortem = case.read_artifact(PreMortemReport)
+    assert premortem.most_likely_failure_mode in {
+        mode.failure_mode for mode in premortem.failure_modes
+    }
+
+    # Thesis ledger is append-only: provisional then preliminary, in order.
+    revisions = sorted(case.list_artifacts(ThesisRevision), key=lambda item: item.revision)
+    assert [item.revision for item in revisions] == list(range(1, len(revisions) + 1))
+    assert revisions[0].trigger.value == "provisional"
+    assert any(item.trigger.value == "preliminary" for item in revisions)
+
+    divergence = case.read_artifact(TrackDivergence)
+    assert len({position.model_family for position in divergence.positions}) == 2
+
+    worksheet = case.read_artifact(VerificationWorksheet)
+    assert worksheet.items
+    review = case.read_artifact(ReviewReport)
+    assert {verdict.item_id for verdict in review.citation_verdicts} == {
+        item.item_id for item in worksheet.items
+    }
+
+    gate_reports = case.list_artifacts(GateReport)
+    assert {report.stage for report in gate_reports} >= {
+        "investigation",
+        "evidence_critique",
+        "assumption_ledger",
+        "preliminary_recommendation",
+        "challenge",
+        "synthesis",
+    }
+
+    # The completed case is recorded to cross-case memory.
+    recorded = store.prior_cases()
+    assert [entry.case_id for entry in recorded] == [case.root.name]
+    assert recorded[0].recommended_action
 
 
 def test_coerce_flattens_nested_objects():

@@ -15,6 +15,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 3 | Roles | done | 1, 0.3 (role specs mutually parallel) |
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | not_started | 4 |
+| 6 | Think-tank architecture | in_progress | 4 |
 
 ---
 
@@ -122,6 +123,28 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 |---|---|---|
 | SPEC-021 | Benchmark cases and single-agent baseline | draft |
 | SPEC-022 | Comparative evaluation and DoD audit | draft |
+
+**Findings**
+
+- —
+
+## Phase 6 — Think-tank architecture [in_progress]
+
+Promoted 2026-08-02 from an architecture review of the Phase 4 results. The review identified six
+structural weaknesses: the flow is a waterfall rather than a hypothesis loop, there is no MECE
+problem decomposition, assumptions are orphaned, the Auditor has neither a schedule nor
+enforcement power, the Reviewer is a rubber stamp, and a single Director is a single point of
+epistemic failure. Phase 6 addresses all six and adds the cross-case memory that distinguishes a
+think tank from a one-off engagement.
+
+**Specs**
+
+| Spec | Task | Status |
+|---|---|---|
+| SPEC-023 | Epistemic hygiene layer | approved |
+| SPEC-024 | Structured deliberation | approved |
+| SPEC-025 | Institutional memory | approved |
+| SPEC-026 | Think-tank re-evaluation | approved |
 
 **Findings**
 

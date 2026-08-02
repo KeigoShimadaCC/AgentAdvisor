@@ -1,0 +1,193 @@
+{
+  "$defs": {
+    "EvidenceAuthorityScore": {
+      "additionalProperties": false,
+      "properties": {
+        "age_days": {
+          "minimum": 0,
+          "title": "Age Days",
+          "type": "integer"
+        },
+        "authority_score": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Authority Score",
+          "type": "number"
+        },
+        "evidence_id": {
+          "pattern": "^E-\\d+$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "$ref": "#/$defs/EvidenceFlag"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "independence_group": {
+          "minLength": 1,
+          "title": "Independence Group",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source_tier": {
+          "$ref": "#/$defs/SourceTier"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "source_tier",
+        "authority_score",
+        "age_days",
+        "independence_group"
+      ],
+      "title": "EvidenceAuthorityScore",
+      "type": "object"
+    },
+    "EvidenceFlag": {
+      "enum": [
+        "single_source_cluster",
+        "stale",
+        "low_directness",
+        "low_reliability",
+        "missing_limitations",
+        "weak_source_tier"
+      ],
+      "title": "EvidenceFlag",
+      "type": "string"
+    },
+    "IndependenceCluster": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_ids": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "independence_group": {
+          "minLength": 1,
+          "title": "Independence Group",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "share_of_corpus": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Share Of Corpus",
+          "type": "number"
+        }
+      },
+      "required": [
+        "independence_group",
+        "evidence_ids",
+        "share_of_corpus"
+      ],
+      "title": "IndependenceCluster",
+      "type": "object"
+    },
+    "SourceTier": {
+      "description": "Authority tier of an evidence source, ordered strongest to weakest.",
+      "enum": [
+        "primary",
+        "official",
+        "reputable",
+        "weak"
+      ],
+      "title": "SourceTier",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Deterministic quality assessment of the whole evidence corpus.\n\nComputed by ``orchestrator.evidence_critic`` from the blackboard, never asserted\nby an agent, so it cannot be talked up.",
+  "properties": {
+    "clusters": {
+      "items": {
+        "$ref": "#/$defs/IndependenceCluster"
+      },
+      "title": "Clusters",
+      "type": "array"
+    },
+    "corpus_authority_mean": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Corpus Authority Mean",
+      "type": "number"
+    },
+    "evidence_count": {
+      "minimum": 0,
+      "title": "Evidence Count",
+      "type": "integer"
+    },
+    "gaps": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Gaps",
+      "type": "array"
+    },
+    "independent_group_count": {
+      "minimum": 0,
+      "title": "Independent Group Count",
+      "type": "integer"
+    },
+    "max_cluster_share": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Max Cluster Share",
+      "type": "number"
+    },
+    "primary_source_share": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Primary Source Share",
+      "type": "number"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "scored": {
+      "items": {
+        "$ref": "#/$defs/EvidenceAuthorityScore"
+      },
+      "title": "Scored",
+      "type": "array"
+    },
+    "weakest_evidence_ids": {
+      "items": {
+        "pattern": "^E-\\d+$",
+        "type": "string"
+      },
+      "title": "Weakest Evidence Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "evidence_count",
+    "corpus_authority_mean",
+    "primary_source_share",
+    "max_cluster_share",
+    "independent_group_count"
+  ],
+  "title": "EvidenceCritique",
+  "type": "object"
+}

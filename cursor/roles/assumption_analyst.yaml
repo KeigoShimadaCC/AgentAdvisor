@@ -1,0 +1,14 @@
+role_md_path: cursor/roles/assumption_analyst.md
+default_model: composer-2.5
+escalation_model: cursor-grok-4.5-low
+read_only: false
+allow_shell: false
+projection_include:
+  - decision_spec
+  - preliminary_recommendation
+  - key_evidence
+  - analysis_results
+  - evidence_critique
+  - assumptions
+output_artifact_type: assumption_batch
+model_tier: high

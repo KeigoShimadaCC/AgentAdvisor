@@ -1,0 +1,12 @@
+role_md_path: cursor/roles/director-b.md
+default_model: composer-2.5
+escalation_model: cursor-grok-4.5-low
+read_only: false
+allow_shell: false
+projection_include:
+  - decision_spec
+  - key_evidence
+  - assumptions
+  - analysis_result
+output_artifact_type: preliminary_recommendation
+model_tier: high

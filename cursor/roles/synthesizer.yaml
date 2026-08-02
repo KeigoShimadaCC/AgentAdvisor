@@ -11,5 +11,9 @@ projection_include:
   - analysis_result
   - disclosure_record
   - preliminary_recommendation
+  - premortem_report
+  - track_divergence
+  - evidence_critique
+  - review_report
 output_artifact_type: final_recommendation
 model_tier: high

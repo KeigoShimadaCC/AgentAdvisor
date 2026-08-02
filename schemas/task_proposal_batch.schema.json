@@ -87,6 +87,19 @@
           "title": "Inputs",
           "type": "array"
         },
+        "issue_node_id": {
+          "anyOf": [
+            {
+              "pattern": "^Q-\\d+(?:\\.\\d+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Issue Node Id"
+        },
         "materiality": {
           "$ref": "#/$defs/Level"
         },
@@ -158,10 +171,13 @@
         "intake",
         "planner",
         "director",
+        "structurer",
         "challenger",
+        "premortem",
         "auditor",
         "researcher",
         "analyst",
+        "assumption_analyst",
         "synthesizer",
         "reviewer",
         "specialist"

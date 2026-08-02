@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "IssueNode": {
+      "additionalProperties": false,
+      "properties": {
+        "materiality": {
+          "$ref": "#/$defs/Level"
+        },
+        "node_id": {
+          "pattern": "^Q-\\d+(?:\\.\\d+)*$",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "$ref": "#/$defs/IssueNodeType"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "pattern": "^Q-\\d+(?:\\.\\d+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "question": {
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "resolution_criteria": {
+          "minLength": 1,
+          "title": "Resolution Criteria",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "node_id",
+        "question",
+        "node_type",
+        "materiality",
+        "resolution_criteria"
+      ],
+      "title": "IssueNode",
+      "type": "object"
+    },
+    "IssueNodeType": {
+      "enum": [
+        "root",
+        "driver",
+        "sub_question"
+      ],
+      "title": "IssueNodeType",
+      "type": "string"
+    },
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "MECE decomposition of the decision into sub-questions.\n\nTasks hang off leaf nodes, which turns \"did we investigate enough\" from a\njudgement call into a coverage ratio.",
+  "properties": {
+    "decision_question": {
+      "minLength": 1,
+      "title": "Decision Question",
+      "type": "string"
+    },
+    "mece_justification": {
+      "minLength": 1,
+      "title": "Mece Justification",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/IssueNode"
+      },
+      "minItems": 2,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "decision_question",
+    "nodes",
+    "mece_justification"
+  ],
+  "title": "IssueTree",
+  "type": "object"
+}

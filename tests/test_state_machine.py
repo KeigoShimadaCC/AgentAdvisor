@@ -27,10 +27,14 @@ from orchestrator.state_machine import (
 EXPECTED_HAPPY_PATH_WRITES: list[CaseStage] = [
     CaseStage.FRAMING,
     CaseStage.AWAITING_FRAMING_APPROVAL,
+    CaseStage.STRUCTURING,
     CaseStage.PROVISIONAL_THESIS,
     CaseStage.PLANNING,
     CaseStage.INVESTIGATION,
+    CaseStage.EVIDENCE_CRITIQUE,
+    CaseStage.ASSUMPTION_LEDGER,
     CaseStage.PRELIMINARY_RECOMMENDATION,
+    CaseStage.PRE_MORTEM,
     CaseStage.CHALLENGE,
     CaseStage.STOP_DECISION,
     CaseStage.SYNTHESIS,
@@ -71,6 +75,7 @@ def _build_handlers(
     *,
     executed: list[CaseStage],
     stop_outcomes: Iterator[StepOutcome] | None = None,
+    review_outcomes: Iterator[StepOutcome] | None = None,
 ) -> dict[str, StepHandler]:
     def _default_handler(_: Case, __: CaseState, plan: StepPlan) -> StepResult:
         executed.append(plan.stage)
@@ -82,18 +87,28 @@ def _build_handlers(
             return StepResult.ok()
         return StepResult.ok(next(stop_outcomes))
 
+    def _review_handler(_: Case, __: CaseState, plan: StepPlan) -> StepResult:
+        executed.append(plan.stage)
+        if review_outcomes is None:
+            return StepResult.ok()
+        return StepResult.ok(next(review_outcomes))
+
     return {
         "intake": _default_handler,
         "framing": _default_handler,
+        "structuring": _default_handler,
         "provisional_thesis": _default_handler,
         "planning": _default_handler,
         "investigation": _default_handler,
+        "evidence_critique": _default_handler,
+        "assumption_ledger": _default_handler,
         "preliminary_recommendation": _default_handler,
+        "pre_mortem": _default_handler,
         "challenge": _default_handler,
         "repair": _default_handler,
         "stop_decision": _stop_handler,
         "synthesis": _default_handler,
-        "review": _default_handler,
+        "review": _review_handler,
     }
 
 
@@ -194,7 +209,29 @@ def test_approval_halt_and_resume_after_approval(tmp_path: Path) -> None:
 
     resumed_state = run_case(case, handlers, until=CaseStage.PLANNING)
     assert resumed_state.stage is CaseStage.PLANNING
+    assert CaseStage.STRUCTURING in executed
     assert CaseStage.PROVISIONAL_THESIS in executed
+
+
+def test_failed_review_returns_to_synthesis_once_then_advances(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case = create_case("review-retry", cases_root=tmp_path)
+    _approved_state(case)
+
+    writes = _spy_state_writes(monkeypatch)
+    review_outcomes = iter([StepOutcome.NEEDS_RESYNTHESIS, StepOutcome.NEEDS_RESYNTHESIS])
+    handlers = _build_handlers(executed=[], review_outcomes=review_outcomes)
+
+    final_state = run_case(case, handlers, max_synthesis_retries=1)
+
+    assert final_state.stage is CaseStage.DONE
+    assert final_state.synthesis_retries == 1
+    assert writes.count(CaseStage.SYNTHESIS) == 2
+    assert writes.count(CaseStage.REVIEW) == 2
+    review_indexes = [index for index, stage in enumerate(writes) if stage is CaseStage.REVIEW]
+    assert writes[review_indexes[0] + 1] is CaseStage.SYNTHESIS
+    assert writes[review_indexes[1] + 1] is CaseStage.AWAITING_FINAL_APPROVAL
 
 
 @pytest.mark.parametrize("interrupt_stage", EXPECTED_HAPPY_PATH_WRITES)

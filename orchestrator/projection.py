@@ -10,18 +10,27 @@ from orchestrator.artifacts import (
     AnalysisResult,
     AssumptionRecord,
     AuditFinding,
+    CaseMemoryDigest,
     DecisionSpec,
     DisclosureRecord,
+    EvidenceCritique,
     EvidenceRecord,
     FinalRecommendation,
     FramingApproval,
+    GateReport,
     IntakeRecord,
+    IssueTree,
     Level,
     ObjectionRecord,
     PreliminaryRecommendation,
+    PreMortemReport,
+    PriorEvidenceDigest,
     ReviewReport,
     TaskProposalBatch,
     TaskRecord,
+    ThesisRevision,
+    TrackDivergence,
+    VerificationWorksheet,
 )
 from orchestrator.artifacts.yaml_io import dump_model_to_yaml_text
 from orchestrator.case_store import Case
@@ -89,6 +98,96 @@ def _task_proposal_batch(case: Case) -> list[_Candidate]:
 
 def _audit_finding(case: Case) -> list[_Candidate]:
     return _singleton(case, AuditFinding, filename="audit_finding.yaml")
+
+
+def _issue_tree(case: Case) -> list[_Candidate]:
+    return _singleton(case, IssueTree, filename="issue_tree.yaml")
+
+
+def _evidence_critique(case: Case) -> list[_Candidate]:
+    return _singleton(case, EvidenceCritique, filename="evidence_critique.yaml")
+
+
+def _premortem_report(case: Case) -> list[_Candidate]:
+    return _singleton(case, PreMortemReport, filename="premortem_report.yaml")
+
+
+def _verification_worksheet(case: Case) -> list[_Candidate]:
+    return _singleton(case, VerificationWorksheet, filename="verification_worksheet.yaml")
+
+
+def _case_memory(case: Case) -> list[_Candidate]:
+    return _singleton(case, CaseMemoryDigest, filename="case_memory_digest.yaml")
+
+
+def _prior_evidence(case: Case) -> list[_Candidate]:
+    return _singleton(case, PriorEvidenceDigest, filename="prior_evidence_digest.yaml")
+
+
+def _track_divergence(case: Case) -> list[_Candidate]:
+    return _singleton(case, TrackDivergence, filename="track_divergence.yaml")
+
+
+def _thesis_history(case: Case) -> list[_Candidate]:
+    revisions = sorted(case.list_artifacts(ThesisRevision), key=lambda item: item.revision)
+    if not revisions:
+        return []
+    payload = {
+        "kind": "thesis_history",
+        "revisions": [
+            {
+                "revision": entry.revision,
+                "trigger": entry.trigger.value,
+                "preferred_alternative": entry.preferred_alternative,
+                "previous_alternative": entry.previous_alternative,
+                "changed": entry.changed,
+                "recommendation_confidence": entry.recommendation_confidence,
+                "evidence_confidence": entry.evidence_confidence,
+                "rationale_digest": entry.rationale_digest,
+                "changed_because_evidence_ids": entry.changed_because_evidence_ids,
+                "changed_because_objection_ids": entry.changed_because_objection_ids,
+            }
+            for entry in revisions
+        ],
+    }
+    return [
+        _Candidate(
+            filename="thesis_history.yaml",
+            yaml_text=yaml.safe_dump(payload, sort_keys=False, allow_unicode=True),
+        )
+    ]
+
+
+def _gate_reports(case: Case) -> list[_Candidate]:
+    reports = case.list_artifacts(GateReport)
+    if not reports:
+        return []
+    payload = {
+        "kind": "gate_reports",
+        "reports": [
+            {
+                "stage": report.stage,
+                "outcome": report.outcome.value,
+                "passed": report.passed,
+                "findings": [
+                    {
+                        "check_id": finding.check_id,
+                        "severity": finding.severity.value,
+                        "message": finding.message,
+                        "target_ids": finding.target_ids,
+                    }
+                    for finding in report.findings
+                ],
+            }
+            for report in reports
+        ],
+    }
+    return [
+        _Candidate(
+            filename="gate_reports.yaml",
+            yaml_text=yaml.safe_dump(payload, sort_keys=False, allow_unicode=True),
+        )
+    ]
 
 
 def _with_ids[T: BaseModel](
@@ -400,6 +499,15 @@ _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "task_graph": _task_graph,
     "artifact_index": _artifact_index,
     "budget_snapshot": _budget_snapshot,
+    "issue_tree": _issue_tree,
+    "evidence_critique": _evidence_critique,
+    "premortem_report": _premortem_report,
+    "verification_worksheet": _verification_worksheet,
+    "case_memory": _case_memory,
+    "prior_evidence": _prior_evidence,
+    "track_divergence": _track_divergence,
+    "thesis_history": _thesis_history,
+    "gate_reports": _gate_reports,
 }
 
 

@@ -1,0 +1,261 @@
+{
+  "$defs": {
+    "FailureMode": {
+      "additionalProperties": false,
+      "properties": {
+        "failure_mode": {
+          "minLength": 1,
+          "title": "Failure Mode",
+          "type": "string"
+        },
+        "leading_indicators": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Leading Indicators",
+          "type": "array"
+        },
+        "narrative": {
+          "minLength": 1,
+          "title": "Narrative",
+          "type": "string"
+        },
+        "preventive_action": {
+          "minLength": 1,
+          "title": "Preventive Action",
+          "type": "string"
+        },
+        "probability": {
+          "$ref": "#/$defs/ProbabilityEstimate"
+        },
+        "referenced_assumption_ids": {
+          "items": {
+            "pattern": "^A-\\d+$",
+            "type": "string"
+          },
+          "title": "Referenced Assumption Ids",
+          "type": "array"
+        },
+        "referenced_evidence_ids": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "title": "Referenced Evidence Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "severity": {
+          "$ref": "#/$defs/Level"
+        }
+      },
+      "required": [
+        "failure_mode",
+        "narrative",
+        "probability",
+        "severity",
+        "leading_indicators",
+        "preventive_action"
+      ],
+      "title": "FailureMode",
+      "type": "object"
+    },
+    "Level": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Level",
+      "type": "string"
+    },
+    "ProbabilityAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^E-\\d+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "description",
+        "delta",
+        "evidence_ids"
+      ],
+      "title": "ProbabilityAdjustment",
+      "type": "object"
+    },
+    "ProbabilityEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustments": {
+          "items": {
+            "$ref": "#/$defs/ProbabilityAdjustment"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        },
+        "base_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Rate"
+        },
+        "interval_high": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval High"
+        },
+        "interval_low": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Low"
+        },
+        "method": {
+          "$ref": "#/$defs/ProbabilityMethod"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point"
+        },
+        "reference_class": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Class"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "title": "ProbabilityEstimate",
+      "type": "object"
+    },
+    "ProbabilityMethod": {
+      "enum": [
+        "reference_class",
+        "scenario_model",
+        "structured_subjective"
+      ],
+      "title": "ProbabilityMethod",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Prospective hindsight: assume the recommendation was taken and it failed.\n\nDistinct from the Challenger, which attacks the reasoning as it stands. This\nattacks the future, and its leading indicators become change-triggers.",
+  "properties": {
+    "assumed_outcome": {
+      "minLength": 1,
+      "title": "Assumed Outcome",
+      "type": "string"
+    },
+    "failure_modes": {
+      "items": {
+        "$ref": "#/$defs/FailureMode"
+      },
+      "minItems": 1,
+      "title": "Failure Modes",
+      "type": "array"
+    },
+    "horizon": {
+      "minLength": 1,
+      "title": "Horizon",
+      "type": "string"
+    },
+    "most_likely_failure_mode": {
+      "minLength": 1,
+      "title": "Most Likely Failure Mode",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "horizon",
+    "assumed_outcome",
+    "failure_modes",
+    "most_likely_failure_mode"
+  ],
+  "title": "PreMortemReport",
+  "type": "object"
+}

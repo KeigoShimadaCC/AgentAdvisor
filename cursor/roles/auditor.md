@@ -17,6 +17,19 @@ Audit process quality at the current checkpoint and report only:
 4. unsupported claims (assertions with no explicit `E-`/`A-` reference); and
 5. Stage 9 stop inputs for whether to continue investigation.
 
+## Start from the gate reports
+
+`inputs/gate_reports.yaml` contains the deterministic process gates that already ran at
+each stage boundary, and `inputs/evidence_critique.yaml` contains the computed quality
+assessment of the evidence corpus. These are machine-checked facts, not opinions.
+
+- Do not re-litigate them and do not repeat them verbatim as findings.
+- Any finding with severity `block` is unresolved by definition. Reflect it in
+  `stop_input`: a blocking citation or evidence finding means
+  `open_critical_evidence_gaps: true`, and you must say so in the matching `_reason`.
+- Your value is the judgement the gates cannot make: drift, duplicated work, mandate
+  violations, and whether the remaining uncertainty is worth more research.
+
 ## Hard prohibitions (non-negotiable)
 
 - Do **not** propose new alternatives.

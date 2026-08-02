@@ -13,6 +13,7 @@ from typing import Any
 
 from orchestrator.artifacts import (
     AnalysisResult,
+    AssumptionBatch,
     AuditEvent,
     DecisionSpec,
     DisclosureRecord,
@@ -20,36 +21,47 @@ from orchestrator.artifacts import (
     EvidenceRecord,
     FinalRecommendation,
     IntakeRecord,
+    IssueTree,
     Level,
     ObjectionBatch,
     ObjectionRecord,
     PreliminaryRecommendation,
+    PreMortemReport,
     ReviewReport,
     TaskProposalBatch,
     TaskRecord,
     TaskStatus,
+    ThesisTrigger,
 )
 from orchestrator.backend import AgentBackend
 from orchestrator.budget import BudgetConfig, BudgetLedger, StopEvaluator
 from orchestrator.case_store import Case
+from orchestrator.evidence_critic import critique_case_evidence
+from orchestrator.gates import blocking_findings, run_stage_gate
 from orchestrator.invoke_role import (
     InvokeTask,
     RoleInvocationFailed,
     invoke,
     invoke_read_only,
 )
+from orchestrator.issue_tree import compute_coverage
 from orchestrator.normalize import normalize_evidence_batch
 from orchestrator.planning import apply_planner_acceptance_filter
 from orchestrator.render import write_final_recommendation_markdown
 from orchestrator.reproduce import reproduce_analysis_result
+from orchestrator.roles_config import load_role_config
 from orchestrator.stability import compute_model_stability
 from orchestrator.state_machine import CaseState, StepHandler, StepPlan, StepResult
 from orchestrator.task_graph import TaskExecutionResult, TaskGraph
-from orchestrator.unpack import unpack_objection_batch
+from orchestrator.thesis import write_thesis
+from orchestrator.tracks import build_position, compare_tracks
+from orchestrator.unpack import unpack_assumption_batch, unpack_objection_batch
+from orchestrator.verification import build_verification_worksheet, review_is_acceptable
 
 DEFAULT_TIMEOUT_S = 300.0
 ANALYST_TIMEOUT_S = 600.0
 STALE_AFTER_DAYS = 365
+MIN_ISSUE_COVERAGE_TO_STOP = 0.5
 
 
 def _audit(case: Case, event_type: str, payload: dict[str, Any]) -> None:
@@ -191,11 +203,13 @@ class StageHandlers:
         budget_config: BudgetConfig,
         raw_prompt: str,
         model_tier_map: dict[str, str] | None = None,
+        dual_track: bool = True,
     ) -> None:
         self._backend = backend
         self._budget_config = budget_config
         self._raw_prompt = raw_prompt
         self._model_tier_map = model_tier_map or {}
+        self._dual_track = dual_track
         self._budget_ledger: BudgetLedger | None = None
         self._task_graph: TaskGraph | None = None
 
@@ -215,16 +229,29 @@ class StageHandlers:
         return {
             "intake": self.handle_intake,
             "framing": self.handle_framing,
+            "structuring": self.handle_structuring,
             "provisional_thesis": self.handle_provisional_thesis,
             "planning": self.handle_planning,
             "investigation": self.handle_investigation,
+            "evidence_critique": self.handle_evidence_critique,
+            "assumption_ledger": self.handle_assumption_ledger,
             "preliminary_recommendation": self.handle_preliminary_recommendation,
+            "pre_mortem": self.handle_pre_mortem,
             "challenge": self.handle_challenge,
             "repair": self.handle_repair,
             "stop_decision": self.handle_stop_decision,
             "synthesis": self.handle_synthesis,
             "review": self.handle_review,
         }
+
+    def _gate(self, case: Case, stage: str) -> None:
+        """Run the deterministic process gate for a stage boundary.
+
+        Gates never fail the case on their own. A blocking finding is recorded and fed
+        to the stop evaluator, which is what keeps the case from concluding on a broken
+        chain while still leaving the run inspectable.
+        """
+        run_stage_gate(case, stage, task_graph=self._task_graph)
 
     # --- Stage handlers ---
 
@@ -266,11 +293,42 @@ class StageHandlers:
         _audit(case, "stage_completed", {"stage": "framing"})
         return StepResult.ok()
 
+    def handle_structuring(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
+        task = InvokeTask(
+            task_id="T-structuring",
+            assignment=(
+                "Decompose this decision into a MECE issue tree of sub-questions.\n"
+                "The root node Q-1 restates the decision. Children are the drivers and "
+                "sub-questions that must be answered before anyone can recommend an action.\n"
+                "Every node needs resolution_criteria stating what would count as answering "
+                "it and what answer would change the recommendation.\n"
+                "You are structuring the question, not answering it."
+            ),
+            output_artifact_type="issue_tree",
+            timeout_s=DEFAULT_TIMEOUT_S,
+        )
+        try:
+            artifact = invoke(case, "structurer", task, backend=self._backend)
+        except RoleInvocationFailed as exc:
+            return StepResult.error(f"Structuring failed: {exc}")
+        assert isinstance(artifact, IssueTree)
+        case.write_artifact(artifact)
+        _audit(
+            case,
+            "stage_completed",
+            {
+                "stage": "structuring",
+                "node_count": len(artifact.nodes),
+                "leaf_count": len(artifact.leaf_node_ids()),
+            },
+        )
+        return StepResult.ok()
+
     def handle_provisional_thesis(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
         task = InvokeTask(
             task_id="T-provisional-thesis",
             assignment=(
-                "Form a provisional thesis based on the decision specification.\n"
+                "Form a provisional thesis based on the decision specification and issue tree.\n"
                 "State your preferred alternative, the rationale, and at least 3 uncertainties "
                 "that could most plausibly reverse it.\n"
                 "This is NOT the final answer; it is a provisional thesis to guide research."
@@ -284,7 +342,7 @@ class StageHandlers:
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Provisional thesis failed: {exc}")
         assert isinstance(artifact, PreliminaryRecommendation)
-        case.write_artifact(artifact)
+        write_thesis(case, artifact, trigger=ThesisTrigger.PROVISIONAL)
         _audit(case, "stage_completed", {"stage": "provisional_thesis"})
         return StepResult.ok()
 
@@ -321,6 +379,7 @@ class StageHandlers:
             record = TaskRecord(
                 task_id=task_id,
                 role=proposal.task.role,
+                issue_node_id=proposal.task.issue_node_id,
                 question=proposal.task.question,
                 why_it_matters=proposal.task.why_it_matters,
                 expected_information_gain=proposal.task.expected_information_gain,
@@ -355,9 +414,16 @@ class StageHandlers:
                 "proposals_total": len(artifact.proposals),
                 "accepted": len(task_records),
                 "rejected": len(result.rejections),
+                "issue_coverage": self._issue_coverage_share(case),
             },
         )
         return StepResult.ok()
+
+    def _issue_coverage_share(self, case: Case) -> float | None:
+        trees = case.list_artifacts(IssueTree)
+        if not trees:
+            return None
+        return compute_coverage(trees[0], case.list_artifacts(TaskRecord)).covered_share
 
     def handle_investigation(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
         runner = _build_task_runner(case, self._backend, self.budget_ledger)
@@ -383,6 +449,7 @@ class StageHandlers:
             if summary.budget_refused:
                 break
 
+        self._gate(case, "investigation")
         _audit(
             case,
             "stage_completed",
@@ -395,6 +462,125 @@ class StageHandlers:
         )
         return StepResult.ok()
 
+    def handle_evidence_critique(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
+        """Score the evidence corpus deterministically. No agent runs here.
+
+        Everything in the critique is computable from fields the researcher already had
+        to fill in, so an agent would only add an opportunity to talk a weak corpus up.
+        """
+        critique = critique_case_evidence(case, as_of=datetime.now(UTC).date())
+        self._gate(case, "evidence_critique")
+        _audit(
+            case,
+            "stage_completed",
+            {
+                "stage": "evidence_critique",
+                "evidence_count": critique.evidence_count,
+                "corpus_authority_mean": critique.corpus_authority_mean,
+                "primary_source_share": critique.primary_source_share,
+                "max_cluster_share": critique.max_cluster_share,
+                "independent_group_count": critique.independent_group_count,
+                "gap_count": len(critique.gaps),
+            },
+        )
+        return StepResult.ok()
+
+    def handle_assumption_ledger(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
+        task = InvokeTask(
+            task_id="T-assumption-ledger",
+            assignment=(
+                "Extract the load-bearing assumptions the case is currently resting on.\n"
+                "An assumption is a proposition that must be true for the reasoning to hold "
+                "but which no evidence in inputs/ establishes.\n"
+                "Rate materiality honestly; most assumptions are not high.\n"
+                "Every assumption needs a testable claim and a probability estimate."
+            ),
+            output_artifact_type="assumption_batch",
+            timeout_s=DEFAULT_TIMEOUT_S,
+        )
+        try:
+            artifact = invoke(case, "assumption_analyst", task, backend=self._backend)
+        except RoleInvocationFailed as exc:
+            return StepResult.error(f"Assumption extraction failed: {exc}")
+        assert isinstance(artifact, AssumptionBatch)
+
+        records = unpack_assumption_batch(case, artifact)
+        self._gate(case, "assumption_ledger")
+        _audit(
+            case,
+            "stage_completed",
+            {
+                "stage": "assumption_ledger",
+                "assumption_count": len(records),
+                "high_materiality": sum(
+                    1 for record in records if record.materiality is Level.HIGH
+                ),
+                "no_assumptions_found": artifact.no_assumptions_found,
+            },
+        )
+        return StepResult.ok()
+
+    def _run_track_b(self, case: Case, primary: PreliminaryRecommendation) -> None:
+        """Second independent Director on a different model family.
+
+        Failure here is non-fatal: a missing diversity signal degrades the case, it does
+        not invalidate it.
+        """
+        task = InvokeTask(
+            task_id="T-preliminary-rec-track-b",
+            assignment=(
+                "Form an independent view of what the evidence supports.\n"
+                "You have not been shown any other conclusion and must not try to infer one.\n"
+                "Reason from the evidence upward. Every rationale item must cite E-/A- IDs.\n"
+                "If the evidence cannot distinguish the alternatives, say so."
+            ),
+            output_artifact_type="preliminary_recommendation",
+            mode="preliminary_recommendation",
+            timeout_s=DEFAULT_TIMEOUT_S,
+        )
+        try:
+            artifact = invoke(case, "director", task, backend=self._backend, variant="b")
+        except RoleInvocationFailed as exc:
+            _audit(case, "dual_track_skipped", {"reason": str(exc)})
+            return
+        if not isinstance(artifact, PreliminaryRecommendation):
+            return
+
+        try:
+            positions = [
+                build_position(
+                    track_id="track-a",
+                    model=load_role_config("director").default_model,
+                    recommendation=primary,
+                ),
+                build_position(
+                    track_id="track-b",
+                    model=load_role_config("director", "b").default_model,
+                    recommendation=artifact,
+                ),
+            ]
+            divergence = compare_tracks(stage="preliminary_recommendation", positions=positions)
+        except ValueError as exc:
+            _audit(case, "dual_track_skipped", {"reason": str(exc)})
+            return
+
+        case.write_artifact(divergence)
+        _audit(
+            case,
+            "dual_track_compared",
+            {
+                "agreement": divergence.agreement,
+                "positions": [
+                    {
+                        "track_id": position.track_id,
+                        "model_family": position.model_family,
+                        "preferred_alternative": position.preferred_alternative,
+                    }
+                    for position in divergence.positions
+                ],
+            },
+        )
+
     def handle_preliminary_recommendation(
         self, case: Case, state: CaseState, plan: StepPlan
     ) -> StepResult:
@@ -404,7 +590,8 @@ class StageHandlers:
                 "Produce a preliminary recommendation based on all available evidence, "
                 "assumptions, and analysis results.\n"
                 "Every material claim must cite E-* or A-* IDs.\n"
-                "Recommendation confidence and evidence confidence must be separate.\n"
+                "Recommendation confidence and evidence confidence must be separate, and "
+                "the evidence critique in inputs/ bounds how high evidence confidence can be.\n"
                 "Outcome probabilities must be built base-rate-first."
             ),
             output_artifact_type="preliminary_recommendation",
@@ -416,8 +603,45 @@ class StageHandlers:
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Preliminary recommendation failed: {exc}")
         assert isinstance(artifact, PreliminaryRecommendation)
-        case.write_artifact(artifact)
+        write_thesis(case, artifact, trigger=ThesisTrigger.PRELIMINARY)
+
+        if self._dual_track:
+            self._run_track_b(case, artifact)
+
+        self._gate(case, "preliminary_recommendation")
         _audit(case, "stage_completed", {"stage": "preliminary_recommendation"})
+        return StepResult.ok()
+
+    def handle_pre_mortem(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
+        task = InvokeTask(
+            task_id="T-pre-mortem",
+            assignment=(
+                "Assume the recommendation was followed and it failed badly. Write the "
+                "explanation of why.\n"
+                "Each failure mode must be specific to this decision, name its mechanism, "
+                "and give at least one concrete leading indicator with a rough time.\n"
+                "Rank by severity then probability. Do not soften."
+            ),
+            output_artifact_type="premortem_report",
+            timeout_s=DEFAULT_TIMEOUT_S,
+        )
+        try:
+            artifact = invoke(case, "premortem", task, backend=self._backend)
+        except RoleInvocationFailed as exc:
+            # A missing pre-mortem weakens the case but should not destroy the run.
+            _audit(case, "pre_mortem_skipped", {"reason": str(exc)})
+            return StepResult.ok()
+        assert isinstance(artifact, PreMortemReport)
+        case.write_artifact(artifact)
+        _audit(
+            case,
+            "stage_completed",
+            {
+                "stage": "pre_mortem",
+                "failure_mode_count": len(artifact.failure_modes),
+                "most_likely_failure_mode": artifact.most_likely_failure_mode,
+            },
+        )
         return StepResult.ok()
 
     def handle_challenge(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
@@ -445,6 +669,7 @@ class StageHandlers:
         # Unpack objections into individual records
         unpack_objection_batch(case, artifact)
 
+        self._gate(case, "challenge")
         _audit(
             case,
             "stage_completed",
@@ -485,6 +710,7 @@ class StageHandlers:
             record = TaskRecord(
                 task_id=task_id,
                 role=proposal.task.role,
+                issue_node_id=proposal.task.issue_node_id,
                 question=proposal.task.question,
                 why_it_matters=proposal.task.why_it_matters,
                 expected_information_gain=proposal.task.expected_information_gain,
@@ -516,6 +742,7 @@ class StageHandlers:
             self.task_graph.dispatch(
                 runner, max_concurrent=self._budget_config.max_concurrent_workers
             )
+            critique_case_evidence(case, as_of=datetime.now(UTC).date())
 
         # 2. Director updates preliminary recommendation
         rec_task = InvokeTask(
@@ -535,8 +762,19 @@ class StageHandlers:
         except RoleInvocationFailed as exc:
             return StepResult.error(f"Repair recommendation update failed: {exc}")
         assert isinstance(rec_artifact, PreliminaryRecommendation)
-        case.write_artifact(rec_artifact)
+        open_objection_ids = [
+            record.objection_id
+            for record in case.list_artifacts(ObjectionRecord)
+            if record.resolution_status.value != "open"
+        ]
+        revision = write_thesis(
+            case,
+            rec_artifact,
+            trigger=ThesisTrigger.REPAIR,
+            objection_ids=open_objection_ids,
+        )
 
+        self._gate(case, "repair")
         _audit(
             case,
             "stage_completed",
@@ -544,6 +782,7 @@ class StageHandlers:
                 "stage": "repair",
                 "cycle": state.repair_cycle,
                 "repair_tasks": len(task_records),
+                "thesis_changed": revision.changed,
             },
         )
         return StepResult.ok()
@@ -555,6 +794,13 @@ class StageHandlers:
         objections = case.list_artifacts(ObjectionRecord)
         open_objections = [obj for obj in objections if obj.resolution_status.value == "open"]
         has_unresolved_material = any(obj.materiality is Level.HIGH for obj in open_objections)
+
+        # A blocking gate finding is an open critical gap by definition: the evidence or
+        # citation chain is broken, so the case must not be allowed to quietly conclude.
+        gate_blocks = blocking_findings(case)
+        coverage_share = self._issue_coverage_share(case)
+        coverage_short = coverage_share is not None and coverage_share < MIN_ISSUE_COVERAGE_TO_STOP
+        critical_gaps = has_unresolved_material or bool(gate_blocks) or coverage_short
 
         # Check for analysis results and compute stability
         analysis_results = case.list_artifacts(AnalysisResult)
@@ -588,10 +834,10 @@ class StageHandlers:
         from orchestrator.budget import StopEvaluatorInputs
 
         inputs = StopEvaluatorInputs(
-            open_critical_evidence_gaps=has_unresolved_material,
+            open_critical_evidence_gaps=critical_gaps,
             unresolved_material_objections=has_unresolved_material,
             recommendation_stable=recommendation_stable,
-            expected_value_of_more_research_low=not has_unresolved_material,
+            expected_value_of_more_research_low=not critical_gaps,
             remaining_budget=remaining,
         )
         decision = evaluator.evaluate(inputs)
@@ -606,6 +852,8 @@ class StageHandlers:
                 "action": decision.action,
                 "reasons": [r.value for r in decision.reasons],
                 "repair_cycle": state.repair_cycle,
+                "gate_blocking_checks": sorted({finding.check_id for finding in gate_blocks}),
+                "issue_coverage": coverage_share,
             },
         )
 
@@ -614,16 +862,27 @@ class StageHandlers:
         return StepResult(StepOutcome.NEEDS_REPAIR)
 
     def handle_synthesis(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
+        retry_note = ""
+        if state.synthesis_retries > 0:
+            retry_note = (
+                "\nThis is a re-synthesis. The previous final recommendation FAILED review. "
+                "Read review_report.yaml in inputs/ and fix every defect it lists. Where a "
+                "claim's citation does not support it, either cite evidence that does or "
+                "remove the claim; do not restate it with softer wording."
+            )
         task = InvokeTask(
-            task_id="T-synthesis",
+            task_id=f"T-synthesis-{state.synthesis_retries}",
             assignment=(
                 "Integrate all artifacts into a FinalRecommendation.\n"
                 "Cover all Section 16 blocks: executive recommendation, confidence explanation, "
                 "alternatives ranking, key reasons, scenarios, quantitative findings, "
                 "counterarguments, critical assumptions, change-triggers, next actions.\n"
                 "Every material claim must cite E-/A- IDs.\n"
+                "Pre-mortem leading indicators belong in recommendation_change_triggers.\n"
                 "Averaging agent opinions is forbidden.\n"
-                "Unresolved disagreement must be reported as such."
+                "Unresolved disagreement, including between reasoning tracks, must be "
+                "reported as unresolved rather than split."
+                f"{retry_note}"
             ),
             output_artifact_type="final_recommendation",
             timeout_s=ANALYST_TIMEOUT_S,
@@ -634,17 +893,32 @@ class StageHandlers:
             return StepResult.error(f"Synthesis failed: {exc}")
         assert isinstance(artifact, FinalRecommendation)
         case.write_artifact(artifact)
-        _audit(case, "stage_completed", {"stage": "synthesis"})
+        self._gate(case, "synthesis")
+        _audit(
+            case,
+            "stage_completed",
+            {"stage": "synthesis", "attempt": state.synthesis_retries + 1},
+        )
         return StepResult.ok()
 
     def handle_review(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
+        from orchestrator.state_machine import StepOutcome
+
+        try:
+            worksheet = build_verification_worksheet(case)
+        except FileNotFoundError as exc:
+            return StepResult.error(f"Review setup failed: {exc}")
+
         task = InvokeTask(
-            task_id="T-review",
+            task_id=f"T-review-{state.synthesis_retries}",
             assignment=(
-                "Review the FinalRecommendation for calibration and citation quality.\n"
-                "Check: false precision, confidence mismatch, citation validity, "
-                "independence overstatement.\n"
-                "Output a ReviewReport (pass or fail with itemized defects)."
+                "Verify the FinalRecommendation against the verification worksheet.\n"
+                "Return one citation verdict for EVERY item_id in the worksheet; a review "
+                "that skips items is not a review.\n"
+                "Judge whether the quoted excerpts support each claim as written, including "
+                "its magnitude and time frame.\n"
+                "Treat any deterministic finding with severity 'block' as an automatic fail.\n"
+                "Output a ReviewReport (pass, or fail with itemized defects)."
             ),
             output_artifact_type="review_report",
             timeout_s=DEFAULT_TIMEOUT_S,
@@ -656,7 +930,31 @@ class StageHandlers:
         assert isinstance(artifact, ReviewReport)
         case.write_artifact(artifact)
 
-        # Render the final recommendation
+        accepted = review_is_acceptable(artifact, worksheet)
+        _audit(
+            case,
+            "review_evaluated",
+            {
+                "outcome": artifact.outcome.value,
+                "accepted": accepted,
+                "worksheet_items": len(worksheet.items),
+                "verdicts_returned": len(artifact.citation_verdicts),
+                "unsupported_verdicts": [
+                    verdict.item_id
+                    for verdict in artifact.citation_verdicts
+                    if not verdict.supported
+                ],
+                "deterministic_blocks": [
+                    finding.check_id
+                    for finding in worksheet.deterministic_findings
+                    if finding.severity.value == "block"
+                ],
+                "synthesis_retries": state.synthesis_retries,
+            },
+        )
+
+        # Render unconditionally: if the retry budget is exhausted the state machine
+        # advances to approval anyway, and an unrendered case would have no output.
         try:
             recommendation = case.read_artifact(FinalRecommendation)
             evidence = case.list_artifacts(EvidenceRecord)
@@ -676,5 +974,7 @@ class StageHandlers:
         except FileNotFoundError as exc:
             return StepResult.error(f"Render failed: {exc}")
 
-        _audit(case, "stage_completed", {"stage": "review"})
+        _audit(case, "stage_completed", {"stage": "review", "accepted": accepted})
+        if not accepted:
+            return StepResult(StepOutcome.NEEDS_RESYNTHESIS)
         return StepResult.ok()

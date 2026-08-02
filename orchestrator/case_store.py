@@ -28,22 +28,32 @@ from pydantic import BaseModel
 
 from orchestrator.artifacts import (
     AnalysisResult,
+    AssumptionBatch,
     AssumptionRecord,
     AuditEvent,
     AuditFinding,
+    CaseMemoryDigest,
     DecisionSpec,
     DisclosureRecord,
     EvidenceBatch,
+    EvidenceCritique,
     EvidenceRecord,
     FinalRecommendation,
     FramingApproval,
+    GateReport,
     IntakeRecord,
+    IssueTree,
     ObjectionBatch,
     ObjectionRecord,
     PreliminaryRecommendation,
+    PreMortemReport,
+    PriorEvidenceDigest,
     ReviewReport,
     TaskProposalBatch,
     TaskRecord,
+    ThesisRevision,
+    TrackDivergence,
+    VerificationWorksheet,
 )
 from orchestrator.artifacts.yaml_io import dump_model_to_yaml_text, load_model_from_yaml_path
 
@@ -52,6 +62,27 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 _CASE_DIR_RE = re.compile(r"^case-(\d+)-([a-z0-9]+(?:-[a-z0-9]+)*)$")
 _SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _COUNTER_PREFIXES = {"E-", "A-", "T-", "O-"}
+_UNSAFE_FILENAME_RE = re.compile(r"[^a-z0-9._-]+")
+
+
+def _safe_stem(value: str) -> str:
+    """Reduce an arbitrary label to a filename-safe stem."""
+    stem = _UNSAFE_FILENAME_RE.sub("-", value.strip().lower()).strip("-")
+    if not stem:
+        raise ValueError(f"Cannot derive a filename from '{value}'.")
+    return stem
+
+
+# Phase 6 artifacts that live at one fixed path per case.
+_SINGLETON_ARTIFACT_TYPES: tuple[type[BaseModel], ...] = (
+    IssueTree,
+    EvidenceCritique,
+    TrackDivergence,
+    PreMortemReport,
+    VerificationWorksheet,
+    CaseMemoryDigest,
+    PriorEvidenceDigest,
+)
 
 
 def _default_cases_root() -> Path:
@@ -117,10 +148,35 @@ def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
             "(agents/<role>--<task_id>/outputs). Unpack into ObjectionRecord artifacts via "
             "orchestrator.unpack.unpack_objection_batch(case, batch)."
         )
+    if isinstance(model, AssumptionBatch):
+        raise TypeError(
+            "AssumptionBatch cannot be written directly to case storage. "
+            "Batches are transport envelopes archived with the agent workspace "
+            "(agents/<role>--<task_id>/outputs). Unpack into AssumptionRecord artifacts via "
+            "orchestrator.unpack.unpack_assumption_batch(case, batch)."
+        )
     if isinstance(model, IntakeRecord):
         return case_root / "shared" / "intake_record.yaml"
     if isinstance(model, FramingApproval):
         return case_root / "shared" / "framing_approval.yaml"
+    if isinstance(model, IssueTree):
+        return case_root / "shared" / "issue_tree.yaml"
+    if isinstance(model, EvidenceCritique):
+        return case_root / "shared" / "evidence_critique.yaml"
+    if isinstance(model, TrackDivergence):
+        return case_root / "shared" / "track_divergence.yaml"
+    if isinstance(model, PreMortemReport):
+        return case_root / "shared" / "premortem_report.yaml"
+    if isinstance(model, VerificationWorksheet):
+        return case_root / "shared" / "verification_worksheet.yaml"
+    if isinstance(model, CaseMemoryDigest):
+        return case_root / "shared" / "case_memory_digest.yaml"
+    if isinstance(model, PriorEvidenceDigest):
+        return case_root / "shared" / "prior_evidence_digest.yaml"
+    if isinstance(model, GateReport):
+        return case_root / "shared" / "gates" / f"{_safe_stem(model.stage)}.yaml"
+    if isinstance(model, ThesisRevision):
+        return case_root / "shared" / "thesis" / f"thesis-{model.revision:03d}.yaml"
     if isinstance(model, DecisionSpec):
         return case_root / "shared" / "decision_spec.yaml"
     if isinstance(model, PreliminaryRecommendation):
@@ -157,6 +213,28 @@ def _artifact_path_for_read(
         return case_root / "shared" / "framing_approval.yaml"
     if issubclass(model_type, DecisionSpec):
         return case_root / "shared" / "decision_spec.yaml"
+    if issubclass(model_type, IssueTree):
+        return case_root / "shared" / "issue_tree.yaml"
+    if issubclass(model_type, EvidenceCritique):
+        return case_root / "shared" / "evidence_critique.yaml"
+    if issubclass(model_type, TrackDivergence):
+        return case_root / "shared" / "track_divergence.yaml"
+    if issubclass(model_type, PreMortemReport):
+        return case_root / "shared" / "premortem_report.yaml"
+    if issubclass(model_type, VerificationWorksheet):
+        return case_root / "shared" / "verification_worksheet.yaml"
+    if issubclass(model_type, CaseMemoryDigest):
+        return case_root / "shared" / "case_memory_digest.yaml"
+    if issubclass(model_type, PriorEvidenceDigest):
+        return case_root / "shared" / "prior_evidence_digest.yaml"
+    if issubclass(model_type, GateReport):
+        if artifact_id is None:
+            raise ValueError(f"artifact_id is required for {model_type.__name__}")
+        return case_root / "shared" / "gates" / f"{_safe_stem(artifact_id)}.yaml"
+    if issubclass(model_type, ThesisRevision):
+        if artifact_id is None:
+            raise ValueError(f"artifact_id is required for {model_type.__name__}")
+        return case_root / "shared" / "thesis" / f"{artifact_id}.yaml"
     if issubclass(model_type, PreliminaryRecommendation):
         return case_root / "shared" / "preliminary_recommendation.yaml"
     if issubclass(model_type, FinalRecommendation):
@@ -187,6 +265,10 @@ def _artifact_path_for_read(
 
 
 def _artifact_dir_for_list(case_root: Path, model_type: type[BaseModel]) -> Path:
+    if issubclass(model_type, GateReport):
+        return case_root / "shared" / "gates"
+    if issubclass(model_type, ThesisRevision):
+        return case_root / "shared" / "thesis"
     if issubclass(model_type, IntakeRecord):
         return case_root / "shared"
     if issubclass(model_type, FramingApproval):
@@ -265,6 +347,11 @@ class Case:
                 fh.flush()
 
     def list_artifacts(self, model_type: type[ModelT]) -> list[ModelT]:
+        if issubclass(model_type, _SINGLETON_ARTIFACT_TYPES):
+            singleton_path = _artifact_path_for_read(self.root, model_type, None)
+            if not singleton_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, singleton_path)]
         if issubclass(model_type, IntakeRecord):
             intake_path = self.root / "shared" / "intake_record.yaml"
             if not intake_path.exists():
@@ -362,6 +449,8 @@ def create_case(slug: str, cases_root: Path | None = None) -> Case:
         case_root / "shared" / "assumptions",
         case_root / "shared" / "objections",
         case_root / "shared" / "tasks",
+        case_root / "shared" / "gates",
+        case_root / "shared" / "thesis",
         case_root / "agents",
         case_root / "analysis",
         case_root / "outputs",

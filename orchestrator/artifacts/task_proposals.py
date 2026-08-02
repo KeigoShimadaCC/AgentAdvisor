@@ -6,6 +6,7 @@ from pydantic import Field, model_validator
 
 from orchestrator.artifacts.common import (
     ArtifactModel,
+    IssueNodeId,
     Level,
     NonEmptyStr,
     ObjectionId,
@@ -21,6 +22,7 @@ class PlanningMode(StrEnum):
 
 class TaskProposalRecord(ArtifactModel):
     role: TaskRole
+    issue_node_id: IssueNodeId | None = None
     question: NonEmptyStr
     why_it_matters: NonEmptyStr
     expected_information_gain: Level

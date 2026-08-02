@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "ThesisTrigger": {
+      "enum": [
+        "provisional",
+        "reconciliation",
+        "investigation_wave",
+        "preliminary",
+        "repair"
+      ],
+      "title": "ThesisTrigger",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One entry in the append-only thesis ledger.\n\nThe ledger makes belief movement inspectable: what the system thought, when it\nchanged its mind, and what changed it.",
+  "properties": {
+    "changed": {
+      "title": "Changed",
+      "type": "boolean"
+    },
+    "changed_because_assumption_ids": {
+      "items": {
+        "pattern": "^A-\\d+$",
+        "type": "string"
+      },
+      "title": "Changed Because Assumption Ids",
+      "type": "array"
+    },
+    "changed_because_evidence_ids": {
+      "items": {
+        "pattern": "^E-\\d+$",
+        "type": "string"
+      },
+      "title": "Changed Because Evidence Ids",
+      "type": "array"
+    },
+    "changed_because_objection_ids": {
+      "items": {
+        "pattern": "^O-\\d+$",
+        "type": "string"
+      },
+      "title": "Changed Because Objection Ids",
+      "type": "array"
+    },
+    "evidence_confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Evidence Confidence",
+      "type": "number"
+    },
+    "preferred_alternative": {
+      "minLength": 1,
+      "title": "Preferred Alternative",
+      "type": "string"
+    },
+    "previous_alternative": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Alternative"
+    },
+    "rationale_digest": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Rationale Digest",
+      "type": "array"
+    },
+    "recommendation_confidence": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Recommendation Confidence",
+      "type": "number"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "trigger": {
+      "$ref": "#/$defs/ThesisTrigger"
+    }
+  },
+  "required": [
+    "revision",
+    "trigger",
+    "preferred_alternative",
+    "changed",
+    "recommendation_confidence",
+    "evidence_confidence",
+    "recorded_at"
+  ],
+  "title": "ThesisRevision",
+  "type": "object"
+}
