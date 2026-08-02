@@ -27,10 +27,15 @@ specs/         # spec sheets grouped by phase; process in specs/README.md, statu
 schemas/       # versioned artifact schemas (JSON Schema or equivalent)
 orchestrator/  # deterministic Python orchestrator
 cursor/
-  roles/       # Cursor CLI agent definitions (director, planner, challenger, auditor, researcher, analyst, synthesizer, reviewer)
-  skills/      # Cursor skill packages for dynamically spawned domain specialists
+  roles/       # Cursor CLI agent definitions, one <role>.md + <role>.yaml pair per role
+               # (intake, director-framing, structurer, planner, researcher, analyst,
+               #  assumption_analyst, director, director-b, challenger, premortem,
+               #  auditor, synthesizer, reviewer)
+  skills/      # domain specialist packs (registry.yaml + <pack>/SKILL.md), keyword-selected per case
 cases/         # runtime case blackboards, gitignored (cases/<case-id>/ per north star 7.3)
+memory/        # cross-case institutional memory, gitignored (cases, evidence, assumptions)
 benchmarks/    # benchmark decision cases for evaluation (north star Section 19)
+scripts/       # operator scripts: harness smoke test, e2e eval runner, scenario scoring, outcome recording
 tests/         # unit tests for deterministic components
 report-and-findings/  # research reports, test findings, experiment writeups (dated files)
 ```

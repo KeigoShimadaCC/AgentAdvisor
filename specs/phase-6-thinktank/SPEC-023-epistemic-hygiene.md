@@ -2,7 +2,7 @@
 id: SPEC-023
 title: Epistemic hygiene layer (assumption ledger, evidence critic, stage gates, reviewer verification)
 phase: 6
-status: implemented
+status: verified
 depends_on: [SPEC-018]
 parallel_with: []
 north_star_refs: ["6.4", "6.6", "6.8", "9", "11", "13", "17"]

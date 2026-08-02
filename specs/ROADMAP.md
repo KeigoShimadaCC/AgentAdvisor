@@ -15,10 +15,10 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 3 | Roles | done | 1, 0.3 (role specs mutually parallel) |
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | not_started | 4 |
-| 6 | Think-tank architecture | in_progress | 4 |
+| 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | not_started | 4, 6 |
 
-**Current position (2026-08-02).** The pipeline runs end to end and all five benchmark scenarios completed at 1.89/2.0 average. SPEC-019 is now implemented, so a case is driven entirely by `advisor new | status | approve | resume | report | list` and the root README documents the walkthrough. Two things are open: Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI); Phase 6 tiers 1–3 are implemented and unit-verified but the before/after live comparison (SPEC-026) that justifies their cost is mid-flight. `make check` is green: lint, mypy, 313 unit tests, plus 17 live tests that are deselected by default.
+**Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). `make check` is green: lint, mypy, 313 unit tests, plus 17 live tests that are deselected by default.
 
 ---
 
@@ -147,19 +147,20 @@ think tank from a one-off engagement.
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-023 | Epistemic hygiene layer | implemented |
-| SPEC-024 | Structured deliberation | implemented |
-| SPEC-025 | Institutional memory | implemented |
-| SPEC-026 | Think-tank re-evaluation | approved |
+| SPEC-023 | Epistemic hygiene layer | verified |
+| SPEC-024 | Structured deliberation | verified |
+| SPEC-025 | Institutional memory | verified |
+| SPEC-026 | Think-tank re-evaluation | verified |
 
 **Findings**
 
 - (2026-08-02) Tiers 1–3 are implemented and green under `make check` (lint, mypy, 296 unit tests, 17 live tests deselected). New deterministic modules: `orchestrator/gates.py` (scheduled process gates that can cancel tasks), `evidence_critic.py` (primary-source and cluster-concentration scoring), `verification.py` (reviewer worksheet with a single synthesis retry edge), `issue_tree.py` (MECE structuring with cycle/dangling-parent rejection and leaf coverage), `thesis.py` (append-only revision ledger), `tracks.py` (dual-track directors plus reconciliation on disagreement), `memory.py` + `calibration.py` (cross-case store, source reputation by registrable domain, Brier scoring), `skills.py` (keyword-selected specialist packs injected into researcher workspaces only). Four new roles: `structurer`, `assumption_analyst`, `director-b`, `premortem`.
 - (2026-08-02) Cross-case memory lives in a gitignored root `memory/` directory (`cases.yaml`, `evidence.yaml`, `assumptions.yaml`), not in `cases/`, because it outlives any single case. Outcomes are recorded with `scripts/record_outcome.py`, which is what makes the Brier calibration series accumulate.
 - (2026-08-02) Track B's output contract initially described fields absent from the schema, which would have made every dual-track run fail validation. Fixed in `cursor/roles/director-b.md`; worth remembering that role md contracts drift from schemas silently because only runtime validation catches them.
-- **(2026-08-02) SPEC-023 to SPEC-025 stay `implemented`, not `verified`.** Their acceptance criteria are met deterministically, but each verification plan ends with the live benchmark suite in SPEC-026, which has not been run. Phase 6 cannot close until that comparison exists.
+- ~~**(2026-08-02) SPEC-023 to SPEC-025 stay `implemented`, not `verified`.**~~ **Verified 2026-08-03** after the SPEC-026 live comparison completed. All four Phase 6 specs are now `verified`.
 - (2026-08-02) **Three defects found while running the SPEC-026 sweep, all fixed in `0d0be44`.** (a) `run_case` re-loaded state from disk while the `BudgetLedger` mutated a different object, so budget counters were never persisted: caps were per-process, not per-case, and a resumed case silently started spending again from zero. (b) `coerce_payload_for_model` skipped every `list[...] | None` field because `Optional` reaches the union branch of `get_origin` and the list predicates never unwrapped it; scenario 03 failed intake and scored 0.00 because of it. (c) A vague deadline ("this quarter") failed date validation outright; it now nulls, with the wording preserved in `raw_prompt` and `intake.md` instructing a clarification question instead of a guessed date. Scenarios 01 and 03 need re-running before the comparison is honest: 01 lost its dual track to the track B defect, 03 never started.
 - (2026-08-02) **Role definitions were teaching schemas the orchestrator rejects.** The analyst's own worked example used `method: base_rate` (not a `ProbabilityMethod`) and an adjustment shape of `{delta, reason, evidence_id}` instead of `{description, delta, evidence_ids}`, which accounts for most of the 30 validation failures in scenario 01. The researcher contract listed field names without types, so `directness: direct` and a bare-string `limitations` looked reasonable. Both rewritten in `a2ef43d`, along with a static check (`tests/test_role_contracts.py`) that validates every worked example against the schema its role config declares; it caught a fourth instance immediately in `synthesizer.md`. Separately, whole researcher batches were being discarded for unquoted colons in source titles, so the shared invocation prompt now carries a YAML quoting rule (`22077f5`). Early signal from scenario 04, which picked the fixes up mid-run: invocation success rose from 46% (scenario 01) and 57% (scenario 02) to 78%.
+- (2026-08-03) **Phase 6 comparison complete.** All five scenarios re-run with all fixes applied. Average score 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, input tokens 11.9M to 7.1M (-40%), wall clock 285 min to 202 min (-29%). Scenario 02 evidence quality flat at 1.33 is the remaining gap. Full report: `../report-and-findings/2026-08-03-phase-6-before-after.md`. SPEC-023 through SPEC-026 all verified.
 
 ## Phase 7 — Product surface [not_started]
 

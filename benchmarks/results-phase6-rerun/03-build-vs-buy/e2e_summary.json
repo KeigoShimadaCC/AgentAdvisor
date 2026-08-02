@@ -1,0 +1,63 @@
+[
+  {
+    "scenario_id": "scenario-03",
+    "scenario_title": "Build vs Buy Analytics Stack",
+    "case_id": "case-010-build-vs-buy",
+    "final_stage": "done",
+    "elapsed_seconds": 2219.3,
+    "metrics": {
+      "issue_tree_nodes": 16,
+      "issue_tree_leaves": 10,
+      "evidence_primary_share": 0.0217,
+      "evidence_authority_mean": 0.6109,
+      "evidence_max_cluster_share": 0.087,
+      "evidence_independent_groups": 41,
+      "evidence_gaps": 2,
+      "premortem_failure_modes": 5,
+      "gate_reports": 7,
+      "gate_blocking_findings": 1,
+      "gate_warning_findings": 4,
+      "thesis_revisions": 3,
+      "thesis_changes": 1,
+      "track_agreement": true,
+      "verification_worksheet_items": 8,
+      "resynthesis_cycles": 2,
+      "total_invocations": 32,
+      "successful_invocations": 31,
+      "failed_invocations": 1,
+      "total_input_tokens": 1470246,
+      "total_output_tokens": 281399,
+      "total_cache_read_tokens": 0,
+      "total_duration_ms": 2865730,
+      "evidence_records": 46,
+      "assumption_records": 8,
+      "objection_records": 7,
+      "analysis_results": 7,
+      "task_records": 14,
+      "has_final_recommendation": true
+    },
+    "scoring": {
+      "criterion_scores": {
+        "dc-1": 2,
+        "dc-2": 2,
+        "eq-1": 1,
+        "eq-2": 2,
+        "eq-3": 2,
+        "aq-1": 2,
+        "aq-3": 2,
+        "ar-1": 2,
+        "tr-1": 2,
+        "tr-2": 2
+      },
+      "dimension_scores": {
+        "decision_completeness": 2.0,
+        "evidence_quality": 1.6666666666666667,
+        "analytical_quality": 2.0,
+        "adversarial_robustness": 2.0,
+        "traceability": 2.0
+      },
+      "overall_score": 1.933
+    },
+    "success": true
+  }
+]

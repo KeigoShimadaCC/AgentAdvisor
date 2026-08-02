@@ -2,7 +2,7 @@
 id: SPEC-025
 title: Institutional memory (case memory, specialist packs, outcome calibration, standing programs)
 phase: 6
-status: implemented
+status: verified
 depends_on: [SPEC-024]
 parallel_with: []
 north_star_refs: ["6.7", "18", "19", "21"]

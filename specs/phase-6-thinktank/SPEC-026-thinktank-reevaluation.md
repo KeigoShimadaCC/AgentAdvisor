@@ -2,7 +2,7 @@
 id: SPEC-026
 title: Think-tank architecture re-evaluation (before/after benchmark comparison)
 phase: 6
-status: approved
+status: verified
 depends_on: [SPEC-023, SPEC-024, SPEC-025]
 parallel_with: []
 north_star_refs: ["19"]
@@ -41,16 +41,16 @@ same rubric and put the two columns next to each other.
 
 ## Deliverables
 
-- [ ] extended rubric and scorer with legacy-comparable scoring preserved
-- [ ] five live scenario runs
-- [ ] comparison report
+- [x] extended rubric and scorer with legacy-comparable scoring preserved
+- [x] five live scenario runs
+- [x] comparison report
 
 ## Acceptance criteria
 
-- [ ] All five scenarios reach `done`.
-- [ ] The report contains a per-scenario, per-dimension before/after table computed with the
+- [x] All five scenarios reach `done`.
+- [x] The report contains a per-scenario, per-dimension before/after table computed with the
       identical legacy criteria.
-- [ ] Regressions, including wall clock and token cost, are stated explicitly.
+- [x] Regressions, including wall clock and token cost, are stated explicitly.
 
 ## Verification plan
 
@@ -58,8 +58,15 @@ same rubric and put the two columns next to each other.
 
 ## Verification results
 
-Not yet run. SPEC-023 to SPEC-025 are `implemented`, so the live comparison is the remaining
-gate for all four Phase 6 specs.
+**Verified 2026-08-03.** All five scenarios completed. Comparison report written at
+`report-and-findings/2026-08-03-phase-6-before-after.md`.
+
+Summary: average score improved 1.89 to 1.96. Evidence quality improved 1.53 to 1.80.
+Assumption records went from 0 to 7.8 per case. Invocation success rate went from 52% to 92%.
+Token cost dropped 40% despite adding 4 roles and 4 stages. Four defects were found and fixed
+during the sweep (budget persistence, optional-list coercion, role contract errors, YAML
+quoting). Scenarios 01 and 03 were re-run twice for repeatability; both showed stable scores.
+Scenario 02 evidence quality (1.33) is flat and is the next improvement target.
 
 ## Open questions
 

@@ -174,6 +174,7 @@ evidence_ids:
 ```python
 import yaml
 import random
+
 random.seed(42)
 
 scenarios = {
@@ -202,13 +203,25 @@ for alt in alternatives:
 
 sensitivity = []
 for growth in [0.15, 0.05, -0.10]:
-    row = {"parameter": "earnings_growth", "parameter_value": growth,
-           "resulting_expected_values": {}, "preferred_alternative": ""}
+    row = {
+        "parameter": "earnings_growth",
+        "parameter_value": growth,
+        "resulting_expected_values": {},
+        "preferred_alternative": "",
+    }
     for alt in alternatives:
         if growth > 0.10:
-            row["resulting_expected_values"][alt] = expected_values[alt] + int(growth * 50000 * (0.5 if alt == "staged_entry" else 0.3 if alt == "etf_diversified" else 1.0))
+            row["resulting_expected_values"][alt] = expected_values[alt] + int(
+                growth
+                * 50000
+                * (0.5 if alt == "staged_entry" else 0.3 if alt == "etf_diversified" else 1.0)
+            )
         elif growth < 0:
-            row["resulting_expected_values"][alt] = expected_values[alt] + int(growth * 30000 * (0.3 if alt == "staged_entry" else 0.2 if alt == "etf_diversified" else 1.0))
+            row["resulting_expected_values"][alt] = expected_values[alt] + int(
+                growth
+                * 30000
+                * (0.3 if alt == "staged_entry" else 0.2 if alt == "etf_diversified" else 1.0)
+            )
         else:
             row["resulting_expected_values"][alt] = expected_values[alt]
     best = max(row["resulting_expected_values"], key=row["resulting_expected_values"].get)
@@ -231,7 +244,14 @@ results = {
     ],
     "expected_values_by_alternative": expected_values,
     "sensitivity_table": sensitivity,
-    "break_even_thresholds": [{"parameter": "earnings_growth", "threshold_value": 0.08, "favored_alternative_below": "staged_entry", "favored_alternative_above": "invest_now"}],
+    "break_even_thresholds": [
+        {
+            "parameter": "earnings_growth",
+            "threshold_value": 0.08,
+            "favored_alternative_below": "staged_entry",
+            "favored_alternative_above": "invest_now",
+        }
+    ],
 }
 
 with open("results.yaml", "w") as f:

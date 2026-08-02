@@ -2,7 +2,7 @@
 id: SPEC-024
 title: Structured deliberation (issue tree, living thesis, dual-track reasoning, pre-mortem)
 phase: 6
-status: implemented
+status: verified
 depends_on: [SPEC-023]
 parallel_with: []
 north_star_refs: ["5", "6.1", "6.2", "6.3", "9", "12", "16"]

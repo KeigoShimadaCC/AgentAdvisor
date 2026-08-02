@@ -1,0 +1,63 @@
+[
+  {
+    "scenario_id": "scenario-02",
+    "scenario_title": "Staged Angel Check for Friend's AI Startup",
+    "case_id": "case-008-invest-startup-staged",
+    "final_stage": "done",
+    "elapsed_seconds": 2083.4,
+    "metrics": {
+      "issue_tree_nodes": 15,
+      "issue_tree_leaves": 9,
+      "evidence_primary_share": 0.0,
+      "evidence_authority_mean": 0.6368,
+      "evidence_max_cluster_share": 0.0588,
+      "evidence_independent_groups": 17,
+      "evidence_gaps": 2,
+      "premortem_failure_modes": 5,
+      "gate_reports": 7,
+      "gate_blocking_findings": 0,
+      "gate_warning_findings": 4,
+      "thesis_revisions": 3,
+      "thesis_changes": 1,
+      "track_agreement": false,
+      "verification_worksheet_items": 8,
+      "resynthesis_cycles": 2,
+      "total_invocations": 31,
+      "successful_invocations": 30,
+      "failed_invocations": 1,
+      "total_input_tokens": 1295269,
+      "total_output_tokens": 239720,
+      "total_cache_read_tokens": 0,
+      "total_duration_ms": 2579268,
+      "evidence_records": 17,
+      "assumption_records": 7,
+      "objection_records": 6,
+      "analysis_results": 8,
+      "task_records": 13,
+      "has_final_recommendation": true
+    },
+    "scoring": {
+      "criterion_scores": {
+        "dc-1": 2,
+        "dc-2": 2,
+        "eq-1": 0,
+        "eq-2": 2,
+        "eq-3": 2,
+        "aq-1": 2,
+        "aq-3": 2,
+        "ar-1": 2,
+        "tr-1": 2,
+        "tr-2": 2
+      },
+      "dimension_scores": {
+        "decision_completeness": 2.0,
+        "evidence_quality": 1.3333333333333333,
+        "analytical_quality": 2.0,
+        "adversarial_robustness": 2.0,
+        "traceability": 2.0
+      },
+      "overall_score": 1.867
+    },
+    "success": true
+  }
+]

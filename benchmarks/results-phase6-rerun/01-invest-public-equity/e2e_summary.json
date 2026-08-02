@@ -1,0 +1,63 @@
+[
+  {
+    "scenario_id": "scenario-01",
+    "scenario_title": "Public Equity Timing: Nvidia vs Semiconductor ETF",
+    "case_id": "case-006-invest-public-equity",
+    "final_stage": "done",
+    "elapsed_seconds": 2227.4,
+    "metrics": {
+      "issue_tree_nodes": 14,
+      "issue_tree_leaves": 7,
+      "evidence_primary_share": 0.1212,
+      "evidence_authority_mean": 0.7082,
+      "evidence_max_cluster_share": 0.0606,
+      "evidence_independent_groups": 29,
+      "evidence_gaps": 1,
+      "premortem_failure_modes": 5,
+      "gate_reports": 7,
+      "gate_blocking_findings": 0,
+      "gate_warning_findings": 3,
+      "thesis_revisions": 3,
+      "thesis_changes": 2,
+      "track_agreement": false,
+      "verification_worksheet_items": 8,
+      "resynthesis_cycles": 2,
+      "total_invocations": 29,
+      "successful_invocations": 29,
+      "failed_invocations": 0,
+      "total_input_tokens": 1154774,
+      "total_output_tokens": 238617,
+      "total_cache_read_tokens": 0,
+      "total_duration_ms": 2495912,
+      "evidence_records": 33,
+      "assumption_records": 8,
+      "objection_records": 7,
+      "analysis_results": 7,
+      "task_records": 12,
+      "has_final_recommendation": true
+    },
+    "scoring": {
+      "criterion_scores": {
+        "dc-1": 2,
+        "dc-2": 2,
+        "eq-1": 2,
+        "eq-2": 2,
+        "eq-3": 2,
+        "aq-1": 2,
+        "aq-3": 2,
+        "ar-1": 2,
+        "tr-1": 2,
+        "tr-2": 2
+      },
+      "dimension_scores": {
+        "decision_completeness": 2.0,
+        "evidence_quality": 2.0,
+        "analytical_quality": 2.0,
+        "adversarial_robustness": 2.0,
+        "traceability": 2.0
+      },
+      "overall_score": 2.0
+    },
+    "success": true
+  }
+]
