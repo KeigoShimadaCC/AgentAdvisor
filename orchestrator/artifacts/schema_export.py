@@ -36,6 +36,32 @@ from orchestrator.artifacts.tasks import TaskRecord
 from orchestrator.artifacts.thesis import ThesisRevision
 from orchestrator.artifacts.tracks import TrackDivergence
 from orchestrator.artifacts.verification import VerificationWorksheet
+from orchestrator.service.caseview import (
+    ApprovalRecordView,
+    AssessedConfidence,
+    AssessedStability,
+    AssumptionView,
+    BriefBlock,
+    BriefSection,
+    CaseView,
+    ChallengesRoom,
+    EffortView,
+    GateSummaryView,
+    HistoryView,
+    IntegrityView,
+    IssueNodeView,
+    NotAssessed,
+    ObjectionView,
+    OptionView,
+    PlanView,
+    PreMortemView,
+    ProbabilityView,
+    RoomsView,
+    SourcesRoom,
+    SourceView,
+    TrackDivergenceView,
+    UncertaintyView,
+)
 
 type ModelType = type[BaseModel]
 
@@ -77,6 +103,31 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "track_divergence": TrackDivergence,
     "verification_worksheet": VerificationWorksheet,
     "model_stability": ModelStability,
+    # CaseView projection (SPEC-032) and nested models.
+    "approval_record_view": ApprovalRecordView,
+    "assessed_confidence": AssessedConfidence,
+    "assessed_stability": AssessedStability,
+    "assumption_view": AssumptionView,
+    "brief_block": BriefBlock,
+    "brief_section": BriefSection,
+    "case_view": CaseView,
+    "challenges_room": ChallengesRoom,
+    "effort_view": EffortView,
+    "gate_summary_view": GateSummaryView,
+    "history_view": HistoryView,
+    "integrity_view": IntegrityView,
+    "issue_node_view": IssueNodeView,
+    "not_assessed": NotAssessed,
+    "objection_view": ObjectionView,
+    "option_view": OptionView,
+    "plan_view": PlanView,
+    "premortem_view": PreMortemView,
+    "probability_view": ProbabilityView,
+    "rooms_view": RoomsView,
+    "sources_room": SourcesRoom,
+    "source_view": SourceView,
+    "track_divergence_view": TrackDivergenceView,
+    "uncertainty_view": UncertaintyView,
 }
 
 

@@ -1,0 +1,7 @@
+exhausted_dimensions:
+- research_tasks
+schema_version: 1
+stop_reasons:
+- no_critical_evidence_gaps_remain
+- recommendation_stable_across_plausible_sensitivity_ranges
+- expected_value_of_more_research_low

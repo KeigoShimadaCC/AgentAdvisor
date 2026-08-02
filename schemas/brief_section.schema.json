@@ -1,0 +1,61 @@
+{
+  "$defs": {
+    "BriefBlock": {
+      "additionalProperties": false,
+      "description": "One rendered line/element within a brief section, carrying provenance.",
+      "properties": {
+        "citation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Citation Ids",
+          "type": "array"
+        },
+        "provenance": {
+          "title": "Provenance",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provenance",
+        "text"
+      ],
+      "title": "BriefBlock",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "blocks": {
+      "items": {
+        "$ref": "#/$defs/BriefBlock"
+      },
+      "title": "Blocks",
+      "type": "array"
+    },
+    "key": {
+      "title": "Key",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "partial",
+        "final",
+        "not_assessed"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "key",
+    "status"
+  ],
+  "title": "BriefSection",
+  "type": "object"
+}

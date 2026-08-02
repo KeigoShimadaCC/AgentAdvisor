@@ -1,0 +1,18 @@
+budget_counters:
+  agent_invocations: 17
+  research_tasks: 2
+case_id: case-001-fixture-001
+created_at: '2026-08-02T19:49:53.493062Z'
+elapsed_s: 0.318288
+failure_cause: null
+final_approved: true
+final_revisions: 0
+framing_approved: true
+framing_revisions: 0
+repair_cycle: 0
+review_accepted: false
+schema_version: 1
+stage: done
+started_at_run: '2026-08-02T19:49:53.811369Z'
+synthesis_retries: 1
+updated_at: '2026-08-02T19:49:53.811369Z'

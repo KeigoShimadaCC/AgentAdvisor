@@ -1,0 +1,86 @@
+entries:
+- authority_score: 0.7724
+  claim: NVDA trades at 45x forward P/E, above 5-year average of 35x.
+  from_case_id: case-001-fixture-001
+  publication_date: '2026-07-15'
+  publisher: Bloomberg
+  schema_version: 1
+  source_title: Bloomberg Terminal
+  source_type: reputable_secondary
+  source_url: https://bloomberg.com/nvda
+  topics:
+  - above
+  - average
+  - etf
+  - forward
+  - invest
+  - nvda
+  - nvidia
+  - semiconductor
+  - trades
+  - year
+- authority_score: 0.9897
+  claim: NVDA revenue grew 120% YoY in latest quarter.
+  from_case_id: case-001-fixture-001
+  publication_date: '2026-05-20'
+  publisher: NVIDIA Corporation
+  schema_version: 1
+  source_title: NVDA 10-Q Filing
+  source_type: regulatory_filing
+  source_url: https://sec.gov/nvda-10q
+  topics:
+  - etf
+  - grew
+  - invest
+  - latest
+  - nvda
+  - nvidia
+  - quarter
+  - revenue
+  - semiconductor
+  - yoy
+- authority_score: 0.7724
+  claim: NVDA trades at 45x forward P/E, above 5-year average of 35x.
+  from_case_id: case-001-fixture-001
+  publication_date: '2026-07-15'
+  publisher: Bloomberg
+  schema_version: 1
+  source_title: Bloomberg Terminal
+  source_type: reputable_secondary
+  source_url: https://bloomberg.com/nvda
+  topics:
+  - above
+  - average
+  - etf
+  - forward
+  - invest
+  - nvda
+  - nvidia
+  - semiconductor
+  - trades
+  - year
+- authority_score: 0.9897
+  claim: NVDA revenue grew 120% YoY in latest quarter.
+  from_case_id: case-001-fixture-001
+  publication_date: '2026-05-20'
+  publisher: NVIDIA Corporation
+  schema_version: 1
+  source_title: NVDA 10-Q Filing
+  source_type: regulatory_filing
+  source_url: https://sec.gov/nvda-10q
+  topics:
+  - etf
+  - grew
+  - invest
+  - latest
+  - nvda
+  - nvidia
+  - quarter
+  - revenue
+  - semiconductor
+  - yoy
+generated_at: '2026-08-02T19:49:53.839312Z'
+schema_version: 1
+staleness_warning: These records were gathered for earlier decisions and are stale
+  by construction. They may not be cited. Re-verify any that still matter and register
+  them as fresh evidence.

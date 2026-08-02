@@ -1,0 +1,40 @@
+break_even_thresholds:
+- favored_alternative_above: invest_nvda_now
+  favored_alternative_below: staged_entry
+  parameter: earnings_growth
+  threshold_value: 0.08
+expected_values_by_alternative:
+  etf_diversified: 7000.0
+  invest_nvda_now: 12500.0
+  staged_entry: 11000.0
+scenarios:
+- probability:
+    adjustments: []
+    method: scenario_model
+    point: 0.3
+  scenario_name: bull
+- probability:
+    adjustments: []
+    method: scenario_model
+    point: 0.45
+  scenario_name: base
+- probability:
+    adjustments: []
+    method: scenario_model
+    point: 0.25
+  scenario_name: bear
+sensitivity_table:
+- parameter: earnings_growth
+  parameter_value: 0.15
+  resulting_expected_values:
+    etf_diversified: 8000.0
+    invest_nvda_now: 18000.0
+    staged_entry: 15000.0
+  preferred_alternative: invest_nvda_now
+- parameter: earnings_growth
+  parameter_value: 0.05
+  resulting_expected_values:
+    etf_diversified: 6500.0
+    invest_nvda_now: 7000.0
+    staged_entry: 9000.0
+  preferred_alternative: staged_entry

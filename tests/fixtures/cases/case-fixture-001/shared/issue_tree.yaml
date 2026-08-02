@@ -1,0 +1,26 @@
+decision_question: Should I invest $50k in Nvidia vs semiconductor ETF?
+mece_justification: Valuation and concentration are the two drivers that separate
+  the alternatives; tax treatment is excluded because it is identical across them.
+nodes:
+- materiality: high
+  node_id: Q-1
+  node_type: root
+  parent_id: null
+  question: Should I invest $50k in Nvidia vs semiconductor ETF?
+  resolution_criteria: A ranked recommendation with an allocation and timing.
+  schema_version: 1
+- materiality: high
+  node_id: Q-1.1
+  node_type: driver
+  parent_id: Q-1
+  question: Is NVDA's current valuation justified by growth?
+  resolution_criteria: Forward multiple compared against growth and history.
+  schema_version: 1
+- materiality: medium
+  node_id: Q-1.2
+  node_type: driver
+  parent_id: Q-1
+  question: How much concentration risk does a single-stock position add?
+  resolution_criteria: Sector concentration quantified against the ETF baseline.
+  schema_version: 1
+schema_version: 1

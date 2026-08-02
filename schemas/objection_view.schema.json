@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "claim": {
+      "title": "Claim",
+      "type": "string"
+    },
+    "materiality": {
+      "title": "Materiality",
+      "type": "string"
+    },
+    "objection_id": {
+      "title": "Objection Id",
+      "type": "string"
+    },
+    "reasoning": {
+      "title": "Reasoning",
+      "type": "string"
+    },
+    "resolution_status": {
+      "title": "Resolution Status",
+      "type": "string"
+    },
+    "target_section": {
+      "title": "Target Section",
+      "type": "string"
+    }
+  },
+  "required": [
+    "objection_id",
+    "target_section",
+    "claim",
+    "materiality",
+    "resolution_status",
+    "reasoning"
+  ],
+  "title": "ObjectionView",
+  "type": "object"
+}

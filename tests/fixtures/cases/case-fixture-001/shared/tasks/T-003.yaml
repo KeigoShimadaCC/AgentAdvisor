@@ -1,0 +1,18 @@
+completion_criteria: Scenario model with probabilities and sensitivity table
+estimated_cost: 2.0
+expected_information_gain: high
+inputs:
+- decision_spec
+issue_node_id: null
+materiality: high
+priority: high
+priority_rationale: Quantitative expected value comparison is decision-critical
+priority_score: 18
+probability_of_changing_conclusion: 0.6
+question: Build a scenario model for NVDA vs ETF expected returns
+required_output: analysis_result
+role: analyst
+schema_version: 1
+status: completed
+task_id: T-003
+why_it_matters: Quantitative analysis drives the recommendation

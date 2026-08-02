@@ -1,0 +1,13 @@
+/* Generated from alternative_assessment.schema.json. Do not edit manually. */
+
+export type Alternative = string;
+export type Rank = number;
+export type Rationale = string;
+export type SchemaVersion = number;
+
+export interface AlternativeAssessment {
+  alternative: Alternative;
+  rank: Rank;
+  rationale: Rationale;
+  schema_version?: SchemaVersion;
+}

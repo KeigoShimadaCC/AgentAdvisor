@@ -1,0 +1,57 @@
+clusters:
+- evidence_ids:
+  - E-002
+  - E-004
+  independence_group: publisher-nvidia-corporation
+  schema_version: 1
+  share_of_corpus: 0.5
+- evidence_ids:
+  - E-001
+  - E-003
+  independence_group: wire-bloomberg
+  schema_version: 1
+  share_of_corpus: 0.5
+corpus_authority_mean: 0.8812
+evidence_count: 4
+gaps:
+- Evidence spans only 2 independence group(s); repeated coverage of one origin is
+  not corroboration.
+- Independence group 'wire-bloomberg' supplies 50% of the corpus.
+independent_group_count: 2
+max_cluster_share: 0.5
+primary_source_share: 0.5
+schema_version: 1
+scored:
+- age_days: 18
+  authority_score: 0.7725
+  evidence_id: E-001
+  flags:
+  - single_source_cluster
+  independence_group: wire-bloomberg
+  schema_version: 1
+  source_tier: reputable
+- age_days: 74
+  authority_score: 0.9899
+  evidence_id: E-002
+  flags:
+  - single_source_cluster
+  independence_group: publisher-nvidia-corporation
+  schema_version: 1
+  source_tier: primary
+- age_days: 18
+  authority_score: 0.7725
+  evidence_id: E-003
+  flags:
+  - single_source_cluster
+  independence_group: wire-bloomberg
+  schema_version: 1
+  source_tier: reputable
+- age_days: 74
+  authority_score: 0.9899
+  evidence_id: E-004
+  flags:
+  - single_source_cluster
+  independence_group: publisher-nvidia-corporation
+  schema_version: 1
+  source_tier: primary
+weakest_evidence_ids: []

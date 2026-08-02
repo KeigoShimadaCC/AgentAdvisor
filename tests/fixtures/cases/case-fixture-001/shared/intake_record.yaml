@@ -1,0 +1,17 @@
+alternatives_mentioned:
+- invest_nvda_now
+- etf_diversified
+clarification_questions: []
+constraints:
+- max 5-year horizon
+- no leverage
+deadline: null
+decision_question: Should I invest $50k in Nvidia vs semiconductor ETF?
+depth: standard
+objectives:
+- capital appreciation
+- risk management
+raw_prompt: I have $50k and want semiconductor exposure. Nvidia or ETF?
+reversibility: partially_reversible
+risk_tolerance: moderate
+schema_version: 1

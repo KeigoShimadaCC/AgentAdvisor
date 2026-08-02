@@ -1,0 +1,39 @@
+evidence_confidence:
+  basis: Mix of primary filings and secondary analysis
+  schema_version: 1
+  value: 0.55
+key_assumptions:
+- A-001
+major_risks:
+- earnings miss could trigger 15% drawdown
+model_stability:
+  runs_supporting: 2
+  runs_total: 3
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.6666666666666666
+outcome_probabilities:
+  positive_return_12m:
+    adjustments:
+    - delta: 0.05
+      description: strong revenue growth
+      evidence_ids:
+      - E-002
+      schema_version: 1
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.58
+    reference_class: null
+    schema_version: 1
+preferred_alternative: staged_entry
+rationale:
+- Valuation is above historical average but supported by growth [E-001]
+- Reduces concentration risk vs single stock [A-001]
+recommendation_confidence:
+  basis: Staged entry balances risk across scenarios
+  schema_version: 1
+  value: 0.68
+schema_version: 1
+unresolved_evidence_gaps:
+- limited independent sources on NVDA valuation

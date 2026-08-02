@@ -1,0 +1,36 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "alternative": {
+      "title": "Alternative",
+      "type": "string"
+    },
+    "expected_value": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Value"
+    },
+    "rank": {
+      "title": "Rank",
+      "type": "integer"
+    },
+    "rationale": {
+      "title": "Rationale",
+      "type": "string"
+    }
+  },
+  "required": [
+    "alternative",
+    "rank",
+    "rationale"
+  ],
+  "title": "OptionView",
+  "type": "object"
+}

@@ -1,0 +1,224 @@
+{
+  "$defs": {
+    "AssessedConfidence": {
+      "additionalProperties": false,
+      "description": "A confidence that was actually assessed (not a coercion default).",
+      "properties": {
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "kind": {
+          "const": "assessed",
+          "default": "assessed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "basis"
+      ],
+      "title": "AssessedConfidence",
+      "type": "object"
+    },
+    "AssessedStability": {
+      "additionalProperties": false,
+      "description": "Model stability that was actually assessed (multiple sensitivity runs).",
+      "properties": {
+        "kind": {
+          "const": "assessed",
+          "default": "assessed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "runs_supporting": {
+          "minimum": 0,
+          "title": "Runs Supporting",
+          "type": "integer"
+        },
+        "runs_total": {
+          "minimum": 1,
+          "title": "Runs Total",
+          "type": "integer"
+        },
+        "share": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Share",
+          "type": "number"
+        }
+      },
+      "required": [
+        "runs_supporting",
+        "runs_total",
+        "share"
+      ],
+      "title": "AssessedStability",
+      "type": "object"
+    },
+    "NotAssessed": {
+      "additionalProperties": false,
+      "description": "A confidence/stability that is a sentinel placeholder.",
+      "properties": {
+        "kind": {
+          "const": "not_assessed",
+          "default": "not_assessed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "NotAssessed",
+      "type": "object"
+    },
+    "ProbabilityView": {
+      "additionalProperties": false,
+      "description": "One outcome probability entry, preserving point-XOR-interval.",
+      "properties": {
+        "adjustments": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        },
+        "interval_high": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval High"
+        },
+        "interval_low": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Low"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "title": "ProbabilityView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "evidence_confidence": {
+      "discriminator": {
+        "mapping": {
+          "assessed": "#/$defs/AssessedConfidence",
+          "not_assessed": "#/$defs/NotAssessed"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AssessedConfidence"
+        },
+        {
+          "$ref": "#/$defs/NotAssessed"
+        }
+      ],
+      "title": "Evidence Confidence"
+    },
+    "model_stability": {
+      "discriminator": {
+        "mapping": {
+          "assessed": "#/$defs/AssessedStability",
+          "not_assessed": "#/$defs/NotAssessed"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AssessedStability"
+        },
+        {
+          "$ref": "#/$defs/NotAssessed"
+        }
+      ],
+      "title": "Model Stability"
+    },
+    "outcome_probabilities": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ProbabilityView"
+      },
+      "title": "Outcome Probabilities",
+      "type": "object"
+    },
+    "recommendation_confidence": {
+      "discriminator": {
+        "mapping": {
+          "assessed": "#/$defs/AssessedConfidence",
+          "not_assessed": "#/$defs/NotAssessed"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AssessedConfidence"
+        },
+        {
+          "$ref": "#/$defs/NotAssessed"
+        }
+      ],
+      "title": "Recommendation Confidence"
+    }
+  },
+  "required": [
+    "recommendation_confidence",
+    "evidence_confidence",
+    "model_stability"
+  ],
+  "title": "UncertaintyView",
+  "type": "object"
+}

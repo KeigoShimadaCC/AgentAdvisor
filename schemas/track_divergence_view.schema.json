@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "agreement": {
+      "title": "Agreement",
+      "type": "boolean"
+    },
+    "divergence_summary": {
+      "title": "Divergence Summary",
+      "type": "string"
+    },
+    "positions": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Positions",
+      "type": "array"
+    },
+    "reconciled_alternative": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reconciled Alternative"
+    },
+    "stage": {
+      "title": "Stage",
+      "type": "string"
+    }
+  },
+  "required": [
+    "stage",
+    "agreement",
+    "divergence_summary"
+  ],
+  "title": "TrackDivergenceView",
+  "type": "object"
+}

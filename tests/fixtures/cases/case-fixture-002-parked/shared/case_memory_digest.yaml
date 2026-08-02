@@ -1,0 +1,69 @@
+calibration:
+  brier_score: null
+  interpretation: No outcomes recorded yet, so the system's calibration is unknown.
+    Record realized outcomes with scripts/record_outcome.py to start measuring it.
+  mean_forecast: null
+  mean_realized: null
+  sample_size: 0
+  schema_version: 1
+generated_at: '2026-08-02T19:49:53.836103Z'
+prior_cases:
+- alternatives_considered:
+  - invest_nvda_now
+  - staged_entry
+  - etf_diversified
+  case_id: case-001-fixture-001
+  completed_at: '2026-08-02T19:49:53.813923Z'
+  decision_question: Should I invest $50k in Nvidia vs semiconductor ETF?
+  domains: []
+  evidence_confidence: 0.55
+  headline_outcome_name: positive_return_12m
+  headline_outcome_probability: 0.58
+  keywords:
+  - invest
+  - nvidia
+  - semiconductor
+  - etf
+  outcome: null
+  recommendation_confidence: 0.68
+  recommended_action: 'Invest via staged entry: 30% now, 40% post-earnings, 30% after
+    90 days'
+  schema_version: 1
+recurring_assumptions:
+- case_ids:
+  - case-001-fixture-001
+  example_claim: NVDA growth will continue at 50%+ for the next 12 months
+  max_materiality: high
+  normalized_claim: nvda growth will continue next months
+  occurrences: 1
+  schema_version: 1
+- case_ids:
+  - case-001-fixture-001
+  example_claim: NVDA revenue growth stays above 50% year over year for four quarters
+  max_materiality: high
+  normalized_claim: nvda revenue growth stays above year four quarters
+  occurrences: 1
+  schema_version: 1
+schema_version: 1
+source_reputations:
+- case_ids:
+  - case-001-fixture-001
+  domain: bloomberg.com
+  mean_authority: 0.7724
+  schema_version: 1
+  source_types:
+  - reputable_secondary
+  times_cited: 2
+  times_contradicted: 0
+- case_ids:
+  - case-001-fixture-001
+  domain: sec.gov
+  mean_authority: 0.9897
+  schema_version: 1
+  source_types:
+  - regulatory_filing
+  times_cited: 2
+  times_contradicted: 0
+usage_note: Prior-case context only. Nothing in this digest may be cited as evidence
+  in the current case; treat it as institutional recall that must be re-established
+  from live sources.

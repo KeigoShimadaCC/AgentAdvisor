@@ -1,0 +1,563 @@
+{
+  "$defs": {
+    "AssumptionView": {
+      "additionalProperties": false,
+      "properties": {
+        "assumption_id": {
+          "title": "Assumption Id",
+          "type": "string"
+        },
+        "claim": {
+          "title": "Claim",
+          "type": "string"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "string"
+        },
+        "estimate_point": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Point"
+        },
+        "evidence_against": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Against",
+          "type": "array"
+        },
+        "evidence_for": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence For",
+          "type": "array"
+        },
+        "materiality": {
+          "title": "Materiality",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assumption_id",
+        "claim",
+        "type",
+        "status",
+        "materiality",
+        "confidence"
+      ],
+      "title": "AssumptionView",
+      "type": "object"
+    },
+    "AssumptionsRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "items": {
+            "$ref": "#/$defs/AssumptionView"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        }
+      },
+      "title": "AssumptionsRoom",
+      "type": "object"
+    },
+    "ChallengesRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "objections": {
+          "items": {
+            "$ref": "#/$defs/ObjectionView"
+          },
+          "title": "Objections",
+          "type": "array"
+        },
+        "premortem": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PreMortemView"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "track_divergence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TrackDivergenceView"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "ChallengesRoom",
+      "type": "object"
+    },
+    "IssueNodeView": {
+      "additionalProperties": false,
+      "properties": {
+        "covered": {
+          "default": false,
+          "title": "Covered",
+          "type": "boolean"
+        },
+        "materiality": {
+          "title": "Materiality",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "title": "Node Type",
+          "type": "string"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "resolution_criteria": {
+          "title": "Resolution Criteria",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "question",
+        "node_type",
+        "materiality",
+        "resolution_criteria"
+      ],
+      "title": "IssueNodeView",
+      "type": "object"
+    },
+    "ObjectionView": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "title": "Claim",
+          "type": "string"
+        },
+        "materiality": {
+          "title": "Materiality",
+          "type": "string"
+        },
+        "objection_id": {
+          "title": "Objection Id",
+          "type": "string"
+        },
+        "reasoning": {
+          "title": "Reasoning",
+          "type": "string"
+        },
+        "resolution_status": {
+          "title": "Resolution Status",
+          "type": "string"
+        },
+        "target_section": {
+          "title": "Target Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "objection_id",
+        "target_section",
+        "claim",
+        "materiality",
+        "resolution_status",
+        "reasoning"
+      ],
+      "title": "ObjectionView",
+      "type": "object"
+    },
+    "OptionView": {
+      "additionalProperties": false,
+      "properties": {
+        "alternative": {
+          "title": "Alternative",
+          "type": "string"
+        },
+        "expected_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Value"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "alternative",
+        "rank",
+        "rationale"
+      ],
+      "title": "OptionView",
+      "type": "object"
+    },
+    "OptionsRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "ev_table": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Ev Table",
+          "type": "object"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/OptionView"
+          },
+          "title": "Options",
+          "type": "array"
+        }
+      },
+      "title": "OptionsRoom",
+      "type": "object"
+    },
+    "PlanView": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage_fraction": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage Fraction",
+          "type": "number"
+        },
+        "decision_question": {
+          "title": "Decision Question",
+          "type": "string"
+        },
+        "mece_justification": {
+          "default": "",
+          "title": "Mece Justification",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/IssueNodeView"
+          },
+          "title": "Nodes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "decision_question"
+      ],
+      "title": "PlanView",
+      "type": "object"
+    },
+    "PreMortemView": {
+      "additionalProperties": false,
+      "properties": {
+        "assumed_outcome": {
+          "title": "Assumed Outcome",
+          "type": "string"
+        },
+        "failure_modes": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Failure Modes",
+          "type": "array"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "string"
+        },
+        "most_likely_failure_mode": {
+          "title": "Most Likely Failure Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "horizon",
+        "assumed_outcome",
+        "most_likely_failure_mode"
+      ],
+      "title": "PreMortemView",
+      "type": "object"
+    },
+    "SourceView": {
+      "additionalProperties": false,
+      "description": "An evidence record joined with its critique scores/tiers/flags.",
+      "properties": {
+        "authority_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority Score"
+        },
+        "claim": {
+          "title": "Claim",
+          "type": "string"
+        },
+        "cluster_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cluster Share"
+        },
+        "directness": {
+          "title": "Directness",
+          "type": "string"
+        },
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "independence_group": {
+          "title": "Independence Group",
+          "type": "string"
+        },
+        "publication_date": {
+          "title": "Publication Date",
+          "type": "string"
+        },
+        "publisher": {
+          "title": "Publisher",
+          "type": "string"
+        },
+        "reliability": {
+          "title": "Reliability",
+          "type": "string"
+        },
+        "source_tier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Tier"
+        },
+        "source_type": {
+          "title": "Source Type",
+          "type": "string"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "claim",
+        "publisher",
+        "source_url",
+        "source_type",
+        "publication_date",
+        "independence_group",
+        "reliability",
+        "directness"
+      ],
+      "title": "SourceView",
+      "type": "object"
+    },
+    "SourcesRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "corpus_authority_mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corpus Authority Mean"
+        },
+        "independent_group_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Independent Group Count"
+        },
+        "max_cluster_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Cluster Share"
+        },
+        "primary_source_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Source Share"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceView"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "title": "SourcesRoom",
+      "type": "object"
+    },
+    "TrackDivergenceView": {
+      "additionalProperties": false,
+      "properties": {
+        "agreement": {
+          "title": "Agreement",
+          "type": "boolean"
+        },
+        "divergence_summary": {
+          "title": "Divergence Summary",
+          "type": "string"
+        },
+        "positions": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Positions",
+          "type": "array"
+        },
+        "reconciled_alternative": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reconciled Alternative"
+        },
+        "stage": {
+          "title": "Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "agreement",
+        "divergence_summary"
+      ],
+      "title": "TrackDivergenceView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "assumptions": {
+      "$ref": "#/$defs/AssumptionsRoom"
+    },
+    "challenges": {
+      "$ref": "#/$defs/ChallengesRoom"
+    },
+    "options": {
+      "$ref": "#/$defs/OptionsRoom"
+    },
+    "plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlanView"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "sources": {
+      "$ref": "#/$defs/SourcesRoom"
+    }
+  },
+  "title": "RoomsView",
+  "type": "object"
+}

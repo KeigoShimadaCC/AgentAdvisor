@@ -1,0 +1,26 @@
+assumed_outcome: The staged position lost 40% and was closed at a loss.
+failure_modes:
+- failure_mode: growth-decelerated-faster-than-modeled
+  leading_indicators:
+  - Sequential datacenter revenue growth below 5% in any quarter
+  - Hyperscaler capex guidance revised down
+  narrative: Datacenter orders peaked two quarters after entry, growth fell to 15%,
+    and the multiple compressed from 45x to 22x.
+  preventive_action: Cap the position; review on quarterly guidance.
+  probability:
+    adjustments: []
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.3
+    reference_class: null
+    schema_version: 1
+  referenced_assumption_ids: []
+  referenced_evidence_ids:
+  - E-002
+  schema_version: 1
+  severity: high
+horizon: 24 months from decision
+most_likely_failure_mode: growth-decelerated-faster-than-modeled
+schema_version: 1

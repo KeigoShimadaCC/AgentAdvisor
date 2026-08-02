@@ -1,0 +1,15 @@
+changed: false
+changed_because_assumption_ids: []
+changed_because_evidence_ids: []
+changed_because_objection_ids: []
+evidence_confidence: 0.4
+preferred_alternative: staged_entry
+previous_alternative: null
+rationale_digest:
+- Balances timing risk with participation
+- Reduces concentration risk vs single stock
+recommendation_confidence: 0.55
+recorded_at: '2026-08-02T19:49:53.518751Z'
+revision: 1
+schema_version: 1
+trigger: provisional

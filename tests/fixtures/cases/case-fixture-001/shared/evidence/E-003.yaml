@@ -1,0 +1,16 @@
+claim: NVDA trades at 45x forward P/E, above 5-year average of 35x.
+directness: high
+evidence_id: E-003
+excerpt: NVDA forward P/E of 45x vs 5-year avg 35x
+independence_group: wire-bloomberg
+limitations:
+- Trailing data may not reflect future growth
+publication_date: '2026-07-15'
+publisher: Bloomberg
+reliability: high
+retrieval_date: '2026-07-31'
+retrieved_by: researcher
+schema_version: 1
+source_title: Bloomberg Terminal
+source_type: reputable_secondary
+source_url: https://bloomberg.com/nvda

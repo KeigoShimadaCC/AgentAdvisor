@@ -1,0 +1,4 @@
+artifact_type: assumption_batch
+record_ids:
+- A-002
+task_id: T-assumption-ledger

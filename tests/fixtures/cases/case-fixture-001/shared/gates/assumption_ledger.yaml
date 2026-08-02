@@ -1,0 +1,13 @@
+cancelled_task_ids: []
+checked_at: '2026-08-02T19:49:53.622015Z'
+findings:
+- check_id: issue_tree.low_coverage
+  message: Only 0% of leaf sub-questions have completed work.
+  schema_version: 1
+  severity: warn
+  target_ids:
+  - Q-1.1
+  - Q-1.2
+outcome: warn
+schema_version: 1
+stage: assumption_ledger

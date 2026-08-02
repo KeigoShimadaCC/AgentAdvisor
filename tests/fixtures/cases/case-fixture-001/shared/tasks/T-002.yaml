@@ -1,0 +1,18 @@
+completion_criteria: 2+ sources on sector concentration risk
+estimated_cost: 1.0
+expected_information_gain: medium
+inputs:
+- decision_spec
+issue_node_id: null
+materiality: medium
+priority: medium
+priority_rationale: Important but not likely to change the recommendation
+priority_score: 8
+probability_of_changing_conclusion: 0.4
+question: What are the risks of semiconductor sector concentration?
+required_output: evidence_batch
+role: researcher
+schema_version: 1
+status: completed
+task_id: T-002
+why_it_matters: Concentration risk affects portfolio stability

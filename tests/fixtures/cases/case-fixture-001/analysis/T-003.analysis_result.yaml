@@ -1,0 +1,70 @@
+assumption_ids:
+- A-001
+break_even_thresholds:
+- favored_alternative_above: invest_nvda_now
+  favored_alternative_below: staged_entry
+  parameter: earnings_growth
+  schema_version: 1
+  threshold_value: 0.08
+evidence_ids:
+- E-001
+- E-002
+expected_values_by_alternative:
+  etf_diversified: 7000.0
+  invest_nvda_now: 12500.0
+  staged_entry: 11000.0
+results_path: analysis/T-003/results.yaml
+scenarios:
+- probability:
+    adjustments: []
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.3
+    reference_class: null
+    schema_version: 1
+  scenario_name: bull
+  schema_version: 1
+- probability:
+    adjustments: []
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.45
+    reference_class: null
+    schema_version: 1
+  scenario_name: base
+  schema_version: 1
+- probability:
+    adjustments: []
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.25
+    reference_class: null
+    schema_version: 1
+  scenario_name: bear
+  schema_version: 1
+schema_version: 1
+script_path: analysis/T-003/model.py
+sensitivity_table:
+- parameter: earnings_growth
+  parameter_value: 0.15
+  preferred_alternative: invest_nvda_now
+  resulting_expected_values:
+    etf_diversified: 8000.0
+    invest_nvda_now: 18000.0
+    staged_entry: 15000.0
+  schema_version: 1
+- parameter: earnings_growth
+  parameter_value: 0.05
+  preferred_alternative: staged_entry
+  resulting_expected_values:
+    etf_diversified: 6500.0
+    invest_nvda_now: 7000.0
+    staged_entry: 9000.0
+  schema_version: 1
+task_id: T-003

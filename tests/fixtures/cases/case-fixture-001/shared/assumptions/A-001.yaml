@@ -1,0 +1,19 @@
+assumption_id: A-001
+claim: NVDA growth will continue at 50%+ for the next 12 months
+confidence: medium
+estimate:
+  adjustments: []
+  base_rate: null
+  interval_high: null
+  interval_low: null
+  method: structured_subjective
+  point: 0.65
+  reference_class: null
+  schema_version: 1
+evidence_against: []
+evidence_for:
+- E-002
+materiality: high
+schema_version: 1
+status: unresolved
+type: forecast

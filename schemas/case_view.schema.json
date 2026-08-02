@@ -1,0 +1,1206 @@
+{
+  "$defs": {
+    "ApprovalRecordView": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_at": {
+          "title": "Approved At",
+          "type": "string"
+        },
+        "approved_by": {
+          "title": "Approved By",
+          "type": "string"
+        },
+        "decision": {
+          "title": "Decision",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "framing",
+            "final"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "decision",
+        "approved_by",
+        "approved_at"
+      ],
+      "title": "ApprovalRecordView",
+      "type": "object"
+    },
+    "AssessedConfidence": {
+      "additionalProperties": false,
+      "description": "A confidence that was actually assessed (not a coercion default).",
+      "properties": {
+        "basis": {
+          "title": "Basis",
+          "type": "string"
+        },
+        "kind": {
+          "const": "assessed",
+          "default": "assessed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "basis"
+      ],
+      "title": "AssessedConfidence",
+      "type": "object"
+    },
+    "AssessedStability": {
+      "additionalProperties": false,
+      "description": "Model stability that was actually assessed (multiple sensitivity runs).",
+      "properties": {
+        "kind": {
+          "const": "assessed",
+          "default": "assessed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "runs_supporting": {
+          "minimum": 0,
+          "title": "Runs Supporting",
+          "type": "integer"
+        },
+        "runs_total": {
+          "minimum": 1,
+          "title": "Runs Total",
+          "type": "integer"
+        },
+        "share": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Share",
+          "type": "number"
+        }
+      },
+      "required": [
+        "runs_supporting",
+        "runs_total",
+        "share"
+      ],
+      "title": "AssessedStability",
+      "type": "object"
+    },
+    "AssumptionView": {
+      "additionalProperties": false,
+      "properties": {
+        "assumption_id": {
+          "title": "Assumption Id",
+          "type": "string"
+        },
+        "claim": {
+          "title": "Claim",
+          "type": "string"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "string"
+        },
+        "estimate_point": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Point"
+        },
+        "evidence_against": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Against",
+          "type": "array"
+        },
+        "evidence_for": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence For",
+          "type": "array"
+        },
+        "materiality": {
+          "title": "Materiality",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assumption_id",
+        "claim",
+        "type",
+        "status",
+        "materiality",
+        "confidence"
+      ],
+      "title": "AssumptionView",
+      "type": "object"
+    },
+    "AssumptionsRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "items": {
+            "$ref": "#/$defs/AssumptionView"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        }
+      },
+      "title": "AssumptionsRoom",
+      "type": "object"
+    },
+    "BriefBlock": {
+      "additionalProperties": false,
+      "description": "One rendered line/element within a brief section, carrying provenance.",
+      "properties": {
+        "citation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Citation Ids",
+          "type": "array"
+        },
+        "provenance": {
+          "title": "Provenance",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provenance",
+        "text"
+      ],
+      "title": "BriefBlock",
+      "type": "object"
+    },
+    "BriefSection": {
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "items": {
+            "$ref": "#/$defs/BriefBlock"
+          },
+          "title": "Blocks",
+          "type": "array"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "partial",
+            "final",
+            "not_assessed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "status"
+      ],
+      "title": "BriefSection",
+      "type": "object"
+    },
+    "ChallengesRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "objections": {
+          "items": {
+            "$ref": "#/$defs/ObjectionView"
+          },
+          "title": "Objections",
+          "type": "array"
+        },
+        "premortem": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PreMortemView"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "track_divergence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TrackDivergenceView"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "ChallengesRoom",
+      "type": "object"
+    },
+    "EffortView": {
+      "additionalProperties": false,
+      "properties": {
+        "budget_caps": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Budget Caps",
+          "type": "object"
+        },
+        "budget_counters": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Budget Counters",
+          "type": "object"
+        },
+        "by_role": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "title": "By Role",
+          "type": "object"
+        },
+        "event_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Event Counts",
+          "type": "object"
+        },
+        "input_tokens": {
+          "default": 0,
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "invocation_attempts": {
+          "default": 0,
+          "title": "Invocation Attempts",
+          "type": "integer"
+        },
+        "invocation_successes": {
+          "default": 0,
+          "title": "Invocation Successes",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "default": 0,
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "retries": {
+          "default": 0,
+          "title": "Retries",
+          "type": "integer"
+        },
+        "total_tokens": {
+          "default": 0,
+          "title": "Total Tokens",
+          "type": "integer"
+        },
+        "wall_clock_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wall Clock S"
+        }
+      },
+      "title": "EffortView",
+      "type": "object"
+    },
+    "GateSummaryView": {
+      "additionalProperties": false,
+      "properties": {
+        "findings": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "outcome": {
+          "title": "Outcome",
+          "type": "string"
+        },
+        "stage": {
+          "title": "Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "outcome"
+      ],
+      "title": "GateSummaryView",
+      "type": "object"
+    },
+    "HistoryView": {
+      "additionalProperties": false,
+      "properties": {
+        "approvals": {
+          "items": {
+            "$ref": "#/$defs/ApprovalRecordView"
+          },
+          "title": "Approvals",
+          "type": "array"
+        },
+        "thesis_revisions": {
+          "items": {
+            "$ref": "#/$defs/ThesisRevisionView"
+          },
+          "title": "Thesis Revisions",
+          "type": "array"
+        }
+      },
+      "title": "HistoryView",
+      "type": "object"
+    },
+    "IntegrityView": {
+      "additionalProperties": false,
+      "properties": {
+        "disclosure": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disclosure"
+        },
+        "gates": {
+          "items": {
+            "$ref": "#/$defs/GateSummaryView"
+          },
+          "title": "Gates",
+          "type": "array"
+        },
+        "review_accepted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Accepted"
+        },
+        "review_defects": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Review Defects",
+          "type": "array"
+        },
+        "review_outcome": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Outcome"
+        }
+      },
+      "title": "IntegrityView",
+      "type": "object"
+    },
+    "IssueNodeView": {
+      "additionalProperties": false,
+      "properties": {
+        "covered": {
+          "default": false,
+          "title": "Covered",
+          "type": "boolean"
+        },
+        "materiality": {
+          "title": "Materiality",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "title": "Node Type",
+          "type": "string"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "resolution_criteria": {
+          "title": "Resolution Criteria",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "question",
+        "node_type",
+        "materiality",
+        "resolution_criteria"
+      ],
+      "title": "IssueNodeView",
+      "type": "object"
+    },
+    "NotAssessed": {
+      "additionalProperties": false,
+      "description": "A confidence/stability that is a sentinel placeholder.",
+      "properties": {
+        "kind": {
+          "const": "not_assessed",
+          "default": "not_assessed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "NotAssessed",
+      "type": "object"
+    },
+    "ObjectionView": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "title": "Claim",
+          "type": "string"
+        },
+        "materiality": {
+          "title": "Materiality",
+          "type": "string"
+        },
+        "objection_id": {
+          "title": "Objection Id",
+          "type": "string"
+        },
+        "reasoning": {
+          "title": "Reasoning",
+          "type": "string"
+        },
+        "resolution_status": {
+          "title": "Resolution Status",
+          "type": "string"
+        },
+        "target_section": {
+          "title": "Target Section",
+          "type": "string"
+        }
+      },
+      "required": [
+        "objection_id",
+        "target_section",
+        "claim",
+        "materiality",
+        "resolution_status",
+        "reasoning"
+      ],
+      "title": "ObjectionView",
+      "type": "object"
+    },
+    "OptionView": {
+      "additionalProperties": false,
+      "properties": {
+        "alternative": {
+          "title": "Alternative",
+          "type": "string"
+        },
+        "expected_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Value"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "alternative",
+        "rank",
+        "rationale"
+      ],
+      "title": "OptionView",
+      "type": "object"
+    },
+    "OptionsRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "ev_table": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Ev Table",
+          "type": "object"
+        },
+        "options": {
+          "items": {
+            "$ref": "#/$defs/OptionView"
+          },
+          "title": "Options",
+          "type": "array"
+        }
+      },
+      "title": "OptionsRoom",
+      "type": "object"
+    },
+    "PlanView": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage_fraction": {
+          "default": 0.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Coverage Fraction",
+          "type": "number"
+        },
+        "decision_question": {
+          "title": "Decision Question",
+          "type": "string"
+        },
+        "mece_justification": {
+          "default": "",
+          "title": "Mece Justification",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/IssueNodeView"
+          },
+          "title": "Nodes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "decision_question"
+      ],
+      "title": "PlanView",
+      "type": "object"
+    },
+    "PreMortemView": {
+      "additionalProperties": false,
+      "properties": {
+        "assumed_outcome": {
+          "title": "Assumed Outcome",
+          "type": "string"
+        },
+        "failure_modes": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Failure Modes",
+          "type": "array"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "string"
+        },
+        "most_likely_failure_mode": {
+          "title": "Most Likely Failure Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "horizon",
+        "assumed_outcome",
+        "most_likely_failure_mode"
+      ],
+      "title": "PreMortemView",
+      "type": "object"
+    },
+    "ProbabilityView": {
+      "additionalProperties": false,
+      "description": "One outcome probability entry, preserving point-XOR-interval.",
+      "properties": {
+        "adjustments": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        },
+        "interval_high": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval High"
+        },
+        "interval_low": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval Low"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "point": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "title": "ProbabilityView",
+      "type": "object"
+    },
+    "RoomsView": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "$ref": "#/$defs/AssumptionsRoom"
+        },
+        "challenges": {
+          "$ref": "#/$defs/ChallengesRoom"
+        },
+        "options": {
+          "$ref": "#/$defs/OptionsRoom"
+        },
+        "plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlanView"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sources": {
+          "$ref": "#/$defs/SourcesRoom"
+        }
+      },
+      "title": "RoomsView",
+      "type": "object"
+    },
+    "SourceView": {
+      "additionalProperties": false,
+      "description": "An evidence record joined with its critique scores/tiers/flags.",
+      "properties": {
+        "authority_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Authority Score"
+        },
+        "claim": {
+          "title": "Claim",
+          "type": "string"
+        },
+        "cluster_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cluster Share"
+        },
+        "directness": {
+          "title": "Directness",
+          "type": "string"
+        },
+        "evidence_id": {
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "independence_group": {
+          "title": "Independence Group",
+          "type": "string"
+        },
+        "publication_date": {
+          "title": "Publication Date",
+          "type": "string"
+        },
+        "publisher": {
+          "title": "Publisher",
+          "type": "string"
+        },
+        "reliability": {
+          "title": "Reliability",
+          "type": "string"
+        },
+        "source_tier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Tier"
+        },
+        "source_type": {
+          "title": "Source Type",
+          "type": "string"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "claim",
+        "publisher",
+        "source_url",
+        "source_type",
+        "publication_date",
+        "independence_group",
+        "reliability",
+        "directness"
+      ],
+      "title": "SourceView",
+      "type": "object"
+    },
+    "SourcesRoom": {
+      "additionalProperties": false,
+      "properties": {
+        "corpus_authority_mean": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corpus Authority Mean"
+        },
+        "independent_group_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Independent Group Count"
+        },
+        "max_cluster_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Cluster Share"
+        },
+        "primary_source_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Source Share"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceView"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "title": "SourcesRoom",
+      "type": "object"
+    },
+    "ThesisRevisionView": {
+      "additionalProperties": false,
+      "properties": {
+        "changed": {
+          "title": "Changed",
+          "type": "boolean"
+        },
+        "evidence_confidence": {
+          "title": "Evidence Confidence",
+          "type": "number"
+        },
+        "preferred_alternative": {
+          "title": "Preferred Alternative",
+          "type": "string"
+        },
+        "previous_alternative": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Alternative"
+        },
+        "rationale_digest": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rationale Digest",
+          "type": "array"
+        },
+        "recommendation_confidence": {
+          "title": "Recommendation Confidence",
+          "type": "number"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "trigger": {
+          "title": "Trigger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "trigger",
+        "preferred_alternative",
+        "changed",
+        "recommendation_confidence",
+        "evidence_confidence"
+      ],
+      "title": "ThesisRevisionView",
+      "type": "object"
+    },
+    "TrackDivergenceView": {
+      "additionalProperties": false,
+      "properties": {
+        "agreement": {
+          "title": "Agreement",
+          "type": "boolean"
+        },
+        "divergence_summary": {
+          "title": "Divergence Summary",
+          "type": "string"
+        },
+        "positions": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Positions",
+          "type": "array"
+        },
+        "reconciled_alternative": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reconciled Alternative"
+        },
+        "stage": {
+          "title": "Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stage",
+        "agreement",
+        "divergence_summary"
+      ],
+      "title": "TrackDivergenceView",
+      "type": "object"
+    },
+    "UncertaintyView": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_confidence": {
+          "discriminator": {
+            "mapping": {
+              "assessed": "#/$defs/AssessedConfidence",
+              "not_assessed": "#/$defs/NotAssessed"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AssessedConfidence"
+            },
+            {
+              "$ref": "#/$defs/NotAssessed"
+            }
+          ],
+          "title": "Evidence Confidence"
+        },
+        "model_stability": {
+          "discriminator": {
+            "mapping": {
+              "assessed": "#/$defs/AssessedStability",
+              "not_assessed": "#/$defs/NotAssessed"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AssessedStability"
+            },
+            {
+              "$ref": "#/$defs/NotAssessed"
+            }
+          ],
+          "title": "Model Stability"
+        },
+        "outcome_probabilities": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ProbabilityView"
+          },
+          "title": "Outcome Probabilities",
+          "type": "object"
+        },
+        "recommendation_confidence": {
+          "discriminator": {
+            "mapping": {
+              "assessed": "#/$defs/AssessedConfidence",
+              "not_assessed": "#/$defs/NotAssessed"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AssessedConfidence"
+            },
+            {
+              "$ref": "#/$defs/NotAssessed"
+            }
+          ],
+          "title": "Recommendation Confidence"
+        }
+      },
+      "required": [
+        "recommendation_confidence",
+        "evidence_confidence",
+        "model_stability"
+      ],
+      "title": "UncertaintyView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned read model for one case, assembled from disk.",
+  "properties": {
+    "brief_sections": {
+      "items": {
+        "$ref": "#/$defs/BriefSection"
+      },
+      "title": "Brief Sections",
+      "type": "array"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "effort": {
+      "$ref": "#/$defs/EffortView"
+    },
+    "history": {
+      "$ref": "#/$defs/HistoryView"
+    },
+    "integrity": {
+      "$ref": "#/$defs/IntegrityView"
+    },
+    "is_terminal": {
+      "title": "Is Terminal",
+      "type": "boolean"
+    },
+    "needs_you": {
+      "enum": [
+        "scope_checkpoint",
+        "delivery_checkpoint",
+        "interrupted",
+        "none"
+      ],
+      "title": "Needs You",
+      "type": "string"
+    },
+    "phase": {
+      "enum": [
+        "intake",
+        "framing",
+        "investigation",
+        "challenge",
+        "synthesis",
+        "complete"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "rooms": {
+      "$ref": "#/$defs/RoomsView"
+    },
+    "stage": {
+      "title": "Stage",
+      "type": "string"
+    },
+    "uncertainty": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UncertaintyView"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "view_version": {
+      "default": 1,
+      "title": "View Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "case_id",
+    "phase",
+    "needs_you",
+    "stage",
+    "is_terminal"
+  ],
+  "title": "CaseView",
+  "type": "object"
+}

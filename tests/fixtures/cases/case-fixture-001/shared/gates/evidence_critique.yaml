@@ -1,0 +1,11 @@
+cancelled_task_ids: []
+checked_at: '2026-08-02T19:49:53.603033Z'
+findings:
+- check_id: evidence.independence_concentration
+  message: One independence group supplies 50% of the corpus.
+  schema_version: 1
+  severity: warn
+  target_ids: []
+outcome: warn
+schema_version: 1
+stage: evidence_critique

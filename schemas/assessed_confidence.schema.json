@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "description": "A confidence that was actually assessed (not a coercion default).",
+  "properties": {
+    "basis": {
+      "title": "Basis",
+      "type": "string"
+    },
+    "kind": {
+      "const": "assessed",
+      "default": "assessed",
+      "title": "Kind",
+      "type": "string"
+    },
+    "value": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Value",
+      "type": "number"
+    }
+  },
+  "required": [
+    "value",
+    "basis"
+  ],
+  "title": "AssessedConfidence",
+  "type": "object"
+}

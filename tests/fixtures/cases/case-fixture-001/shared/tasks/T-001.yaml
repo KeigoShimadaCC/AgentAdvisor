@@ -1,0 +1,18 @@
+completion_criteria: 3+ sources with valuation metrics
+estimated_cost: 1.0
+expected_information_gain: high
+inputs:
+- decision_spec
+issue_node_id: null
+materiality: high
+priority: high
+priority_rationale: Valuation is the core driver of the timing decision
+priority_score: 21
+probability_of_changing_conclusion: 0.7
+question: What is NVDA's current valuation and growth trajectory?
+required_output: evidence_batch
+role: researcher
+schema_version: 1
+status: completed
+task_id: T-001
+why_it_matters: Valuation determines if the stock is fairly priced

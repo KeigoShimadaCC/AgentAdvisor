@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "description": "One outcome probability entry, preserving point-XOR-interval.",
+  "properties": {
+    "adjustments": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Adjustments",
+      "type": "array"
+    },
+    "interval_high": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Interval High"
+    },
+    "interval_low": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Interval Low"
+    },
+    "method": {
+      "title": "Method",
+      "type": "string"
+    },
+    "point": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Point"
+    }
+  },
+  "required": [
+    "method"
+  ],
+  "title": "ProbabilityView",
+  "type": "object"
+}

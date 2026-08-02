@@ -1,0 +1,16 @@
+claim: NVDA revenue grew 120% YoY in latest quarter.
+directness: high
+evidence_id: E-002
+excerpt: Revenue $26B, up 120% year over year
+independence_group: publisher-nvidia-corporation
+limitations:
+- Quarterly data, may not annualize
+publication_date: '2026-05-20'
+publisher: NVIDIA Corporation
+reliability: high
+retrieval_date: '2026-07-31'
+retrieved_by: researcher
+schema_version: 1
+source_title: NVDA 10-Q Filing
+source_type: regulatory_filing
+source_url: https://sec.gov/nvda-10q

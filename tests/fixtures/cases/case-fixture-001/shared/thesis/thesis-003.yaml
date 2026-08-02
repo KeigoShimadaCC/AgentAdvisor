@@ -1,0 +1,15 @@
+changed: true
+changed_because_assumption_ids: []
+changed_because_evidence_ids:
+- E-002
+changed_because_objection_ids: []
+evidence_confidence: 0.55
+preferred_alternative: staged_entry
+previous_alternative: staged_entry
+rationale_digest:
+- Repair cycle re-examined evidence; reverted to staged entry.
+recommendation_confidence: 0.62
+recorded_at: '2026-08-02T19:49:53.821926Z'
+revision: 3
+schema_version: 1
+trigger: repair

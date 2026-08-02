@@ -1,0 +1,28 @@
+alternatives_mentioned:
+- invest_nvda_now
+- etf_diversified
+clarification_questions:
+- materiality_reason: The staging strategy differs for a lump sum vs periodic contributions.
+  question: Are you asking about a one-time $50k investment or ongoing contributions?
+  question_id: Q-1
+  resolves_field: decision_question
+  schema_version: 1
+- materiality_reason: The deadline determines whether we can wait for the next earnings
+    report.
+  question: By when do you need to make this decision?
+  question_id: Q-2
+  resolves_field: deadline
+  schema_version: 1
+constraints:
+- max 5-year horizon
+- no leverage
+deadline: null
+decision_question: null
+depth: standard
+objectives:
+- capital appreciation
+- risk management
+raw_prompt: I have $50k and want semiconductor exposure. Nvidia or ETF?
+reversibility: partially_reversible
+risk_tolerance: moderate
+schema_version: 1

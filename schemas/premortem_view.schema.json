@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "assumed_outcome": {
+      "title": "Assumed Outcome",
+      "type": "string"
+    },
+    "failure_modes": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Failure Modes",
+      "type": "array"
+    },
+    "horizon": {
+      "title": "Horizon",
+      "type": "string"
+    },
+    "most_likely_failure_mode": {
+      "title": "Most Likely Failure Mode",
+      "type": "string"
+    }
+  },
+  "required": [
+    "horizon",
+    "assumed_outcome",
+    "most_likely_failure_mode"
+  ],
+  "title": "PreMortemView",
+  "type": "object"
+}

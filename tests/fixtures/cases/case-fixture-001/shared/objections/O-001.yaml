@@ -1,0 +1,12 @@
+claim: Staged entry may miss upside if earnings beat expectations.
+commissioned_tasks: []
+materiality: medium
+objection_id: O-001
+reasoning: If NVDA beats earnings, waiting means missing the rally.
+referenced_assumption_ids: []
+referenced_evidence_ids:
+- E-002
+resolution_status: open
+reversal_evidence: Historical post-earning rally data showing 10%+ jumps
+schema_version: 1
+target_section: preliminary_recommendation.rationale[0]

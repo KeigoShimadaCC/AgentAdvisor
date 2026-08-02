@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "approved_at": {
+      "title": "Approved At",
+      "type": "string"
+    },
+    "approved_by": {
+      "title": "Approved By",
+      "type": "string"
+    },
+    "decision": {
+      "title": "Decision",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "framing",
+        "final"
+      ],
+      "title": "Kind",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "decision",
+    "approved_by",
+    "approved_at"
+  ],
+  "title": "ApprovalRecordView",
+  "type": "object"
+}

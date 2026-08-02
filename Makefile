@@ -1,4 +1,4 @@
-.PHONY: init lint type test check smoke schemas
+.PHONY: init lint type test check smoke schemas frontend-types frontend-check
 
 init:
 	uv sync --group dev
@@ -20,3 +20,9 @@ smoke:
 
 schemas:
 	uv run python3 -m orchestrator.artifacts.schema_export
+
+frontend-types:
+	cd frontend && npm install && npm run generate:types
+
+frontend-check:
+	cd frontend && npm run check:clean && npx tsc --noEmit

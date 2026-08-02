@@ -1,0 +1,35 @@
+{
+  "additionalProperties": false,
+  "description": "Model stability that was actually assessed (multiple sensitivity runs).",
+  "properties": {
+    "kind": {
+      "const": "assessed",
+      "default": "assessed",
+      "title": "Kind",
+      "type": "string"
+    },
+    "runs_supporting": {
+      "minimum": 0,
+      "title": "Runs Supporting",
+      "type": "integer"
+    },
+    "runs_total": {
+      "minimum": 1,
+      "title": "Runs Total",
+      "type": "integer"
+    },
+    "share": {
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Share",
+      "type": "number"
+    }
+  },
+  "required": [
+    "runs_supporting",
+    "runs_total",
+    "share"
+  ],
+  "title": "AssessedStability",
+  "type": "object"
+}

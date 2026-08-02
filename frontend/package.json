@@ -1,0 +1,14 @@
+{
+  "name": "agentadvisor-frontend-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generated TypeScript types from AgentAdvisor JSON Schemas (SPEC-032).",
+  "scripts": {
+    "generate:types": "node scripts/generate-types.js",
+    "check:clean": "node scripts/generate-types.js --check"
+  },
+  "devDependencies": {
+    "json-schema-to-typescript": "^15.0.0",
+    "typescript": "^5.6.0"
+  }
+}

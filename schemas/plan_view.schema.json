@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "IssueNodeView": {
+      "additionalProperties": false,
+      "properties": {
+        "covered": {
+          "default": false,
+          "title": "Covered",
+          "type": "boolean"
+        },
+        "materiality": {
+          "title": "Materiality",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "title": "Node Type",
+          "type": "string"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "resolution_criteria": {
+          "title": "Resolution Criteria",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "question",
+        "node_type",
+        "materiality",
+        "resolution_criteria"
+      ],
+      "title": "IssueNodeView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "coverage_fraction": {
+      "default": 0.0,
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Coverage Fraction",
+      "type": "number"
+    },
+    "decision_question": {
+      "title": "Decision Question",
+      "type": "string"
+    },
+    "mece_justification": {
+      "default": "",
+      "title": "Mece Justification",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/IssueNodeView"
+      },
+      "title": "Nodes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "decision_question"
+  ],
+  "title": "PlanView",
+  "type": "object"
+}

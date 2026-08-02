@@ -1,0 +1,45 @@
+deterministic_findings:
+- check_id: verification.uncited_claim
+  message: 1 sampled claim(s) carry no citation at all.
+  schema_version: 1
+  severity: block
+  target_ids:
+  - VC-4
+instructions: 'For every item below, decide whether the quoted evidence excerpts actually
+  support the claim as written. Judge support, not plausibility: an excerpt that is
+  merely about the same topic does not support a specific numeric or causal claim.
+  Return one verdict per item_id in citation_verdicts. Any item you mark unsupported
+  must also appear as an unsupported_citation defect, and the report outcome must
+  then be ''fail''.'
+items:
+- cited_ids:
+  - E-001
+  claim: Valuation is above historical average but supported by growth [E-001]
+  dangling_ids: []
+  evidence_excerpts:
+  - 'E-001 [Bloomberg, 2026-07-15]: NVDA forward P/E of 45x vs 5-year avg 35x'
+  item_id: VC-1
+  schema_version: 1
+- cited_ids:
+  - E-002
+  claim: Revenue growth of 120% justifies premium pricing [E-002]
+  dangling_ids: []
+  evidence_excerpts:
+  - 'E-002 [NVIDIA Corporation, 2026-05-20]: Revenue $26B, up 120% year over year'
+  item_id: VC-2
+  schema_version: 1
+- cited_ids:
+  - A-001
+  claim: Concentration in single stock violates diversification [A-001]
+  dangling_ids: []
+  evidence_excerpts:
+  - 'A-001 [assumption]: NVDA growth will continue at 50%+ for the next 12 months'
+  item_id: VC-3
+  schema_version: 1
+- cited_ids: []
+  claim: 'Expected value of staged entry: $11,000 based on scenario model'
+  dangling_ids: []
+  evidence_excerpts: []
+  item_id: VC-4
+  schema_version: 1
+schema_version: 1

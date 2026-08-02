@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "ApprovalRecordView": {
+      "additionalProperties": false,
+      "properties": {
+        "approved_at": {
+          "title": "Approved At",
+          "type": "string"
+        },
+        "approved_by": {
+          "title": "Approved By",
+          "type": "string"
+        },
+        "decision": {
+          "title": "Decision",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "framing",
+            "final"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "decision",
+        "approved_by",
+        "approved_at"
+      ],
+      "title": "ApprovalRecordView",
+      "type": "object"
+    },
+    "ThesisRevisionView": {
+      "additionalProperties": false,
+      "properties": {
+        "changed": {
+          "title": "Changed",
+          "type": "boolean"
+        },
+        "evidence_confidence": {
+          "title": "Evidence Confidence",
+          "type": "number"
+        },
+        "preferred_alternative": {
+          "title": "Preferred Alternative",
+          "type": "string"
+        },
+        "previous_alternative": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Alternative"
+        },
+        "rationale_digest": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rationale Digest",
+          "type": "array"
+        },
+        "recommendation_confidence": {
+          "title": "Recommendation Confidence",
+          "type": "number"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "trigger": {
+          "title": "Trigger",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "trigger",
+        "preferred_alternative",
+        "changed",
+        "recommendation_confidence",
+        "evidence_confidence"
+      ],
+      "title": "ThesisRevisionView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "approvals": {
+      "items": {
+        "$ref": "#/$defs/ApprovalRecordView"
+      },
+      "title": "Approvals",
+      "type": "array"
+    },
+    "thesis_revisions": {
+      "items": {
+        "$ref": "#/$defs/ThesisRevisionView"
+      },
+      "title": "Thesis Revisions",
+      "type": "array"
+    }
+  },
+  "title": "HistoryView",
+  "type": "object"
+}

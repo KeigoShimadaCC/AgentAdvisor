@@ -1,0 +1,99 @@
+alternatives_considered:
+- alternative: invest_nvda_now
+  rank: 2
+  rationale: Full allocation carries concentration risk
+  schema_version: 1
+- alternative: staged_entry
+  rank: 1
+  rationale: Balances timing risk with participation
+  schema_version: 1
+- alternative: etf_diversified
+  rank: 3
+  rationale: Lower risk but also lower expected return
+  schema_version: 1
+citations:
+- E-001
+- E-002
+critical_assumptions:
+- A-001
+decision_confidence_summary: Moderate confidence based on mixed evidence quality
+evidence_confidence:
+  basis: Mix of primary filings and secondary analysis
+  schema_version: 1
+  value: 0.55
+key_reasons:
+- Valuation is above historical average but supported by growth [E-001]
+- Revenue growth of 120% justifies premium pricing [E-002]
+- Concentration in single stock violates diversification [A-001]
+model_stability:
+  runs_supporting: 0
+  runs_total: 1
+  schema_version: 1
+  share_of_sensitivity_runs_supporting_recommendation: 0.0
+next_actions:
+- Place initial 30% allocation this week
+- Set earnings alert for next quarter
+outcome_probabilities:
+  positive_return_12m:
+    adjustments: []
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.58
+    reference_class: null
+    schema_version: 1
+quantitative_findings:
+- 'Expected value of staged entry: $11,000 based on scenario model'
+recommendation_change_triggers:
+- If earnings miss by >10%, shift to ETF strategy
+recommendation_confidence:
+  basis: Staged entry balances risk across scenarios
+  schema_version: 1
+  value: 0.68
+recommended_action: 'Invest via staged entry: 30% now, 40% post-earnings, 30% after
+  90 days'
+scenario_analysis:
+- probability:
+    adjustments: []
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.3
+    reference_class: null
+    schema_version: 1
+  scenario_name: bull_case
+  schema_version: 1
+  summary: Strong earnings beat drives 20%+ upside
+- probability:
+    adjustments: []
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.45
+    reference_class: null
+    schema_version: 1
+  scenario_name: base_case
+  schema_version: 1
+  summary: In-line earnings, modest appreciation
+- probability:
+    adjustments: []
+    base_rate: null
+    interval_high: null
+    interval_low: null
+    method: scenario_model
+    point: 0.25
+    reference_class: null
+    schema_version: 1
+  scenario_name: bear_case
+  schema_version: 1
+  summary: Earnings miss triggers 15% drawdown
+schema_version: 1
+strongest_counterarguments:
+- claim: Staged entry may miss the upside if earnings beat
+  resolution: Accept timing risk in exchange for reduced concentration risk
+  resolved: true
+  schema_version: 1
+timing: Begin this week, complete within 90 days

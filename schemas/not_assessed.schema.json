@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "description": "A confidence/stability that is a sentinel placeholder.",
+  "properties": {
+    "kind": {
+      "const": "not_assessed",
+      "default": "not_assessed",
+      "title": "Kind",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "reason"
+  ],
+  "title": "NotAssessed",
+  "type": "object"
+}

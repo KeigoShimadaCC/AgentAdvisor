@@ -1,0 +1,8 @@
+citation_verdicts: []
+defects:
+- defect_type: false_precision
+  explanation: The recommendation states a precise figure without supporting detail.
+  schema_version: 1
+  target_id: E-001
+outcome: fail
+schema_version: 1

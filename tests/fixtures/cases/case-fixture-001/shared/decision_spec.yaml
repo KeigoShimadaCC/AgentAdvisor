@@ -1,0 +1,18 @@
+alternatives:
+- invest_nvda_now
+- staged_entry
+- etf_diversified
+constraints:
+- max 5-year horizon
+- no leverage
+deadline: '2026-12-31'
+decision_id: case-001-stub-e2e
+depth: standard
+objectives:
+- capital appreciation
+- risk management
+owner: user
+question: Should I invest $50k in Nvidia vs semiconductor ETF?
+reversibility: partially_reversible
+risk_tolerance: moderate
+schema_version: 1

@@ -1,0 +1,98 @@
+{
+  "additionalProperties": false,
+  "description": "An evidence record joined with its critique scores/tiers/flags.",
+  "properties": {
+    "authority_score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authority Score"
+    },
+    "claim": {
+      "title": "Claim",
+      "type": "string"
+    },
+    "cluster_share": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cluster Share"
+    },
+    "directness": {
+      "title": "Directness",
+      "type": "string"
+    },
+    "evidence_id": {
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "flags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Flags",
+      "type": "array"
+    },
+    "independence_group": {
+      "title": "Independence Group",
+      "type": "string"
+    },
+    "publication_date": {
+      "title": "Publication Date",
+      "type": "string"
+    },
+    "publisher": {
+      "title": "Publisher",
+      "type": "string"
+    },
+    "reliability": {
+      "title": "Reliability",
+      "type": "string"
+    },
+    "source_tier": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Tier"
+    },
+    "source_type": {
+      "title": "Source Type",
+      "type": "string"
+    },
+    "source_url": {
+      "title": "Source Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "claim",
+    "publisher",
+    "source_url",
+    "source_type",
+    "publication_date",
+    "independence_group",
+    "reliability",
+    "directness"
+  ],
+  "title": "SourceView",
+  "type": "object"
+}

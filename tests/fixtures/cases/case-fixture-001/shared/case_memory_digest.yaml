@@ -1,0 +1,16 @@
+calibration:
+  brier_score: null
+  interpretation: No outcomes recorded yet, so the system's calibration is unknown.
+    Record realized outcomes with scripts/record_outcome.py to start measuring it.
+  mean_forecast: null
+  mean_realized: null
+  sample_size: 0
+  schema_version: 1
+generated_at: '2026-08-02T19:49:53.492079Z'
+prior_cases: []
+recurring_assumptions: []
+schema_version: 1
+source_reputations: []
+usage_note: Prior-case context only. Nothing in this digest may be cited as evidence
+  in the current case; treat it as institutional recall that must be re-established
+  from live sources.

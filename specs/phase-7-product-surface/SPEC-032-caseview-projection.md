@@ -2,7 +2,7 @@
 id: SPEC-032
 title: CaseView projection, committed fixture case, and generated frontend types
 phase: 7
-status: draft
+status: implemented
 depends_on: [SPEC-023, SPEC-024, SPEC-025, SPEC-030, SPEC-031]
 parallel_with: []
 north_star_refs: ["9", "15", "17"]

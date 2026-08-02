@@ -186,7 +186,7 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 | SPEC-029 | Budget truth and disclosed stops | implemented |
 | SPEC-030 | Safe resume and delivery-integrity persistence | implemented |
 | SPEC-031 | Renderer and presentation-data fixes | in_progress |
-| SPEC-032 | CaseView projection, fixture case, generated frontend types | draft |
+| SPEC-032 | CaseView projection, fixture case, generated frontend types | implemented |
 | SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | draft |
 | SPEC-034 | Commissioning flow and scope checkpoint UI | draft |
 | SPEC-035 | Living brief, progress experience, delivery checkpoint UI | draft |

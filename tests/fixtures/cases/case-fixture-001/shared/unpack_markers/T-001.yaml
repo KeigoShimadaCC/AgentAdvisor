@@ -1,0 +1,5 @@
+artifact_type: evidence_batch
+record_ids:
+- E-001
+- E-002
+task_id: T-001

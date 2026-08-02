@@ -1,0 +1,17 @@
+changed: false
+changed_because_assumption_ids:
+- A-001
+changed_because_evidence_ids:
+- E-001
+changed_because_objection_ids: []
+evidence_confidence: 0.55
+preferred_alternative: staged_entry
+previous_alternative: staged_entry
+rationale_digest:
+- Valuation is above historical average but supported by growth [E-001]
+- Reduces concentration risk vs single stock [A-001]
+recommendation_confidence: 0.68
+recorded_at: '2026-08-02T19:49:53.642127Z'
+revision: 2
+schema_version: 1
+trigger: preliminary

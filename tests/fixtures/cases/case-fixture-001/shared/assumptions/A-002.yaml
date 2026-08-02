@@ -1,0 +1,19 @@
+assumption_id: A-002
+claim: NVDA revenue growth stays above 50% year over year for four quarters
+confidence: medium
+estimate:
+  adjustments: []
+  base_rate: null
+  interval_high: null
+  interval_low: null
+  method: structured_subjective
+  point: 0.55
+  reference_class: null
+  schema_version: 1
+evidence_against: []
+evidence_for:
+- E-002
+materiality: high
+schema_version: 1
+status: unresolved
+type: forecast

@@ -1,0 +1,80 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "budget_caps": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Budget Caps",
+      "type": "object"
+    },
+    "budget_counters": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Budget Counters",
+      "type": "object"
+    },
+    "by_role": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "title": "By Role",
+      "type": "object"
+    },
+    "event_counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Event Counts",
+      "type": "object"
+    },
+    "input_tokens": {
+      "default": 0,
+      "title": "Input Tokens",
+      "type": "integer"
+    },
+    "invocation_attempts": {
+      "default": 0,
+      "title": "Invocation Attempts",
+      "type": "integer"
+    },
+    "invocation_successes": {
+      "default": 0,
+      "title": "Invocation Successes",
+      "type": "integer"
+    },
+    "output_tokens": {
+      "default": 0,
+      "title": "Output Tokens",
+      "type": "integer"
+    },
+    "retries": {
+      "default": 0,
+      "title": "Retries",
+      "type": "integer"
+    },
+    "total_tokens": {
+      "default": 0,
+      "title": "Total Tokens",
+      "type": "integer"
+    },
+    "wall_clock_s": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Wall Clock S"
+    }
+  },
+  "title": "EffortView",
+  "type": "object"
+}

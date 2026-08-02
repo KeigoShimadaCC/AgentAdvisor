@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "assumption_id": {
+      "title": "Assumption Id",
+      "type": "string"
+    },
+    "claim": {
+      "title": "Claim",
+      "type": "string"
+    },
+    "confidence": {
+      "title": "Confidence",
+      "type": "string"
+    },
+    "estimate_point": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Estimate Point"
+    },
+    "evidence_against": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Against",
+      "type": "array"
+    },
+    "evidence_for": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence For",
+      "type": "array"
+    },
+    "materiality": {
+      "title": "Materiality",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "type": {
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "assumption_id",
+    "claim",
+    "type",
+    "status",
+    "materiality",
+    "confidence"
+  ],
+  "title": "AssumptionView",
+  "type": "object"
+}

@@ -1,0 +1,21 @@
+agreement: true
+divergence_summary: Both tracks independently preferred 'staged_entry'. Agreement
+  across model families is a weak positive signal, not evidence.
+positions:
+- model: cursor-grok-4.5-low
+  model_family: xai
+  preferred_alternative: staged_entry
+  recommendation_confidence: 0.68
+  schema_version: 1
+  top_reason: Valuation is above historical average but supported by growth [E-001]
+  track_id: track-a
+- model: composer-2.5
+  model_family: cursor-composer
+  preferred_alternative: staged_entry
+  recommendation_confidence: 0.68
+  schema_version: 1
+  top_reason: Valuation is above historical average but supported by growth [E-001]
+  track_id: track-b
+reconciled_alternative: null
+schema_version: 1
+stage: preliminary_recommendation
