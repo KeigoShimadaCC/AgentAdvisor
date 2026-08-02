@@ -100,7 +100,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-018 | Stage wiring (end-to-end pipeline) | in_progress |
+| SPEC-018 | Stage wiring (end-to-end pipeline) | verified |
 | SPEC-019 | User CLI | draft |
 | SPEC-020 | First real decision case | draft |
 
@@ -111,6 +111,8 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 - (2026-07-31) Analytical quality gap: analyst produced 0 analysis results. Root cause not yet investigated. This is the most important issue to fix before the next live run.
 - (2026-07-31) Cursor Pro usage limit hit after ~30 invocations. Resets 2026-08-30. Director/Synthesizer switched from `claude-opus-5-thinking-high` to `gpt-5.2`; Reviewer switched to `composer-2.5` for family diversity. All 5 scenarios in the second run failed at framing due to the overall usage limit.
 - (2026-07-31) Citation hooks fixed: skip validation when blackboard is empty (provisional thesis stage). Task graph budget kind fixed to `agent_invocations`. Synthesizer timeout increased to 600s.
+- (2026-08-02) **All 5 e2e scenarios completed successfully.** Average score 1.89/2.0 (94.4%). Four rounds of fixes applied: (1) analyst task dispatch mapping, (2) synthesis coercion + missing field defaults, (3) enum coercion for challenger, (4) model_stability consistency + dangling citation ID tolerance. 181 unit tests pass. Full details in `../report-and-findings/2026-08-02-e2e-final-evaluation.md`.
+- (2026-08-02) Key results: Decision completeness 2.00/2.0, Adversarial robustness 2.00/2.0, Traceability 2.00/2.0 across all scenarios. S04 achieved perfect 2.00/2.0. Weakest dimension: Evidence quality (1.53 avg, source authority scoring gap). No assumption records produced in any scenario (planner does not commission assumption-gathering tasks). 52% invocation success rate (99/207 failed). Coercion layer is critical for pipeline completion.
 
 ## Phase 5 — Evaluation and hardening [not_started]
 

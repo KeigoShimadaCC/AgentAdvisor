@@ -2,11 +2,11 @@
 id: SPEC-018
 title: Stage wiring (end-to-end pipeline)
 phase: 4
-status: in_progress
+status: verified
 depends_on: [SPEC-007, SPEC-008, SPEC-009, SPEC-010, SPEC-011, SPEC-012, SPEC-013, SPEC-014, SPEC-015, SPEC-016, SPEC-017]
 parallel_with: []
 north_star_refs: ["8", "14", "15"]
-last_updated: 2026-07-31
+last_updated: 2026-08-02
 ---
 
 # SPEC-018 — Stage wiring (end-to-end pipeline)
@@ -76,14 +76,19 @@ uv run pytest -m live_slow tests/test_pipeline_live.py -q   # ~10-15 cheap invoc
 
 ## Verification results
 
-**Unit tests**: 179 passed (including 13 live tests from Phase 3). `make check` green.
+**Unit tests**: 181 passed, 13 deselected (live tests). `make check` green. Stub pipeline test (`test_pipeline_stub.py`) verifies full 11-stage pipeline with `PipelineStubBackend`.
 
-**Live e2e (2026-07-31)**:
-- Scenario 01 reached synthesis (deepest run): 25 evidence, 4 objections, 8 tasks, 21 invocations (10 ok), 1.07M input tokens, score 1.23/2.0. Synthesis failed with 172 FinalRecommendation validation errors. Fix applied (YAML example in synthesizer.md), awaiting live re-test.
-- Scenarios 02-05: Failed at framing due to Cursor Pro usage limit (resets 2026-08-30).
-- Analytical quality: 0 analysis results produced (analyst issue under investigation).
-- Not yet tested: review stage, repair cycle, budget exhaustion, case resume, rendering.
-- Full report: `report-and-findings/2026-07-31-e2e-evaluation.md`
+**Live e2e (2026-08-02) — All 5 scenarios SUCCESS**:
+- S01 (Nvidia vs ETF): 1.77/2.0, 30 evidence, 7 objections, 1 analysis, 42 invocations
+- S02 (Angel check): 1.87/2.0, 23 evidence, 6 objections, 5 analysis, 38 invocations
+- S03 (Build vs buy): 1.87/2.0, 37 evidence, 6 objections, 5 analysis, 43 invocations
+- S04 (Career switch): 2.00/2.0, 35 evidence, 7 objections, 2 analysis, 43 invocations
+- S05 (Real estate): 1.93/2.0, 8 evidence, 6 objections, 7 analysis, 41 invocations
+- Average: 1.89/2.0 (94.4%). All scenarios produced valid FinalRecommendation.
+- 4 rounds of fixes applied: analyst dispatch, synthesis coercion, enum coercion, model_stability consistency + dangling ID tolerance.
+- Review stage, repair cycle, and stop decision all exercised successfully.
+- Not yet tested: budget exhaustion path, case resume, rendering.
+- Full report: `report-and-findings/2026-08-02-e2e-final-evaluation.md`
 
 ## Open questions
 
