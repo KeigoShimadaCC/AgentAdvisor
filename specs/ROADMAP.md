@@ -16,6 +16,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | not_started | 4 |
 | 6 | Think-tank architecture | in_progress | 4 |
+| 7 | Product surface | not_started | 4, 6 |
 
 **Current position (2026-08-02).** The pipeline runs end to end and all five benchmark scenarios completed at 1.89/2.0 average. SPEC-019 is now implemented, so a case is driven entirely by `advisor new | status | approve | resume | report | list` and the root README documents the walkthrough. Two things are open: Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI); Phase 6 tiers 1–3 are implemented and unit-verified but the before/after live comparison (SPEC-026) that justifies their cost is mid-flight. `make check` is green: lint, mypy, 313 unit tests, plus 17 live tests that are deselected by default.
 
@@ -160,6 +161,49 @@ think tank from a one-off engagement.
 - (2026-08-02) **Three defects found while running the SPEC-026 sweep, all fixed in `0d0be44`.** (a) `run_case` re-loaded state from disk while the `BudgetLedger` mutated a different object, so budget counters were never persisted: caps were per-process, not per-case, and a resumed case silently started spending again from zero. (b) `coerce_payload_for_model` skipped every `list[...] | None` field because `Optional` reaches the union branch of `get_origin` and the list predicates never unwrapped it; scenario 03 failed intake and scored 0.00 because of it. (c) A vague deadline ("this quarter") failed date validation outright; it now nulls, with the wording preserved in `raw_prompt` and `intake.md` instructing a clarification question instead of a guessed date. Scenarios 01 and 03 need re-running before the comparison is honest: 01 lost its dual track to the track B defect, 03 never started.
 - (2026-08-02) **Role definitions were teaching schemas the orchestrator rejects.** The analyst's own worked example used `method: base_rate` (not a `ProbabilityMethod`) and an adjustment shape of `{delta, reason, evidence_id}` instead of `{description, delta, evidence_ids}`, which accounts for most of the 30 validation failures in scenario 01. The researcher contract listed field names without types, so `directness: direct` and a bare-string `limitations` looked reasonable. Both rewritten in `a2ef43d`, along with a static check (`tests/test_role_contracts.py`) that validates every worked example against the schema its role config declares; it caught a fourth instance immediately in `synthesizer.md`. Separately, whole researcher batches were being discarded for unquoted colons in source titles, so the shared invocation prompt now carries a YAML quoting rule (`22077f5`). Early signal from scenario 04, which picked the fixes up mid-run: invocation success rose from 46% (scenario 01) and 57% (scenario 02) to 78%.
 
+## Phase 7 — Product surface [not_started]
+
+Promoted 2026-08-02 by user direction from the frontend discovery report at
+`phase-7-product-surface/frontend-discovery-report.md`. The report answers north star open
+question 21.12 (visual interface vs Markdown artifacts): the selected direction is a local-first
+web app in which each case is a single "living brief" with two signed checkpoint sheets, five
+inspection rooms, and four never-collapsed uncertainty encodings. The report also identified the
+engine defects that would make an honest UI impossible today (approval edits consumed by nothing,
+budget counters never persisted, unsafe resume, `done` ≠ review-passed, renderer citation spam);
+SPEC-027 to SPEC-031 close those first, SPEC-032/033 build the read model and service shell,
+SPEC-034 to SPEC-036 build the screens, and SPEC-037 verifies the whole product in a real
+browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smoke).
+
+**Specs**
+
+| Spec | Task | Status |
+|---|---|---|
+| SPEC-027 | Case control service and run supervisor | draft |
+| SPEC-028 | Framing revision loop and final send-back | draft |
+| SPEC-029 | Budget truth and disclosed stops | draft |
+| SPEC-030 | Safe resume and delivery-integrity persistence | draft |
+| SPEC-031 | Renderer and presentation-data fixes | draft |
+| SPEC-032 | CaseView projection, fixture case, generated frontend types | draft |
+| SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | draft |
+| SPEC-034 | Commissioning flow and scope checkpoint UI | draft |
+| SPEC-035 | Living brief, progress experience, delivery checkpoint UI | draft |
+| SPEC-036 | Rooms and record inspector | draft |
+| SPEC-037 | Frontend e2e suite in a real browser | draft |
+
+**Findings**
+
+- (2026-08-02) Discovery findings that shaped the specs, verified against the implementation and
+  the two real cases: approval is two booleans nothing external can set; `FramingApproval.edits`
+  and `clarification_answers` are written but never consumed; `state.yaml` `budget_counters` is
+  always `{}` (ledger aliasing), leaving `DisclosureRecord` unreachable; resume is non-idempotent
+  (zombie `active` tasks, workspace-archive `FileExistsError` → case `FAILED`, duplicate ID
+  minting on re-unpack); a case reaches `done` even when review fails after its single retry
+  (case-001 shipped exactly so); the renderer appends the full citation list to every bullet
+  (~40% of the reference report); coercion sentinels ("Not independently assessed",
+  `runs_total==1`) render as measurements. The only live progress signal is per-event-flushed
+  `audit.jsonl` (no `stage_started` event exists); StubBackend + archived real cases enable
+  full frontend development and three of SPEC-037's four e2e modes at zero token cost.
+
 ---
 
 ## Emergent work
@@ -185,6 +229,7 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 
 **Promoted**
 
+- Frontend product surface: discovery report + spec family SPEC-027…SPEC-037 → **Phase 7** (2026-08-02, user-directed)
 - Per-workspace permission profiles (`.cursor/cli.json`) → SPEC-006 (2026-07-30, spec review); implemented and verified 2026-07-31
 - Out-of-repo runtime workspaces + `assert_isolated` guard → SPEC-004/SPEC-006 (2026-07-31, forced by the leakage finding); implemented and verified
 - Per-task marginal-value gate → SPEC-009 (2026-07-31); implemented and verified
