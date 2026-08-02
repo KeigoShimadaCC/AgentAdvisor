@@ -19,21 +19,22 @@ from typing import Any
 
 import yaml  # type: ignore[import-untyped]
 
+from orchestrator import control
 from orchestrator.artifacts import (
     EvidenceRecord,
+    FinalApproval,
+    FinalDecision,
     FramingApproval,
     FramingDecision,
-    IntakeRecord,
     ObjectionRecord,
-    TaskRecord,
-    TaskStatus,
 )
 from orchestrator.backend import AgentBackend
 from orchestrator.budget import BudgetConfig
-from orchestrator.case_store import Case, create_case, default_cases_root, load_case
+from orchestrator.case_store import Case, default_cases_root, load_case
+from orchestrator.control import ControlError, ControlStatus
 from orchestrator.pipeline import DEFAULT_BUDGET, SMALL_BUDGET
-from orchestrator.pipeline import run as run_pipeline
-from orchestrator.state_machine import CaseStage, CaseState, load_case_state, save_case_state
+from orchestrator.state_machine import CaseStage, CaseState, load_case_state
+from orchestrator.supervisor import CaseLocked
 
 EXIT_OK = 0
 EXIT_USER_ERROR = 2
@@ -67,48 +68,30 @@ def _open_case(args: argparse.Namespace) -> Case:
 
 
 def _raw_prompt(case: Case) -> str:
-    """Recover the original prompt so a resumed case runs with the same input.
-
-    The intake record is the only place the user's words survive verbatim, which is
-    also why a case cannot be resumed before intake has produced one.
-    """
-    records = case.list_artifacts(IntakeRecord)
-    if not records:
-        raise UserError(
-            f"Case {case.root.name} has no intake record yet, so there is nothing to resume. "
-            "Start it with `advisor new`."
-        )
-    return records[0].raw_prompt
-
-
-def _task_counts(case: Case) -> dict[str, int]:
-    counts = {status.value: 0 for status in TaskStatus}
-    for record in case.list_artifacts(TaskRecord):
-        counts[record.status.value] += 1
-    return counts
+    """Recover the original prompt so a resumed case runs with the same input."""
+    try:
+        return control.raw_prompt_for(case)
+    except control.MissingPrompt as exc:
+        raise UserError(f"{exc} Start it with `advisor new`.") from exc
 
 
 def _awaiting(state: CaseState) -> str | None:
-    if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
-        return "framing approval"
-    if state.stage is CaseStage.AWAITING_FINAL_APPROVAL:
-        return "final approval"
-    return None
+    return control.awaiting_label(state)
 
 
-def _status_payload(case: Case, state: CaseState, budget: BudgetConfig) -> dict[str, Any]:
-    counters = state.budget_counters
+def _status_payload(case: Case, status: ControlStatus, budget: BudgetConfig) -> dict[str, Any]:
+    counters = status.budget_counters
     return {
-        "case_id": state.case_id,
-        "stage": state.stage.value,
-        "awaiting": _awaiting(state),
-        "repair_cycle": state.repair_cycle,
-        "synthesis_retries": state.synthesis_retries,
-        "framing_approved": state.framing_approved,
-        "final_approved": state.final_approved,
-        "failure_cause": state.failure_cause,
-        "updated_at": state.updated_at.isoformat(),
-        "tasks": _task_counts(case),
+        "case_id": status.case_id,
+        "stage": status.stage.value,
+        "awaiting": status.awaiting,
+        "repair_cycle": status.repair_cycle,
+        "synthesis_retries": status.synthesis_retries,
+        "framing_approved": status.framing_approved,
+        "final_approved": status.final_approved,
+        "failure_cause": status.failure_cause,
+        "updated_at": status.updated_at.isoformat(),
+        "tasks": status.task_counts,
         "budget": {
             "agent_invocations": [
                 counters.get("agent_invocations", 0),
@@ -122,7 +105,7 @@ def _status_payload(case: Case, state: CaseState, budget: BudgetConfig) -> dict[
                 counters.get("research_tasks", 0),
                 budget.max_research_tasks,
             ],
-            "repair_cycles": [state.repair_cycle, budget.max_repair_cycles],
+            "repair_cycles": [status.repair_cycle, budget.max_repair_cycles],
         },
         "artifacts": {
             "evidence": len(case.list_artifacts(EvidenceRecord)),
@@ -167,13 +150,15 @@ def _run(
     budget: BudgetConfig,
     backend: AgentBackend | None,
 ) -> CaseState:
-    return run_pipeline(
-        case,
-        raw_prompt=raw_prompt,
-        backend=backend,
-        budget_config=budget,
-        auto_approve=False,
-    )
+    try:
+        return control.run_to_halt(
+            case,
+            raw_prompt=raw_prompt,
+            budget=budget,
+            backend=backend,
+        )
+    except CaseLocked as exc:
+        raise UserError(str(exc)) from exc
 
 
 def _report_outcome(case: Case, state: CaseState) -> int:
@@ -205,8 +190,8 @@ def cmd_new(args: argparse.Namespace, backend: AgentBackend | None = None) -> in
         raise UserError("The decision prompt is empty.")
 
     try:
-        case = create_case(args.slug, cases_root=_cases_root(args))
-    except ValueError as exc:
+        case = control.new_case(prompt, slug=args.slug, cases_root=_cases_root(args))
+    except (ControlError, ValueError) as exc:
         raise UserError(str(exc)) from exc
 
     print(f"Created {case.root.name} at {case.root}")
@@ -222,8 +207,8 @@ def cmd_new(args: argparse.Namespace, backend: AgentBackend | None = None) -> in
 def cmd_status(args: argparse.Namespace, backend: AgentBackend | None = None) -> int:
     del backend
     case = _open_case(args)
-    state = load_case_state(case)
-    payload = _status_payload(case, state, BUDGET_PROFILES[args.budget_profile])
+    status = control.case_status(case)
+    payload = _status_payload(case, status, BUDGET_PROFILES[args.budget_profile])
 
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
@@ -273,21 +258,27 @@ def cmd_approve(args: argparse.Namespace, backend: AgentBackend | None = None) -
             "gate. Nothing to approve."
         )
 
-    if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
-        approval = _build_framing_approval(args)
-        case.write_artifact(approval)
-        state = state.model_copy(update={"framing_approved": True})
-        print(f"Recorded framing {approval.decision.value} for {state.case_id}.")
-    else:
-        if args.edit is not None or args.answers is not None:
-            raise UserError(
-                "--edit and --answers apply to the framing gate only. The final gate is a "
-                "plain approve or reject."
+    try:
+        if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
+            framing = _build_framing_approval(args)
+            state = control.approve_framing(case, framing)
+            print(f"Recorded framing {framing.decision.value} for {state.case_id}.")
+        else:
+            if args.edit is not None or args.answers is not None:
+                raise UserError(
+                    "--edit and --answers apply to the framing gate only. The final gate is a "
+                    "plain approve or reject."
+                )
+            final = FinalApproval(
+                decision=FinalDecision.ACCEPT,
+                approved_by="user",
+                approved_at=datetime.now(UTC),
             )
-        state = state.model_copy(update={"final_approved": True})
-        print(f"Approved the final recommendation for {state.case_id}.")
+            state = control.approve_final(case, final)
+            print(f"Approved the final recommendation for {state.case_id}.")
+    except (ControlError, CaseLocked) as exc:
+        raise UserError(str(exc)) from exc
 
-    save_case_state(case, state)
     state = _run(
         case,
         raw_prompt=_raw_prompt(case),

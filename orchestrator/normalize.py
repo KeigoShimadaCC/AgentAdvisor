@@ -60,6 +60,17 @@ _WIRE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 _UK_SECOND_LEVEL = frozenset({"ac", "co", "gov", "org"})
 _JP_SECOND_LEVEL = frozenset({"ac", "co", "ed", "go", "lg", "ne", "or"})
+_WIRE_GROUP_PREFIX = "wire-"
+_ORIGIN_GROUP_PREFIX = "origin-"
+_PUBLISHER_GROUP_PREFIX = "publisher-"
+UNCERTAIN_INDEPENDENCE_GROUP = "uncertain-source-cluster"
+# (marker, label, title-case the key). A domain keeps its own casing; a wire or
+# publisher slug reads better title-cased.
+_GROUP_KINDS: tuple[tuple[str, str, bool], ...] = (
+    (_WIRE_GROUP_PREFIX, "wire service", True),
+    (_ORIGIN_GROUP_PREFIX, "origin", False),
+    (_PUBLISHER_GROUP_PREFIX, "publisher", True),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,7 +155,6 @@ def normalize_evidence_batch(
     assert question is not None
     parsed_candidates: list[_Candidate] = []
     quarantined: list[QuarantinedEvidence] = []
-    question_slug = _slug(question) or "question"
 
     for ordinal, raw_record in enumerate(record_payloads):
         try:
@@ -209,7 +219,7 @@ def normalize_evidence_batch(
         deduped.append(candidate)
 
     as_of = max(candidate.record.retrieval_date for candidate in deduped)
-    grouped = _assign_conservative_independence_groups(deduped, question_slug=question_slug)
+    grouped = _assign_conservative_independence_groups(deduped)
     with_staleness: list[EvidenceRecord] = []
     stale_ids: set[str] = set()
     for record in grouped:
@@ -310,8 +320,16 @@ def write_quarantine_file(
 
 
 def _assign_conservative_independence_groups(
-    candidates: list[_Candidate], *, question_slug: str
+    candidates: list[_Candidate],
 ) -> list[EvidenceRecord]:
+    """Key groups on origin, never on the research question.
+
+    The question used to be part of the key, so the same publisher answering two
+    sub-questions counted as two independent sources and `max_cluster_share`
+    understated the concentration. Origin (the wire service, then the registrable
+    domain, then the publisher) is the property north star Section 10 actually
+    cares about: repeated coverage of one origin is one source.
+    """
     signature_to_group: dict[str, str] = {}
     grouped: list[EvidenceRecord] = []
     for candidate in candidates:
@@ -330,17 +348,45 @@ def _assign_conservative_independence_groups(
             wire_key = _wire_service_key(record)
             publisher_key = _slug(record.publisher)
             if wire_key:
-                group = f"{question_slug}-wire-{wire_key}"
-            elif publisher_key:
-                group = f"{question_slug}-publisher-{publisher_key}"
+                group = f"{_WIRE_GROUP_PREFIX}{wire_key}"
             elif candidate.origin != "unknown-origin":
-                group = f"{question_slug}-origin-{candidate.origin}"
+                group = f"{_ORIGIN_GROUP_PREFIX}{candidate.origin}"
+            elif publisher_key:
+                group = f"{_PUBLISHER_GROUP_PREFIX}{publisher_key}"
             else:
-                group = f"{question_slug}-uncertain-source-cluster"
+                group = UNCERTAIN_INDEPENDENCE_GROUP
         for signature in signatures:
             signature_to_group.setdefault(signature, group)
         grouped.append(record.model_copy(update={"independence_group": group}))
     return grouped
+
+
+def humanize_independence_group(group: str) -> str:
+    """Render an `independence_group` id as a label a reader can use.
+
+    Groups recorded before this keying scheme prefixed the same kind markers with
+    the research question, so the marker is matched anywhere in the id: recorded
+    groups are not migrated, but they must still not reach the reader as slugs.
+    An id carrying no marker is passed through, because inventing a label for an
+    id this module never minted would misdescribe it.
+    """
+    if group.endswith(UNCERTAIN_INDEPENDENCE_GROUP):
+        return "Uncertain source cluster"
+    for prefix, kind, titleize in _GROUP_KINDS:
+        if group.startswith(prefix):
+            key = group[len(prefix) :]
+        elif f"-{prefix}" in group:
+            key = group.rsplit(f"-{prefix}", 1)[1]
+        else:
+            continue
+        if not key:
+            continue
+        return f"{_titleize(key) if titleize else key} ({kind})"
+    return group
+
+
+def _titleize(slug: str) -> str:
+    return slug.replace("-", " ").title()
 
 
 def _independence_signatures(candidate: _Candidate) -> set[str]:

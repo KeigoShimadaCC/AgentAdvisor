@@ -34,9 +34,13 @@ silently mean "review failed." The discovery report's interrupted-run and integr
   tasks to `planned` (audit: `task_reset_on_resume`, payload lists task ids); called by
   `pipeline.run` when it loads a case in an active stage and by `control.resume` (SPEC-027's
   refusal is replaced by this path).
-- **Archive collisions** — `case_store.archive_agent_workspace`: on existing destination, archive
-  to `agents/<role>--<task_id>--rerun-<n>/` instead of raising; the invocation kit no longer
-  swallows `FileExistsError` as a validation failure.
+- ~~**Archive collisions**~~ — **landed early, 2026-08-03, under SPEC-028.**
+  `case_store.archive_agent_workspace` now archives a repeat run as
+  `agents/<role>--<task_id>--rerun-<n>/` instead of raising `FileExistsError`. It could not wait
+  for this spec: the framing/final revision loops make stage re-runs a designed occurrence, and
+  the collision failed the whole case (see SPEC-028's verification results). What remains here is
+  the invocation kit's habit of swallowing such errors as generic validation failures, which hid
+  the real cause.
 - **Idempotent unpack** — `orchestrator/unpack.py`: each unpack records a marker
   `shared/unpack_markers/<task_id>.yaml` (`{task_id, artifact_type, record_ids}`); re-unpacking
   the same task id is a no-op returning the recorded ids (audit: `unpack_skipped_duplicate`).
@@ -70,7 +74,7 @@ chronology. `review_accepted` is deliberately tri-state — `None` distinguishes
 ## Deliverables
 
 - [ ] `reconcile_orphans` + wiring in `pipeline.run` / `control.resume`
-- [ ] collision-safe workspace archiving (`--rerun-<n>`)
+- [x] collision-safe workspace archiving (`--rerun-<n>`) — landed 2026-08-03 under SPEC-028
 - [ ] unpack markers + duplicate guard; thesis duplicate guard
 - [ ] `CaseState.review_accepted` persisted from `handle_review`
 - [ ] `pipeline.prepare_resume`

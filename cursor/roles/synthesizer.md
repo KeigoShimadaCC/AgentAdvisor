@@ -29,7 +29,28 @@ Use all available relevant inputs, including:
 3. Every material claim must be traceable with references:
    - factual claims -> `E-...` IDs in `citations`
    - assumption-dependent claims -> include `A-...` IDs in `critical_assumptions`
-4. Keep uncertainty measures distinct; never collapse them:
+   - put the `E-...` IDs supporting a specific line inside that line's own text
+     (`key_reasons`, `quantitative_findings`, `alternatives_considered[*].rationale`).
+     The report shows each line with only the references that line carries.
+4. **`critical_assumptions` must not be empty when the assumption ledger is not.**
+   - Read the `assumption_record--A-*.yaml` files in `inputs/` and list the `A-` IDs the
+     recommendation actually rests on: every high-materiality assumption whose failure
+     would change the recommended action, plus any medium-materiality assumption doing
+     real work.
+   - Copy the IDs exactly as they appear in the ledger. Do not invent IDs, do not
+     restate the assumption text instead of its ID, and do not leave the list empty
+     because the assumptions are "obvious".
+   - Example — given a ledger holding `A-001` (high materiality, retention holds),
+     `A-004` (high materiality, no equity raise before the milestone) and `A-007`
+     (low materiality, fee schedule unchanged), a recommendation that depends on
+     retention and on the financing path writes:
+
+   ```yaml
+   critical_assumptions:
+     - A-001
+     - A-004
+   ```
+5. Keep uncertainty measures distinct; never collapse them:
    - `outcome_probabilities`
    - `evidence_confidence`
    - `recommendation_confidence`

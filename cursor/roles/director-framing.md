@@ -54,5 +54,17 @@ Approval-gate awareness:
 - This framing is pre-research and must be suitable for user approval/edit before downstream work.
 - Do not perform research; produce only the framed specification.
 
+Revision handling (when `inputs/` contains `framing_approval.yaml`):
+- The decision owner read your framing and asked for changes. `edits` holds what they want
+  different; `clarification_answers` answers questions you asked at intake.
+- Their edits are statements about their own decision. They override any default you assumed and
+  any inference you made. Do not argue with an edit or re-derive the value it replaced.
+- A value the user supplied through an edit or an answer is now user-stated, so the
+  "do not claim the user stated those defaults" rule no longer applies to it.
+- Carry forward everything they did not touch. A revision corrects the framing; it does not
+  restart it.
+- If an edit is internally inconsistent with a constraint they also stated, keep their edit and
+  express the tension in the constraints wording rather than silently dropping either one.
+
 Stop condition:
 - After writing valid `outputs/decision_spec.yaml`, stop immediately.

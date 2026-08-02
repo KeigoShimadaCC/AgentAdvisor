@@ -16,7 +16,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | not_started | 4 |
 | 6 | Think-tank architecture | done | 4 |
-| 7 | Product surface | not_started | 4, 6 |
+| 7 | Product surface | in_progress | 4, 6 |
 
 **Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). `make check` is green: lint, mypy, 313 unit tests, plus 17 live tests that are deselected by default.
 
@@ -162,7 +162,7 @@ think tank from a one-off engagement.
 - (2026-08-02) **Role definitions were teaching schemas the orchestrator rejects.** The analyst's own worked example used `method: base_rate` (not a `ProbabilityMethod`) and an adjustment shape of `{delta, reason, evidence_id}` instead of `{description, delta, evidence_ids}`, which accounts for most of the 30 validation failures in scenario 01. The researcher contract listed field names without types, so `directness: direct` and a bare-string `limitations` looked reasonable. Both rewritten in `a2ef43d`, along with a static check (`tests/test_role_contracts.py`) that validates every worked example against the schema its role config declares; it caught a fourth instance immediately in `synthesizer.md`. Separately, whole researcher batches were being discarded for unquoted colons in source titles, so the shared invocation prompt now carries a YAML quoting rule (`22077f5`). Early signal from scenario 04, which picked the fixes up mid-run: invocation success rose from 46% (scenario 01) and 57% (scenario 02) to 78%.
 - (2026-08-03) **Phase 6 comparison complete.** All five scenarios re-run with all fixes applied. Average score 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, input tokens 11.9M to 7.1M (-40%), wall clock 285 min to 202 min (-29%). Scenario 02 evidence quality flat at 1.33 is the remaining gap. Full report: `../report-and-findings/2026-08-03-phase-6-before-after.md`. SPEC-023 through SPEC-026 all verified.
 
-## Phase 7 — Product surface [not_started]
+## Phase 7 — Product surface [in_progress]
 
 Promoted 2026-08-02 by user direction from the frontend discovery report at
 `phase-7-product-surface/frontend-discovery-report.md`. The report answers north star open
@@ -179,11 +179,11 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-027 | Case control service and run supervisor | draft |
-| SPEC-028 | Framing revision loop and final send-back | draft |
+| SPEC-027 | Case control service and run supervisor | verified |
+| SPEC-028 | Framing revision loop and final send-back | verified |
 | SPEC-029 | Budget truth and disclosed stops | draft |
 | SPEC-030 | Safe resume and delivery-integrity persistence | draft |
-| SPEC-031 | Renderer and presentation-data fixes | draft |
+| SPEC-031 | Renderer and presentation-data fixes | verified |
 | SPEC-032 | CaseView projection, fixture case, generated frontend types | draft |
 | SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | draft |
 | SPEC-034 | Commissioning flow and scope checkpoint UI | draft |
@@ -193,6 +193,26 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 **Findings**
 
+- **(2026-08-03) SPEC-027, SPEC-028 and SPEC-031 implemented and verified; 601 unit tests green.**
+  The engine now has a shared control layer (`orchestrator/control.py`) that the CLI and any
+  future service both sit on, cross-process single-writer locking (`orchestrator/supervisor.py`),
+  a detached worker (`orchestrator/worker.py`), and the `FinalApproval` artifact — so the second
+  consent moment finally leaves an auditable record instead of only a boolean. Both gates can now
+  be sent back: framing revisions re-run framing (cap 2) and a final send-back re-runs synthesis
+  with the user's note (cap 1), with the caps in routing rather than in prompts.
+- **(2026-08-03) Two specs shrank because main had already overtaken them.** SPEC-019's CLI landed
+  gate mechanics inline, so SPEC-027 became an extraction plus the three things the CLI lacked
+  (callable API, cross-process lock, final-gate artifact) rather than a build from scratch; and
+  commit `0d0be44` had already fixed the budget-counter aliasing bug, which was SPEC-029's
+  headline item. Writing a spec against a moving repo means re-reading the code at implementation
+  time, not trusting the spec's account of the world.
+- **(2026-08-03) A user-visible revision loop needed a fix from a later spec.** The final
+  send-back re-ran the review stage, `archive_agent_workspace` raised `FileExistsError` on the
+  earlier run's archive, the invocation kit swallowed it as a validation failure, and the case
+  reached `FAILED`. Stage re-runs stop being a crash-recovery edge case once revisions exist, so
+  SPEC-030's collision-safe archiving (`--rerun-<n>`) landed early under SPEC-028. The related
+  weakness — the invocation kit reporting any archive error as a generic validation failure —
+  is still open in SPEC-030.
 - (2026-08-02) Discovery findings that shaped the specs, verified against the implementation and
   the two real cases: approval is two booleans nothing external can set; `FramingApproval.edits`
   and `clarification_answers` are written but never consumed; `state.yaml` `budget_counters` is

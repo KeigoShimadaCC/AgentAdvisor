@@ -19,6 +19,8 @@ from orchestrator.artifacts import (
     DisclosureRecord,
     EvidenceBatch,
     EvidenceRecord,
+    FinalApproval,
+    FinalDecision,
     FinalRecommendation,
     IntakeRecord,
     IssueTree,
@@ -72,6 +74,28 @@ def _audit(case: Case, event_type: str, payload: dict[str, Any]) -> None:
             event_type=event_type,
             payload=payload,
         )
+    )
+
+
+def _final_revision_note(case: Case, state: CaseState) -> str:
+    """What the decision owner asked for when they sent the recommendation back.
+
+    A review-driven retry and a user-driven revision are different events: the first fixes
+    defects the reviewer found, the second answers a person. Both can apply at once.
+    """
+    if not state.final_revisions:
+        return ""
+    try:
+        approval = case.read_artifact(FinalApproval)
+    except FileNotFoundError:
+        return ""
+    if approval.decision is not FinalDecision.REVISE or not approval.note.strip():
+        return ""
+    return (
+        "\nThe decision owner read this recommendation and sent it back with the following "
+        f"request:\n\n    {approval.note.strip()}\n\n"
+        "Address it directly. If what they ask for is not supported by the evidence, say so "
+        "explicitly in the recommendation rather than complying with an unsupported claim."
     )
 
 
@@ -275,12 +299,27 @@ class StageHandlers:
         return StepResult.ok()
 
     def handle_framing(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
+        assignment = (
+            "Produce a schema-valid decision specification from the provided intake input.\n"
+            f"Case ID: {case.root.name}\nOwner: user"
+        )
+        if state.framing_revisions:
+            # A revision: the user read the framing and asked for changes. Their edits and
+            # answers arrive as framing_approval.yaml alongside the spec they are correcting.
+            assignment += (
+                "\n\nThis is a REVISION. inputs/ contains the decision specification you "
+                "produced earlier and framing_approval.yaml, holding the decision owner's "
+                "edits and answers to your clarification questions. Produce a corrected "
+                "specification that incorporates every edit. Their edits are statements of "
+                "fact about their own decision: they override any default you assumed "
+                "before, and answered clarifications may now be attributed to the user."
+            )
+
+        revision = state.framing_revisions
+        task_id = f"T-framing-r{revision}" if revision else "T-framing"
         task = InvokeTask(
-            task_id="T-framing",
-            assignment=(
-                "Produce a schema-valid decision specification from the provided intake input.\n"
-                f"Case ID: {case.root.name}\nOwner: user"
-            ),
+            task_id=task_id,
+            assignment=assignment,
             output_artifact_type="decision_spec",
             timeout_s=DEFAULT_TIMEOUT_S,
         )
@@ -870,8 +909,10 @@ class StageHandlers:
                 "claim's citation does not support it, either cite evidence that does or "
                 "remove the claim; do not restate it with softer wording."
             )
+        retry_note += _final_revision_note(case, state)
+
         task = InvokeTask(
-            task_id=f"T-synthesis-{state.synthesis_retries}",
+            task_id=f"T-synthesis-{state.synthesis_retries}-{state.final_revisions}",
             assignment=(
                 "Integrate all artifacts into a FinalRecommendation.\n"
                 "Cover all Section 16 blocks: executive recommendation, confidence explanation, "
@@ -910,7 +951,7 @@ class StageHandlers:
             return StepResult.error(f"Review setup failed: {exc}")
 
         task = InvokeTask(
-            task_id=f"T-review-{state.synthesis_retries}",
+            task_id=f"T-review-{state.synthesis_retries}-{state.final_revisions}",
             assignment=(
                 "Verify the FinalRecommendation against the verification worksheet.\n"
                 "Return one citation verdict for EVERY item_id in the worksheet; a review "

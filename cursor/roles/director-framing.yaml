@@ -5,5 +5,7 @@ read_only: false
 allow_shell: false
 projection_include:
   - intake_record
+  - decision_spec
+  - framing_approval
 output_artifact_type: decision_spec
 model_tier: high

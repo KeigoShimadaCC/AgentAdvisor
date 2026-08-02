@@ -6,6 +6,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from orchestrator.artifacts.analysis import AnalysisResult
+from orchestrator.artifacts.approvals import FinalApproval
 from orchestrator.artifacts.assumptions import AssumptionBatch, AssumptionRecord
 from orchestrator.artifacts.audit import AuditEvent, AuditUsage
 from orchestrator.artifacts.audit_findings import AuditFinding
@@ -55,6 +56,7 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "evidence_batch": EvidenceBatch,
     "evidence_critique": EvidenceCritique,
     "evidence_record": EvidenceRecord,
+    "final_approval": FinalApproval,
     "final_recommendation": FinalRecommendation,
     "framing_approval": FramingApproval,
     "gate_report": GateReport,

@@ -2,119 +2,150 @@
 id: SPEC-027
 title: Case control service and run supervisor
 phase: 7
-status: draft
+status: verified
 depends_on: [SPEC-018]
 parallel_with: [SPEC-031]
 north_star_refs: ["5.4", "14", "15"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-027 — Case control service and run supervisor
 
 ## Summary
 
-A callable control layer over the case store and pipeline — create a case, report status, sign both
-approval gates, pause, resume — plus a supervisor that owns at most one pipeline worker process per
-case, enforces the single-writer rule across processes, and detects interrupted runs at startup.
-Today approval means hand-editing `state.yaml` and re-invoking `run()` in-process; the frontend
-(SPEC-033) and the user CLI (SPEC-019) both need one shared, audited entry point instead.
+A shared control layer over the case store and pipeline — create, status, sign both approval
+gates, run, pause, resume — plus a supervisor that enforces one writer per case across processes
+and can run a case in a detached worker. Every caller (the `advisor` CLI today, the web service
+in SPEC-033) goes through the same audited functions instead of reimplementing gate mechanics.
 
 ## Motivation
 
 North star Section 14 makes the user the decision owner and Section 15 requires the two consent
-moments to be real interactions. The state machine already parks at
-`awaiting_framing_approval` / `awaiting_final_approval`, but nothing outside the test suite can
-grant them. The discovery report (`frontend-discovery-report.md` §4.6, §17) identifies this as the
-single most important missing piece, and notes that the second gate currently sets
-`final_approved=True` without writing any auditable record at all.
+moments to be real interactions. The state machine parks at `awaiting_framing_approval` /
+`awaiting_final_approval`, and the discovery report
+(`frontend-discovery-report.md` §4.6, §17) identified the control surface as the frontend's
+first prerequisite.
+
+**Amended 2026-08-03 after SPEC-019 landed.** The `advisor` CLI (`orchestrator/cli.py`) now
+implements `new/status/approve/resume/report/list`, and `cmd_approve` already writes a
+`FramingApproval`, sets the flag and resumes. This spec therefore no longer builds gate mechanics
+from scratch; it **extracts** them into a reusable module and adds the three things the CLI still
+lacks, all of which the web service needs:
+
+1. a callable API that is not argparse-shaped, so a second caller does not duplicate the logic;
+2. cross-process single-writer enforcement — `case_store` documents one-process/many-threads, and
+   two concurrent runs on one case corrupt `counters.yaml` and interleave `audit.jsonl`;
+3. an auditable **final** approval record — `cmd_approve` currently flips `final_approved` with
+   no artifact, so the second consent moment leaves no trace (the first one does).
 
 ## Scope
 
-- `orchestrator/control.py` — synchronous control functions, all lock-guarded:
-  - `new_case(raw_prompt, *, slug, budget_profile, depth) -> CaseId` — creates the case and starts
-    a worker that runs to the first halt.
-  - `case_status(case_id) -> ControlStatus` — stage, approval waits, worker liveness, failure cause.
-  - `approve_framing(case_id, approval: FramingApproval)` — writes `shared/framing_approval.yaml`,
-    sets `framing_approved`, restarts the worker. Only `decision: approve` is handled here;
-    revision decisions are SPEC-028.
-  - `approve_final(case_id, approval: FinalApproval)` — writes `outputs/final_approval.yaml`, sets
-    `final_approved`, restarts the worker to completion.
-  - `pause(case_id)` — stops the worker (process-group SIGKILL, same mechanism as the backend
-    timeout); the case parks at its last checkpointed stage.
-  - `resume(case_id)` — restarts a worker for a parked or interrupted case (safe-resume
-    reconciliation is SPEC-030; until it lands, `resume` refuses cases with orphaned `active`
-    tasks and says why).
-- `orchestrator/artifacts/approvals.py` — `FinalApproval` model: `decision`
-  (`FinalDecision: accept | revise`), `note` (str, required when `revise`), `approved_by`,
-  `approved_at`. Registered in `case_store` singleton paths and `schema_export.MODEL_EXPORTS`.
-- `orchestrator/supervisor.py` — worker lifecycle: spawn `python -m orchestrator.worker <case-id>`
-  as a supervised child with its own process group; `.run.lock` advisory lockfile in the case
-  directory containing `{pid, started_at}`; `is_running`, `stop`, `interrupted_cases()` (case in
-  an active stage, no live worker, lock stale = pid dead).
-- `orchestrator/worker.py` — process entry point: load case, build the configured backend
-  (Cursor CLI by default, `AGENTADVISOR_BACKEND=stub` for tests), call `pipeline.run`, exit 0 on
-  clean halt (gate or done), nonzero on failure.
-- Control-plane audit events through the existing `Case.audit` channel:
-  `control_case_created`, `control_checkpoint_signed` (payload: gate, decision, edited fields),
-  `control_run_started`, `control_run_stopped`, `control_interrupted_detected`.
-- Every control mutation acquires the lockfile; a held lock raises `CaseLocked` with the holder's
-  pid and age.
+- `orchestrator/artifacts/approvals.py` — `FinalApproval` (`decision: FinalDecision`
+  = `accept | revise`, `note`, `approved_by`, `approved_at`), validator requiring a note on
+  `revise`. Registered in `case_store._artifact_path_for_write` at
+  `outputs/final_approval.yaml`, exported from `orchestrator.artifacts`, and added to
+  `schema_export.MODEL_EXPORTS`.
+- `orchestrator/supervisor.py`:
+  - `CaseLocked` exception carrying holder pid and lock age.
+  - `case_lock(case)` context manager over `<case>/.run.lock` created `O_CREAT|O_EXCL` holding
+    `{pid, started_at}`; a lock whose pid is dead is stale and is reclaimed.
+  - `running_pid(case)`, `is_running(case)`, `stop(case)` (process-group termination, mirroring
+    the backend's timeout kill), `interrupted_cases(cases_root)` — cases in a non-terminal,
+    non-gate stage with no live worker.
+  - `start_worker(case, ...)` — spawn `python -m orchestrator.worker` detached, return pid.
+- `orchestrator/worker.py` — `python -m orchestrator.worker <case-id>` entry point: resolves the
+  case, selects the backend, runs to the next halt, exits 0 on a clean halt and non-zero on
+  pipeline failure. Backend selection is an injection seam,
+  `AGENTADVISOR_BACKEND_FACTORY=module:callable`, defaulting to `CursorCLIBackend`; a plain
+  `=stub` value was rejected during implementation because `StubBackend` requires scripted
+  results, and hardcoding a test double in the orchestrator package would violate the backend
+  boundary.
+- `orchestrator/control.py` — the shared layer, all lock-guarded:
+  - `new_case(prompt, *, slug, cases_root)`, `raw_prompt_for(case)`
+  - `case_status(case) -> ControlStatus` (stage, awaiting, running pid, counters, failure cause)
+  - `approve_framing(case, approval)` / `approve_final(case, approval)` — write the artifact,
+    then set the flag, in that order, and audit `control_checkpoint_signed`
+  - `run_to_halt(case, ...)` — synchronous in-process run (what the CLI uses)
+  - `pause(case)`, `resume_allowed(case)`
+  - `WrongStage` error for gate operations at a non-gate stage.
+- `orchestrator/cli.py` refactored to call `control`; its user-visible behaviour, output and exit
+  codes are unchanged, and `advisor approve` at the final gate now writes the `FinalApproval`.
+- Control-plane audit events via `Case.audit`: `control_case_created`,
+  `control_checkpoint_signed`, `control_run_started`, `control_run_finished`,
+  `control_run_stopped`.
 
 ## Out of scope
 
-- HTTP surface, SSE, and the SPA (SPEC-033).
-- Framing edits/clarification answers and the final send-back path (SPEC-028).
-- Safe-resume reconciliation of orphaned tasks (SPEC-030).
-- Cooperative mid-invocation cancellation (kill-and-park is v1 pause).
-- The CLI command surface (SPEC-019 becomes a thin adapter over this module; its spec is amended
-  when implemented, not here).
+- HTTP surface, SSE and the SPA (SPEC-033).
+- Framing edits/answers actually re-shaping the spec, and the final send-back path (SPEC-028).
+  This spec records the user's decision; SPEC-028 makes `revise` route.
+- Orphaned-task reconciliation on resume (SPEC-030); `resume` here is the existing behaviour plus
+  the lock.
+- Cooperative mid-invocation cancellation — `pause` kills at the process boundary.
+- Any change to stage semantics or routing.
 
 ## Design
 
-Control functions are plain synchronous Python over public `case_store` / `state_machine` /
-`pipeline` APIs; they touch no orchestrator internals and add no new stage semantics. The worker
-is a separate OS process so `run()`'s 40–90 min blocking behavior never blocks a caller, a crashed
-run cannot take the service down, and browser/app lifetime is decoupled from run lifetime. The
-lockfile is created with `O_CREAT|O_EXCL`; staleness = recorded pid not alive. Approval writes go
-through `save_case_state` (atomic) after the artifact write, in that order, so a crash between the
-two leaves an artifact without a flag — recoverable — never a flag without a record.
+`control.py` holds no decision logic: it composes `case_store`, `state_machine` and `pipeline`
+exactly as the CLI does today, so extraction is behaviour-preserving and the CLI's existing tests
+keep passing unchanged. Approval writes go artifact-first, flag-second, so a crash between them
+leaves a record without a flag (recoverable and visible) rather than a flag with no record.
+
+Running is deliberately offered in two shapes: `run_to_halt` (synchronous, what a CLI wants) and
+`start_worker` (detached, what a web UI wants). Both take the same lock, so the two callers can
+never race. The lock is advisory and self-healing: a lockfile whose recorded pid is no longer
+alive is reclaimed and the reclamation is audited, so a killed run does not wedge a case.
 
 ## Deliverables
 
-- [ ] `orchestrator/control.py`
-- [ ] `orchestrator/supervisor.py`
-- [ ] `orchestrator/worker.py`
-- [ ] `orchestrator/artifacts/approvals.py` (`FinalApproval`, `FinalDecision`) + schema export +
-      case-store path registration
-- [ ] `tests/test_control.py`, `tests/test_supervisor.py` (StubBackend end-to-end)
-- [ ] regenerated `schemas/final_approval.schema.json`
+- [x] `orchestrator/artifacts/approvals.py` + case-store path + `orchestrator.artifacts` export
+- [x] `orchestrator/supervisor.py`
+- [x] `orchestrator/worker.py`
+- [x] `orchestrator/control.py`
+- [x] `orchestrator/cli.py` refactored onto `control`
+- [x] `schemas/final_approval.schema.json` regenerated
+- [x] `tests/test_control.py`, `tests/test_supervisor.py`
 
 ## Acceptance criteria
 
-- [ ] `new_case` with the stub backend returns once the case parks at
-      `awaiting_framing_approval`; `state.yaml` on disk matches; `control_case_created` and
-      `control_run_started` are in the audit log.
-- [ ] `approve_framing` writes `shared/framing_approval.yaml`, flips the flag, and the resumed
-      worker advances the case to `awaiting_final_approval` (stub run).
-- [ ] `approve_final` writes `outputs/final_approval.yaml` and the case reaches `done`; the gate-2
-      record exists for a non-auto-approved case for the first time.
-- [ ] A second control mutation while a worker holds the lock raises `CaseLocked`; a stale lock
-      (dead pid) is reclaimed and audited.
-- [ ] Killing the worker mid-run puts the case in `interrupted_cases()`; `pause` then `resume` on
-      a gate-parked case restarts cleanly.
-- [ ] `make check` passes.
+- [x] `control.new_case` + `run_to_halt` on the stub backend parks the case at
+      `awaiting_framing_approval`, and `control_case_created` / `control_run_started` /
+      `control_run_finished` are in the audit log.
+- [x] `approve_framing` writes `shared/framing_approval.yaml`, sets the flag, and the next
+      `run_to_halt` reaches `awaiting_final_approval`.
+- [x] `approve_final` writes `outputs/final_approval.yaml` — the first auditable record of the
+      second gate — and the case reaches `done`.
+- [x] `approve_framing` / `approve_final` at any other stage raise `WrongStage`.
+- [x] `FinalApproval(decision=revise)` without a note is rejected by the model validator.
+- [x] Entering `case_lock` twice raises `CaseLocked` naming the holder pid; a lock whose pid is
+      dead is reclaimed and the case runs.
+- [x] A case in a non-terminal, non-gate stage with no live worker appears in
+      `interrupted_cases`; a gate-parked case does not.
+- [x] `advisor` CLI behaviour is unchanged: the full `tests/test_cli.py` suite passes untouched.
+- [x] `make check` passes.
 
 ## Verification plan
 
 ```
-uv run pytest tests/test_control.py tests/test_supervisor.py -q
+uv run pytest tests/test_control.py tests/test_supervisor.py tests/test_cli.py -q
 make schemas && git diff --exit-code schemas/
 make check
 ```
 
 ## Verification results
 
-—
+**2026-08-03.** `make check` green: ruff, ruff format, mypy on 63 source files, 601 unit tests
+(17 live deselected). `tests/test_control.py` (19 tests) covers the lifecycle through both gates
+on `PipelineStubBackend`, the final-gate artifact, `WrongStage` at non-gate stages, the
+`revise`-without-note rejection, status reporting (including a live run detected through the
+lock), resume guards, and the control audit events. `tests/test_supervisor.py` (13 tests) covers
+lock acquisition and release, contention, release on exception, stale-pid and malformed-lock
+reclamation, killing a live holder's process group, and `interrupted_cases` classification
+(active stage vs gate vs terminal vs running).
+
+`tests/test_cli.py` passes unmodified, which is the behaviour-preservation evidence for the
+refactor. `make schemas` produced `schemas/final_approval.schema.json` and left every other
+schema byte-identical.
 
 ## Open questions
 

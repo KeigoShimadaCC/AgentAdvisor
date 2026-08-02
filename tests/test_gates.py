@@ -6,11 +6,13 @@ from pathlib import Path
 import pytest
 
 from orchestrator.artifacts import (
+    AlternativeAssessment,
     AssumptionRecord,
     AssumptionStatus,
     AssumptionType,
     ConfidenceAssessment,
     EvidenceRecord,
+    FinalRecommendation,
     GateSeverity,
     Level,
     ModelStability,
@@ -20,6 +22,7 @@ from orchestrator.artifacts import (
     PriorityLevel,
     ProbabilityEstimate,
     ProbabilityMethod,
+    ScenarioAssessment,
     SourceType,
     TaskRecord,
     TaskRole,
@@ -256,3 +259,95 @@ def test_unknown_stage_runs_no_checks_and_passes(case: Case) -> None:
 
     assert report.findings == []
     assert report.outcome is GateSeverity.PASS
+
+
+def _final_recommendation(*, critical_assumptions: list[str]) -> FinalRecommendation:
+    return FinalRecommendation(
+        recommended_action="invest_in_stages",
+        timing="This quarter.",
+        decision_confidence_summary="Staged entry survives the tested sensitivities.",
+        alternatives_considered=[
+            AlternativeAssessment(alternative="invest_in_stages", rank=1, rationale="Dominates.")
+        ],
+        key_reasons=["Retention held through the last two quarters [E-001]."],
+        scenario_analysis=[
+            ScenarioAssessment(
+                scenario_name="base",
+                summary="Growth stays near plan.",
+                probability=_prob(0.5),
+            )
+        ],
+        critical_assumptions=critical_assumptions,
+        next_actions=["Define tranche sizing."],
+        citations=["E-001"],
+        outcome_probabilities={"positive_return_12m": _prob(0.5)},
+        evidence_confidence=ConfidenceAssessment(value=0.6, basis="Mixed sources"),
+        recommendation_confidence=ConfidenceAssessment(value=0.6, basis="Balanced"),
+        model_stability=ModelStability(
+            share_of_sensitivity_runs_supporting_recommendation=1.0,
+            runs_total=2,
+            runs_supporting=2,
+        ),
+    )
+
+
+def _high_materiality_assumption(case: Case, assumption_id: str) -> None:
+    case.write_artifact(
+        AssumptionRecord(
+            assumption_id=assumption_id,
+            claim="Retention stays above 115% for four quarters.",
+            type=AssumptionType.FORECAST,
+            estimate=_prob(0.6),
+            confidence=Level.MEDIUM,
+            materiality=Level.HIGH,
+            evidence_for=["E-001"],
+            evidence_against=[],
+            status=AssumptionStatus.UNRESOLVED,
+        )
+    )
+
+
+def test_empty_critical_assumptions_against_a_populated_ledger_warns_at_synthesis(
+    case: Case,
+) -> None:
+    _evidence(case, "E-001")
+    _high_materiality_assumption(case, "A-001")
+    case.write_artifact(_final_recommendation(critical_assumptions=[]))
+
+    report = run_stage_gate(case, "synthesis")
+
+    finding = next(
+        item
+        for item in report.findings
+        if item.check_id == "synthesis.missing_critical_assumptions"
+    )
+    assert finding.severity is GateSeverity.WARN
+    assert finding.target_ids == ["A-001"]
+    assert report.passed
+
+
+def test_listed_critical_assumptions_keep_the_gate_silent(case: Case) -> None:
+    _evidence(case, "E-001")
+    _high_materiality_assumption(case, "A-001")
+    case.write_artifact(_final_recommendation(critical_assumptions=["A-001"]))
+
+    report = run_stage_gate(case, "synthesis")
+
+    assert not [
+        item
+        for item in report.findings
+        if item.check_id == "synthesis.missing_critical_assumptions"
+    ]
+
+
+def test_an_empty_ledger_does_not_warn_about_missing_critical_assumptions(case: Case) -> None:
+    _evidence(case, "E-001")
+    case.write_artifact(_final_recommendation(critical_assumptions=[]))
+
+    report = run_stage_gate(case, "synthesis")
+
+    assert not [
+        item
+        for item in report.findings
+        if item.check_id == "synthesis.missing_critical_assumptions"
+    ]

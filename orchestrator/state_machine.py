@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
@@ -45,6 +45,12 @@ class CaseState(ArtifactModel):
     budget_counters: dict[str, int] = Field(default_factory=dict)
     framing_approved: bool = False
     final_approved: bool = False
+    #: Set when the user asks for changes at a gate rather than approving it. The reducer
+    #: consumes the request: it routes backwards, counts the revision, and clears the flag.
+    pending_framing_revision: bool = False
+    pending_final_revision: bool = False
+    framing_revisions: int = Field(default=0, ge=0)
+    final_revisions: int = Field(default=0, ge=0)
     failure_cause: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -105,10 +111,17 @@ ACTIVE_STAGES: tuple[CaseStage, ...] = (
     CaseStage.AWAITING_FINAL_APPROVAL,
 )
 
+#: How many times the user may send the framing / the delivered recommendation back.
+#: Deterministic control owns the caps; north star 5.4 keeps them out of prompts.
+MAX_FRAMING_REVISIONS = 2
+MAX_FINAL_REVISIONS = 1
+
 ALLOWED_TRANSITIONS: dict[CaseStage, frozenset[CaseStage]] = {
     CaseStage.INTAKE: frozenset({CaseStage.FRAMING, CaseStage.FAILED}),
     CaseStage.FRAMING: frozenset({CaseStage.AWAITING_FRAMING_APPROVAL, CaseStage.FAILED}),
-    CaseStage.AWAITING_FRAMING_APPROVAL: frozenset({CaseStage.STRUCTURING, CaseStage.FAILED}),
+    CaseStage.AWAITING_FRAMING_APPROVAL: frozenset(
+        {CaseStage.STRUCTURING, CaseStage.FRAMING, CaseStage.FAILED}
+    ),
     CaseStage.STRUCTURING: frozenset({CaseStage.PROVISIONAL_THESIS, CaseStage.FAILED}),
     CaseStage.PROVISIONAL_THESIS: frozenset({CaseStage.PLANNING, CaseStage.FAILED}),
     CaseStage.PLANNING: frozenset({CaseStage.INVESTIGATION, CaseStage.FAILED}),
@@ -126,7 +139,9 @@ ALLOWED_TRANSITIONS: dict[CaseStage, frozenset[CaseStage]] = {
     CaseStage.REVIEW: frozenset(
         {CaseStage.AWAITING_FINAL_APPROVAL, CaseStage.SYNTHESIS, CaseStage.FAILED}
     ),
-    CaseStage.AWAITING_FINAL_APPROVAL: frozenset({CaseStage.DONE, CaseStage.FAILED}),
+    CaseStage.AWAITING_FINAL_APPROVAL: frozenset(
+        {CaseStage.DONE, CaseStage.SYNTHESIS, CaseStage.FAILED}
+    ),
     CaseStage.DONE: frozenset(),
     CaseStage.FAILED: frozenset(),
 }
@@ -214,6 +229,9 @@ class _Transition:
     stage: CaseStage
     repair_cycle: int
     synthesis_retries: int
+    #: Fields the reducer must also write. Revision routing has to reset the gate flag it
+    #: just consumed, or the gate would not hold the case a second time.
+    updates: Mapping[str, object] = field(default_factory=dict)
 
 
 def _resolve_next_stage(
@@ -221,6 +239,8 @@ def _resolve_next_stage(
     result: StepResult,
     max_repair_cycles: int,
     max_synthesis_retries: int,
+    max_framing_revisions: int = MAX_FRAMING_REVISIONS,
+    max_final_revisions: int = MAX_FINAL_REVISIONS,
 ) -> _Transition:
     if result.outcome is StepOutcome.ERROR:
         return _Transition(CaseStage.FAILED, state.repair_cycle, state.synthesis_retries)
@@ -241,10 +261,44 @@ def _resolve_next_stage(
         )
 
     if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
-        return _Transition(CaseStage.STRUCTURING, state.repair_cycle, state.synthesis_retries)
+        if state.pending_framing_revision and state.framing_revisions < max_framing_revisions:
+            # Back to framing with the user's edits. The gate flag is cleared so the
+            # revised framing has to be signed off in its own right.
+            return _Transition(
+                CaseStage.FRAMING,
+                state.repair_cycle,
+                state.synthesis_retries,
+                updates={
+                    "framing_approved": False,
+                    "pending_framing_revision": False,
+                    "framing_revisions": state.framing_revisions + 1,
+                },
+            )
+        return _Transition(
+            CaseStage.STRUCTURING,
+            state.repair_cycle,
+            state.synthesis_retries,
+            updates={"pending_framing_revision": False},
+        )
 
     if state.stage is CaseStage.AWAITING_FINAL_APPROVAL:
-        return _Transition(CaseStage.DONE, state.repair_cycle, state.synthesis_retries)
+        if state.pending_final_revision and state.final_revisions < max_final_revisions:
+            return _Transition(
+                CaseStage.SYNTHESIS,
+                state.repair_cycle,
+                state.synthesis_retries,
+                updates={
+                    "final_approved": False,
+                    "pending_final_revision": False,
+                    "final_revisions": state.final_revisions + 1,
+                },
+            )
+        return _Transition(
+            CaseStage.DONE,
+            state.repair_cycle,
+            state.synthesis_retries,
+            updates={"pending_final_revision": False},
+        )
 
     next_by_stage: dict[CaseStage, CaseStage] = {
         CaseStage.INTAKE: CaseStage.FRAMING,
@@ -272,22 +326,31 @@ def reduce(
     max_repair_cycles: int = 2,
     *,
     max_synthesis_retries: int = 1,
+    max_framing_revisions: int = MAX_FRAMING_REVISIONS,
+    max_final_revisions: int = MAX_FINAL_REVISIONS,
 ) -> CaseState:
     if state.stage in (CaseStage.DONE, CaseStage.FAILED):
         raise IllegalTransition(f"Illegal transition: {state.stage.name} -> <reduced>")
 
-    transition = _resolve_next_stage(state, result, max_repair_cycles, max_synthesis_retries)
+    transition = _resolve_next_stage(
+        state,
+        result,
+        max_repair_cycles,
+        max_synthesis_retries,
+        max_framing_revisions,
+        max_final_revisions,
+    )
     _next_or_raise(state.stage, transition.stage)
 
     failure_cause = result.error_cause if transition.stage is CaseStage.FAILED else None
-    return state.model_copy(
-        update={
-            "stage": transition.stage,
-            "repair_cycle": transition.repair_cycle,
-            "synthesis_retries": transition.synthesis_retries,
-            "failure_cause": failure_cause,
-        }
-    )
+    update: dict[str, object] = {
+        "stage": transition.stage,
+        "repair_cycle": transition.repair_cycle,
+        "synthesis_retries": transition.synthesis_retries,
+        "failure_cause": failure_cause,
+    }
+    update.update(transition.updates)
+    return state.model_copy(update=update)
 
 
 def _is_approval_granted(state: CaseState) -> bool:

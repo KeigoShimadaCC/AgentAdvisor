@@ -2,11 +2,11 @@
 id: SPEC-031
 title: Renderer and presentation-data fixes
 phase: 7
-status: draft
+status: verified
 depends_on: [SPEC-018]
 parallel_with: [SPEC-027, SPEC-028, SPEC-029]
 north_star_refs: ["9", "10", "16"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-031 — Renderer and presentation-data fixes
@@ -74,28 +74,30 @@ honest without touching its math.
 
 ## Deliverables
 
-- [ ] `orchestrator/artifacts/sentinels.py` (placeholder predicates)
-- [ ] renderer: per-bullet citation fix, sentinel rendering, pre-mortem section, group labels
-- [ ] normalize: origin-keyed `independence_group`
-- [ ] gate check `synthesis.missing_critical_assumptions` + synthesizer md amendment
-- [ ] thesis digest word-boundary truncation
-- [ ] tests: `tests/test_render.py` additions, `tests/test_normalize.py` additions,
-      `tests/test_gates.py` addition
+- [x] `orchestrator/artifacts/sentinels.py` (placeholder predicates)
+- [x] renderer: per-bullet citation fix, sentinel rendering, pre-mortem section, group labels
+- [x] normalize: origin-keyed `independence_group` + `humanize_independence_group`
+- [x] gate check `synthesis.missing_critical_assumptions` + synthesizer md amendment
+- [x] thesis digest word-boundary truncation
+- [x] tests: `tests/test_sentinels.py` (new) plus additions to `test_render.py`,
+      `test_normalize.py`, `test_gates.py`, `test_thesis.py`
 
 ## Acceptance criteria
 
-- [ ] Rendering the reference final-recommendation fixture yields no bullet carrying the full
+- [x] Rendering the reference final-recommendation fixture yields no bullet carrying the full
       shared citation list (assert a known key-reason line contains exactly its own inline ids);
       the evidence table is unchanged.
-- [ ] A fixture with `runs_total: 1` renders "not assessed" and no "0.0%" anywhere in the
+- [x] A fixture with `runs_total: 1` renders "not assessed" and no "0.0%" anywhere in the
       stability line; a coercion-basis confidence renders without a percentage.
-- [ ] A case with a `premortem_report.yaml` renders a "## Pre-mortem" section containing every
+- [x] A case with a `premortem_report.yaml` renders a "## Pre-mortem" section containing every
       failure mode and the most-likely marker; absent report → absent section.
-- [ ] Two evidence records from the same publisher answering different questions normalize into
+- [x] Two evidence records from the same publisher answering different questions normalize into
       one `independence_group` (unit), and the rendered table shows the human label.
-- [ ] The new gate warns on the reference fixture (ledger populated, `critical_assumptions`
-      empty) and stays silent when ids are present.
-- [ ] `make check` passes.
+- [x] The new gate warns when the ledger is populated and `critical_assumptions` is empty, and
+      stays silent when ids are present. *(Amended: the committed reference fixture has
+      `critical_assumptions: [A-001]` and is shared with `test_role_synthesis.py`, so the warn
+      case is constructed in-test rather than by editing that fixture.)*
+- [x] `make check` passes.
 
 ## Verification plan
 
@@ -106,7 +108,33 @@ make check
 
 ## Verification results
 
-—
+**2026-08-03.** `make check` green: ruff, ruff format, mypy on 63 source files, 603 unit tests
+(17 live deselected). Sentinel predicates additionally spot-checked outside the suite against
+live `ModelStability` / `ConfidenceAssessment` values: `runs_total=1` and the coercion basis
+return True, a 16/20 stability and a real basis return False.
+
+Judgement calls made during implementation, recorded because they differ from a literal reading
+of the spec:
+
+- **Sentinel strings are imported, not copied.** `sentinels.py` imports `_DEFAULT_FILLERS`,
+  `_CONFIDENCE_WORD_VALUES` and `_confidence_from_word` from `yaml_io.py` — private names, on
+  purpose. A second copy of the filler literals would drift, and a drifted sentinel fails
+  silently by re-labelling a placeholder as a measurement. `tests/test_sentinels.py` drives the
+  real coercion entry points so a `yaml_io` change breaks the test rather than the product.
+- **Human independence labels are best-effort for ids this code never minted.**
+  `humanize_independence_group` labels any id carrying a kind marker, including legacy
+  question-prefixed ones, but passes through markerless ids (the fixture's `aaa-q2-filing`)
+  rather than inventing a label — which is also what keeps the reference evidence table
+  byte-identical.
+- **Sentinel lines keep the `[calculation]` provenance label.** The text says "not assessed",
+  but the bullet was not re-labelled, so the six-label lexicon SPEC-032/033 key off stays
+  stable.
+- **The pre-mortem section omits referenced evidence/assumption ids**, which are not guaranteed
+  to appear in the recommendation's evidence table and would render as dangling references.
+- The render golden `tests/fixtures/roles/synthesis/replay/final_recommendation.md` was
+  regenerated: 8 bullets lost their appended citation spam. Byte-identity is still asserted, now
+  against the corrected golden, and the evidence-table rows are unchanged. No test was weakened
+  or deleted.
 
 ## Open questions
 

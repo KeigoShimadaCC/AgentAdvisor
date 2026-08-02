@@ -38,6 +38,7 @@ from orchestrator.artifacts import (
     EvidenceBatch,
     EvidenceCritique,
     EvidenceRecord,
+    FinalApproval,
     FinalRecommendation,
     FramingApproval,
     GateReport,
@@ -192,6 +193,8 @@ def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
         return case_root / "analysis" / f"{model.task_id}.analysis_result.yaml"
     if isinstance(model, AuditFinding):
         return case_root / "shared" / "audit_finding.yaml"
+    if isinstance(model, FinalApproval):
+        return case_root / "outputs" / "final_approval.yaml"
     if isinstance(model, ReviewReport):
         return case_root / "outputs" / "review_report.yaml"
     if isinstance(model, DisclosureRecord):
@@ -250,6 +253,8 @@ def _artifact_path_for_read(
         return case_root / "analysis" / f"{artifact_id}.analysis_result.yaml"
     if issubclass(model_type, AuditFinding):
         return case_root / "shared" / "audit_finding.yaml"
+    if issubclass(model_type, FinalApproval):
+        return case_root / "outputs" / "final_approval.yaml"
     if issubclass(model_type, ReviewReport):
         return case_root / "outputs" / "review_report.yaml"
     if issubclass(model_type, DisclosureRecord):
@@ -418,11 +423,23 @@ class Case:
         ]
 
     def archive_agent_workspace(self, role: str, task_id: str, workspace_path: Path) -> Path:
+        """Copy a finished agent workspace into the case, never overwriting an earlier one.
+
+        A stage can legitimately run twice — a user-requested revision, a resumed case, a
+        repair cycle — and the second run used to collide with the first run's archive. The
+        collision surfaced as an invocation failure and failed the whole case, so a repeat
+        is now archived alongside its predecessor rather than refused.
+        """
         if not workspace_path.is_dir():
             raise FileNotFoundError(f"Workspace path is not a directory: {workspace_path}")
-        destination = self.root / "agents" / f"{role}--{task_id}"
-        if destination.exists():
-            raise FileExistsError(f"Archive destination already exists: {destination}")
+
+        agents_dir = self.root / "agents"
+        destination = agents_dir / f"{role}--{task_id}"
+        rerun = 0
+        while destination.exists():
+            rerun += 1
+            destination = agents_dir / f"{role}--{task_id}--rerun-{rerun}"
+
         shutil.copytree(workspace_path, destination)
         return destination
 

@@ -21,6 +21,22 @@ from orchestrator.case_store import Case
 _EVIDENCE_RE = re.compile(r"\bE-\d+\b")
 _ASSUMPTION_RE = re.compile(r"\bA-\d+\b")
 _RATIONALE_DIGEST_CHARS = 220
+_ELLIPSIS = "…"
+
+
+def _digest(reason: str) -> str:
+    """Shorten a rationale to the digest length, cutting between words.
+
+    A mid-word cut reads as corrupted text and can truncate a citation id into
+    something that looks like a different id, so the cut falls back to the last
+    word boundary and says it was shortened.
+    """
+    if len(reason) <= _RATIONALE_DIGEST_CHARS:
+        return reason
+    window = reason[: _RATIONALE_DIGEST_CHARS - len(_ELLIPSIS)]
+    boundary = window.rfind(" ")
+    head = window[:boundary] if boundary > 0 else window
+    return f"{head.rstrip()}{_ELLIPSIS}"
 
 
 def load_ledger(case: Case) -> list[ThesisRevision]:
@@ -54,9 +70,7 @@ def record_thesis_revision(
             previous_alternative is not None
             and previous_alternative != recommendation.preferred_alternative
         ),
-        rationale_digest=[
-            reason[:_RATIONALE_DIGEST_CHARS] for reason in recommendation.rationale[:3]
-        ],
+        rationale_digest=[_digest(reason) for reason in recommendation.rationale[:3]],
         changed_because_evidence_ids=sorted(set(_EVIDENCE_RE.findall(joined_rationale))),
         changed_because_assumption_ids=sorted(set(_ASSUMPTION_RE.findall(joined_rationale))),
         changed_because_objection_ids=sorted(set(objection_ids or [])),

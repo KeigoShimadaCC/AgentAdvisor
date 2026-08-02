@@ -5,7 +5,7 @@
 - [recommendation] Timing: Start with a small tranche this quarter and gate follow-on on milestone checks.
 
 ## Decision confidence
-- [interpretation] Evidence favors staged entry, but downside concentration and one open objection remain material. [E-101] [E-102]
+- [interpretation] Evidence favors staged entry, but downside concentration and one open objection remain material.
 - [calculation] Recommendation confidence: 74.0% (basis: Staged entry dominates alternatives across most tested sensitivities.).
 - [calculation] Evidence confidence: 63.0% (basis: One high-directness filing plus one medium-confidence comparative study with stated limits.).
 - [calculation] Model stability: 80.0% (16/20 sensitivity runs support the recommendation).
@@ -13,21 +13,21 @@
 - [calculation] Outcome probability — total_loss: 20.0% via `scenario_model`. [E-101]
 
 ## Alternatives considered
-- [interpretation] Rank 1: `invest_in_stages` — Best downside-adjusted expected utility while retaining upside participation. [E-101] [E-102]
-- [interpretation] Rank 2: `wait_for_milestone` — Lowers downside further but gives up current entry option value. [E-101] [E-102]
-- [interpretation] Rank 3: `invest_now` — Highest upside capture but weakest downside protection under current uncertainty. [E-101] [E-102]
+- [interpretation] Rank 1: `invest_in_stages` — Best downside-adjusted expected utility while retaining upside participation.
+- [interpretation] Rank 2: `wait_for_milestone` — Lowers downside further but gives up current entry option value.
+- [interpretation] Rank 3: `invest_now` — Highest upside capture but weakest downside protection under current uncertainty.
 
 ## Key reasons
-- [interpretation] Downside concentration evidence remains material even after challenge-and-repair. [E-101] [E-102]
-- [interpretation] Staged entry preserves option value while unresolved uncertainty is monitored. [E-101] [E-102]
+- [interpretation] Downside concentration evidence remains material even after challenge-and-repair.
+- [interpretation] Staged entry preserves option value while unresolved uncertainty is monitored.
 
 ## Scenario analysis
 - [calculation] `upside`: Retention durability holds and growth remains above plan. (probability: 54.0%). [E-102]
 - [calculation] `downside`: Competitive pricing pressure compresses margins and slows growth. (probability: 27.0%). [E-101]
 
 ## Quantitative findings
-- [calculation] Expected utility favors staged entry by 8.5 points over invest_now in the base weighting. [E-101] [E-102]
-- [calculation] Recommendation remains unchanged in 16 of 20 sensitivity runs. [E-101] [E-102]
+- [calculation] Expected utility favors staged entry by 8.5 points over invest_now in the base weighting.
+- [calculation] Recommendation remains unchanged in 16 of 20 sensitivity runs.
 
 ## Strongest counterarguments
 - [interpretation] Counterargument (unresolved): Competitor discounting could invalidate near-term margin assumptions.

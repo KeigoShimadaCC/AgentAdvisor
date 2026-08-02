@@ -141,6 +141,36 @@ def _check_assumption_ledger(case: Case) -> list[GateFinding]:
     return []
 
 
+def _check_critical_assumptions(case: Case) -> list[GateFinding]:
+    """A populated ledger and an empty `critical_assumptions` list cannot both be true.
+
+    The root cause is synthesizer behaviour, not orchestrator code, so the gate
+    cannot repair it — but an omission this material must be loud rather than
+    silent, because the section the reader relies on renders as "none listed".
+    """
+    finals = case.list_artifacts(FinalRecommendation)
+    if not finals or finals[0].critical_assumptions:
+        return []
+    material = sorted(
+        record.assumption_id
+        for record in case.list_artifacts(AssumptionRecord)
+        if record.materiality is Level.HIGH
+    )
+    if not material:
+        return []
+    return [
+        GateFinding(
+            check_id="synthesis.missing_critical_assumptions",
+            severity=GateSeverity.WARN,
+            message=(
+                f"The ledger holds {len(material)} high-materiality assumption(s) but the final "
+                "recommendation lists no critical assumptions."
+            ),
+            target_ids=material,
+        )
+    ]
+
+
 def _check_evidence_independence(case: Case) -> list[GateFinding]:
     critiques = case.list_artifacts(EvidenceCritique)
     if not critiques:
@@ -324,7 +354,12 @@ _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "preliminary_recommendation": ("citation_integrity", "confidence_coherence"),
     "challenge": ("objection_resolution",),
     "repair": ("citation_integrity", "task_health"),
-    "synthesis": ("citation_integrity", "confidence_coherence", "objection_resolution"),
+    "synthesis": (
+        "citation_integrity",
+        "confidence_coherence",
+        "objection_resolution",
+        "critical_assumptions",
+    ),
 }
 
 
@@ -356,6 +391,8 @@ def run_stage_gate(
             findings.extend(_check_objection_resolution(case))
         elif check == "issue_coverage":
             findings.extend(_check_issue_coverage(case))
+        elif check == "critical_assumptions":
+            findings.extend(_check_critical_assumptions(case))
         elif check == "task_health":
             task_findings, immaterial = _check_task_health(case)
             findings.extend(task_findings)

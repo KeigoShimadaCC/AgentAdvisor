@@ -150,6 +150,30 @@ def test_empty_ledger_reports_no_revisions(case: Case) -> None:
     assert drift_summary(case) == {"revisions": 0, "changed_count": 0, "path": []}
 
 
+def test_long_rationale_is_truncated_at_a_word_boundary(case: Case) -> None:
+    reason = "Retention durability is the load-bearing input " * 12
+    revision = write_thesis(
+        case, _recommendation("staged_entry", rationale=[reason]), trigger=ThesisTrigger.PRELIMINARY
+    )
+    digest = revision.rationale_digest[0]
+
+    assert len(digest) <= 220
+    assert digest.endswith("…")
+    assert not digest[:-1].endswith(" ")
+    # The cut lands between words: every word in the digest is a whole word.
+    assert reason.split()[: len(digest[:-1].split())] == digest[:-1].split()
+
+
+def test_a_short_rationale_is_kept_verbatim(case: Case) -> None:
+    revision = write_thesis(
+        case,
+        _recommendation("staged_entry", rationale=["Growth is strong [E-001]"]),
+        trigger=ThesisTrigger.PRELIMINARY,
+    )
+
+    assert revision.rationale_digest == ["Growth is strong [E-001]"]
+
+
 def test_every_revision_is_audited(case: Case) -> None:
     write_thesis(case, _recommendation("staged_entry"), trigger=ThesisTrigger.PROVISIONAL)
 
