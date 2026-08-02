@@ -2,7 +2,7 @@
 id: SPEC-021
 title: Benchmark cases and single-agent baseline
 phase: 5
-status: draft
+status: in_progress
 depends_on: [SPEC-020]
 parallel_with: []
 north_star_refs: ["19", "18"]
@@ -37,10 +37,10 @@ Unattended operation is the main new mechanics: `advisor` gains nothing; runners
 
 ## Deliverables
 
-- [ ] `benchmarks/cases/*.yaml` (≥3), `benchmarks/rubric.yaml`
-- [ ] `scripts/run_baseline.py`, `scripts/run_benchmarks.py`
-- [ ] `benchmarks/results/<case>/{baseline,workflow}/summary.json` for all cases
-- [ ] `tests/test_benchmark_configs.py` (configs parse, rubric weights sum correctly)
+- [x] `benchmarks/cases/*.yaml` (≥3), `benchmarks/rubric.yaml`
+- [x] `scripts/run_baseline.py`, `scripts/run_benchmarks.py`
+- [ ] `benchmarks/results/<case>/{baseline,workflow}/summary.json` for all cases (requires live CLI)
+- [x] `tests/test_benchmark_configs.py` (configs parse, rubric weights sum correctly)
 
 ## Acceptance criteria
 

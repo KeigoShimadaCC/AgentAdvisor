@@ -14,7 +14,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 2 | Orchestrator core | done | 0 (parallel with 1) |
 | 3 | Roles | done | 1, 0.3 (role specs mutually parallel) |
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
-| 5 | Evaluation and hardening | not_started | 4 |
+| 5 | Evaluation and hardening | in_progress | 4 |
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | not_started | 4, 6 |
 
@@ -128,12 +128,12 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-021 | Benchmark cases and single-agent baseline | draft |
+| SPEC-021 | Benchmark cases and single-agent baseline | in_progress |
 | SPEC-022 | Comparative evaluation and DoD audit | draft |
 
 **Findings**
 
-- —
+- (2026-08-03) SPEC-021 scripts and tests implemented without live CLI: `scripts/run_baseline.py` (single-shot Cursor CLI invocation with Section 16 output template), `scripts/run_benchmarks.py` (workflow runner reusing `run_scenario` with pre-seeded approvals, copies final package to `benchmarks/results/<case>/workflow/`). `tests/test_benchmark_configs.py` extended with budget profile validation, framing approval decision check, Section 18 dimension coverage, and script existence checks. 5 new tests, suite now 527. Live baseline+workflow runs still needed to produce `summary.json` results.
 
 ## Phase 6 — Think-tank architecture [done]
 

@@ -16,6 +16,8 @@ SCENARIO_REQUIRED_KEYS = {
     "notes",
 }
 
+VALID_BUDGET_PROFILES = {"small", "default"}
+
 
 def _load_yaml(path: Path) -> dict:
     loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -33,6 +35,25 @@ def test_all_five_scenarios_parse_and_have_required_fields() -> None:
             assert key in scenario, f"{path} missing '{key}'"
         framing_approval = scenario["framing_approval"]
         assert isinstance(framing_approval, dict), f"{path} framing_approval must be mapping"
+
+
+def test_scenario_budget_profiles_are_valid() -> None:
+    for path in sorted(SCENARIOS_DIR.glob("scenario-*.yaml")):
+        scenario = _load_yaml(path)
+        profile = scenario.get("budget_profile")
+        assert profile in VALID_BUDGET_PROFILES, (
+            f"{path} has budget_profile={profile!r}, expected one of {VALID_BUDGET_PROFILES}"
+        )
+
+
+def test_framing_approval_has_decision_field() -> None:
+    for path in sorted(SCENARIOS_DIR.glob("scenario-*.yaml")):
+        scenario = _load_yaml(path)
+        approval = scenario["framing_approval"]
+        assert "decision" in approval, f"{path} framing_approval missing 'decision'"
+        assert approval["decision"] in ("approve", "reject"), (
+            f"{path} framing_approval.decision={approval['decision']!r}"
+        )
 
 
 def test_rubric_parses_and_dimension_weights_positive() -> None:
@@ -65,3 +86,27 @@ def test_rubric_criterion_ids_are_unique() -> None:
             ids.append(criterion_id)
 
     assert len(ids) == len(set(ids)), "criterion IDs must be unique"
+
+
+def test_rubric_covers_all_six_section_18_dimensions() -> None:
+    """North star Section 18 defines six dimensions; the rubric must cover all."""
+    rubric = _load_yaml(RUBRIC_PATH)
+    dimensions = rubric["dimensions"]
+    expected = {
+        "decision_completeness",
+        "evidence_quality",
+        "analytical_quality",
+        "adversarial_robustness",
+        "traceability",
+    }
+    actual = set(dimensions.keys())
+    missing = expected - actual
+    assert not missing, f"Rubric missing dimensions: {missing}"
+
+
+def test_baseline_runner_script_exists() -> None:
+    assert (REPO_ROOT / "scripts" / "run_baseline.py").exists()
+
+
+def test_benchmark_runner_script_exists() -> None:
+    assert (REPO_ROOT / "scripts" / "run_benchmarks.py").exists()
