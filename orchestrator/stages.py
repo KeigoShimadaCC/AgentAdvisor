@@ -963,6 +963,11 @@ class StageHandlers:
                 disclosure = case.read_artifact(DisclosureRecord)
             except FileNotFoundError:
                 pass
+            premortem: PreMortemReport | None = None
+            try:
+                premortem = case.read_artifact(PreMortemReport)
+            except FileNotFoundError:
+                pass
 
             write_final_recommendation_markdown(
                 case.root,
@@ -970,6 +975,7 @@ class StageHandlers:
                 evidence,
                 disclosure_record=disclosure,
                 user_supplied_inputs=[self._raw_prompt],
+                premortem_report=premortem,
             )
         except FileNotFoundError as exc:
             return StepResult.error(f"Render failed: {exc}")

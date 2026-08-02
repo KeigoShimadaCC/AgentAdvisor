@@ -317,6 +317,33 @@ def _check_task_health(case: Case) -> tuple[list[GateFinding], list[str]]:
     return findings, immaterial
 
 
+def _check_missing_critical_assumptions(case: Case) -> list[GateFinding]:
+    """Warn when the assumption ledger has high-materiality assumptions but
+    FinalRecommendation.critical_assumptions is empty."""
+    recs = case.list_artifacts(FinalRecommendation)
+    if not recs:
+        return []
+    rec = recs[0]
+    if rec.critical_assumptions:
+        return []
+    assumptions = case.list_artifacts(AssumptionRecord)
+    high_materiality = [a.assumption_id for a in assumptions if a.materiality is Level.HIGH]
+    if not high_materiality:
+        return []
+    return [
+        GateFinding(
+            check_id="synthesis.missing_critical_assumptions",
+            severity=GateSeverity.WARN,
+            message=(
+                f"The assumption ledger has {len(high_materiality)} high-materiality "
+                "assumption(s) but the FinalRecommendation lists no critical assumptions. "
+                "The synthesizer should reference load-bearing A- ids."
+            ),
+            target_ids=high_materiality,
+        )
+    ]
+
+
 _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "investigation": ("task_health", "analysis_presence"),
     "evidence_critique": ("evidence_independence",),
@@ -324,7 +351,12 @@ _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "preliminary_recommendation": ("citation_integrity", "confidence_coherence"),
     "challenge": ("objection_resolution",),
     "repair": ("citation_integrity", "task_health"),
-    "synthesis": ("citation_integrity", "confidence_coherence", "objection_resolution"),
+    "synthesis": (
+        "citation_integrity",
+        "confidence_coherence",
+        "objection_resolution",
+        "missing_critical_assumptions",
+    ),
 }
 
 
@@ -360,6 +392,8 @@ def run_stage_gate(
             task_findings, immaterial = _check_task_health(case)
             findings.extend(task_findings)
             cancellable.extend(immaterial)
+        elif check == "missing_critical_assumptions":
+            findings.extend(_check_missing_critical_assumptions(case))
 
     cancelled: list[str] = []
     if cancellable and task_graph is not None:

@@ -23,6 +23,18 @@ _ASSUMPTION_RE = re.compile(r"\bA-\d+\b")
 _RATIONALE_DIGEST_CHARS = 220
 
 
+def _truncate_at_word_boundary(text: str, max_chars: int) -> str:
+    """Truncate text to at most max_chars, breaking at a word boundary with ellipsis."""
+    if len(text) <= max_chars:
+        return text
+    truncated = text[:max_chars]
+    # Walk back to the last whitespace
+    last_space = truncated.rfind(" ")
+    if last_space > max_chars * 0.5:  # only break at word if we keep >50% of the budget
+        truncated = truncated[:last_space]
+    return truncated.rstrip() + "…"
+
+
 def load_ledger(case: Case) -> list[ThesisRevision]:
     return sorted(case.list_artifacts(ThesisRevision), key=lambda entry: entry.revision)
 
@@ -55,7 +67,8 @@ def record_thesis_revision(
             and previous_alternative != recommendation.preferred_alternative
         ),
         rationale_digest=[
-            reason[:_RATIONALE_DIGEST_CHARS] for reason in recommendation.rationale[:3]
+            _truncate_at_word_boundary(reason, _RATIONALE_DIGEST_CHARS)
+            for reason in recommendation.rationale[:3]
         ],
         changed_because_evidence_ids=sorted(set(_EVIDENCE_RE.findall(joined_rationale))),
         changed_because_assumption_ids=sorted(set(_ASSUMPTION_RE.findall(joined_rationale))),

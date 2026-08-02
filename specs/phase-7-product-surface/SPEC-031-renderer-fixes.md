@@ -2,7 +2,7 @@
 id: SPEC-031
 title: Renderer and presentation-data fixes
 phase: 7
-status: draft
+status: in_progress
 depends_on: [SPEC-018]
 parallel_with: [SPEC-027, SPEC-028, SPEC-029]
 north_star_refs: ["9", "10", "16"]
@@ -74,12 +74,12 @@ honest without touching its math.
 
 ## Deliverables
 
-- [ ] `orchestrator/artifacts/sentinels.py` (placeholder predicates)
-- [ ] renderer: per-bullet citation fix, sentinel rendering, pre-mortem section, group labels
-- [ ] normalize: origin-keyed `independence_group`
-- [ ] gate check `synthesis.missing_critical_assumptions` + synthesizer md amendment
-- [ ] thesis digest word-boundary truncation
-- [ ] tests: `tests/test_render.py` additions, `tests/test_normalize.py` additions,
+- [x] `orchestrator/artifacts/sentinels.py` (placeholder predicates)
+- [x] renderer: per-bullet citation fix, sentinel rendering, pre-mortem section, group labels
+- [x] normalize: origin-keyed `independence_group`
+- [x] gate check `synthesis.missing_critical_assumptions` + synthesizer md amendment
+- [x] thesis digest word-boundary truncation
+- [x] tests: `tests/test_render.py` additions, `tests/test_normalize.py` additions,
       `tests/test_gates.py` addition
 
 ## Acceptance criteria

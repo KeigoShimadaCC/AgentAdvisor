@@ -76,3 +76,52 @@ def test_provenance_labels_present() -> None:
     )
 
     assert all(label in rendered for label in expected_labels)
+
+
+def test_no_bullet_carries_the_full_shared_citation_list() -> None:
+    """SPEC-031: individual bullets must not append the case-wide citation list."""
+    rendered = _render_sample(with_disclosure=True)
+    # The key reasons section should not contain shared citations
+    key_reasons_section = rendered.split("## Key reasons")[1].split("##")[0]
+    assert "[E-101]" not in key_reasons_section
+    assert "[E-102]" not in key_reasons_section
+    # The alternatives section should not contain shared citations
+    alt_section = rendered.split("## Alternatives considered")[1].split("##")[0]
+    assert "[E-101]" not in alt_section
+    assert "[E-102]" not in alt_section
+
+
+def test_sentinel_model_stability_renders_as_not_assessed() -> None:
+    """SPEC-031: placeholder model stability renders as 'not assessed' not '0.0%'."""
+    from orchestrator.artifacts.sentinels import model_stability_render_label
+    from orchestrator.artifacts.stability import ModelStability
+
+    placeholder = ModelStability(
+        share_of_sensitivity_runs_supporting_recommendation=0.0,
+        runs_total=1,
+        runs_supporting=0,
+    )
+    label = model_stability_render_label(placeholder)
+    assert "not assessed" in label
+    assert "0.0%" not in label
+
+
+def test_sentinel_confidence_renders_without_percentage() -> None:
+    """SPEC-031: coercion-default confidence renders without a percentage."""
+    from orchestrator.artifacts.confidence import ConfidenceAssessment
+    from orchestrator.artifacts.sentinels import confidence_render_label
+
+    placeholder = ConfidenceAssessment(value=0.5, basis="Not independently assessed")
+    label = confidence_render_label(placeholder)
+    assert "Not assessed" in label
+    assert "50.0%" not in label
+
+
+def test_independence_group_label_strips_question_prefix() -> None:
+    """SPEC-031: independence group labels should be human-readable."""
+    from orchestrator.render import _independence_group_label
+
+    assert _independence_group_label("invest-public-equity-publisher-bloomberg") == "Bloomberg"
+    assert _independence_group_label("question-origin-nyt-com") == "Nyt Com"
+    assert _independence_group_label("wire-associated-press") == "Associated Press"
+    assert _independence_group_label("uncertain-source-cluster") == "Uncertain source"

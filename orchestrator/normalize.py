@@ -312,6 +312,11 @@ def write_quarantine_file(
 def _assign_conservative_independence_groups(
     candidates: list[_Candidate], *, question_slug: str
 ) -> list[EvidenceRecord]:
+    # Independence groups are keyed by origin (publisher/domain), not by
+    # question+publisher, so the same origin across two research questions
+    # forms one group.  The question_slug parameter is retained for backward
+    # compatibility but no longer prefixes the group key.
+    del question_slug
     signature_to_group: dict[str, str] = {}
     grouped: list[EvidenceRecord] = []
     for candidate in candidates:
@@ -330,13 +335,13 @@ def _assign_conservative_independence_groups(
             wire_key = _wire_service_key(record)
             publisher_key = _slug(record.publisher)
             if wire_key:
-                group = f"{question_slug}-wire-{wire_key}"
+                group = f"wire-{wire_key}"
             elif publisher_key:
-                group = f"{question_slug}-publisher-{publisher_key}"
+                group = f"publisher-{publisher_key}"
             elif candidate.origin != "unknown-origin":
-                group = f"{question_slug}-origin-{candidate.origin}"
+                group = f"origin-{candidate.origin}"
             else:
-                group = f"{question_slug}-uncertain-source-cluster"
+                group = "uncertain-source-cluster"
         for signature in signatures:
             signature_to_group.setdefault(signature, group)
         grouped.append(record.model_copy(update={"independence_group": group}))

@@ -29,6 +29,9 @@ Use all available relevant inputs, including:
 3. Every material claim must be traceable with references:
    - factual claims -> `E-...` IDs in `citations`
    - assumption-dependent claims -> include `A-...` IDs in `critical_assumptions`
+   - **`critical_assumptions` must list the load-bearing `A-` IDs from the provided
+     assumption ledger.** Leaving it empty when the ledger has high-materiality
+     assumptions is a defect the process gate will flag.
 4. Keep uncertainty measures distinct; never collapse them:
    - `outcome_probabilities`
    - `evidence_confidence`
