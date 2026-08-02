@@ -151,6 +151,34 @@ def _coerce_enum_value(enum_class: type[StrEnum], value: Any) -> Any:
     return value
 
 
+# Weaker models answer a calibrated-confidence field with the word they would use in
+# prose. The level is recoverable; the point of the conversion is that the substitution
+# is recorded in `basis` rather than passed off as a real assessment.
+_CONFIDENCE_WORD_VALUES: dict[str, float] = {
+    "very low": 0.1,
+    "low": 0.25,
+    "medium": 0.5,
+    "moderate": 0.5,
+    "high": 0.75,
+    "very high": 0.9,
+}
+
+
+def _confidence_from_word(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, str):
+        return None
+    numeric = _CONFIDENCE_WORD_VALUES.get(value.strip().lower())
+    if numeric is None:
+        return None
+    return {
+        "value": numeric,
+        "basis": (
+            f"Converted from the qualitative level '{value.strip()}'; the role did not supply "
+            "a calibrated assessment."
+        ),
+    }
+
+
 def _fix_model_stability_consistency(payload: Any) -> Any:
     """Fix ModelStability share/runs consistency.
 
@@ -257,6 +285,14 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
             if coerced_nested is not value:
                 coerced[field_name] = coerced_nested
                 changed = True
+
+        elif _is_model_type(annotation) and isinstance(value, str):
+            nested_type = _base_type(annotation)
+            if nested_type.__name__ == "ConfidenceAssessment":
+                from_word = _confidence_from_word(value)
+                if from_word is not None:
+                    coerced[field_name] = from_word
+                    changed = True
 
     return coerced if changed else payload
 
