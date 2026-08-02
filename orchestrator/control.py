@@ -21,7 +21,10 @@ from pydantic import BaseModel
 from orchestrator.artifacts import (
     AuditEvent,
     FinalApproval,
+    FinalDecision,
     FramingApproval,
+    FramingDecision,
+    IntakeField,
     TaskRecord,
     TaskStatus,
 )
@@ -29,9 +32,12 @@ from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, create_case, default_cases_root, load_case
 from orchestrator.pipeline import DEFAULT_BUDGET, SMALL_BUDGET
 from orchestrator.state_machine import (
+    MAX_FINAL_REVISIONS,
+    MAX_FRAMING_REVISIONS,
     CaseStage,
     CaseState,
     load_case_state,
+    revision_transition,
     save_case_state,
 )
 from orchestrator.supervisor import CaseLocked, RunLock
@@ -74,6 +80,32 @@ class ResumeBlocked(RuntimeError):
         super().__init__(
             f"Cannot resume {case_id}: {len(active_task_ids)} orphaned active task(s) "
             f"remain ({', '.join(active_task_ids)}). Safe-resume reconciliation is SPEC-030."
+        )
+
+
+class WrongStage(ValueError):
+    """Raised when a control action is attempted at the wrong case stage."""
+
+    def __init__(self, case_id: str, action: str, actual_stage: str, expected_stage: str) -> None:
+        self.case_id = case_id
+        self.action = action
+        self.actual_stage = actual_stage
+        self.expected_stage = expected_stage
+        super().__init__(
+            f"Case {case_id} is at stage '{actual_stage}', not '{expected_stage}' "
+            f"(required for {action})."
+        )
+
+
+class RevisionCapReached(ValueError):
+    """Raised when a revision request exceeds the cap."""
+
+    def __init__(self, case_id: str, gate: str, cap: int) -> None:
+        self.case_id = case_id
+        self.gate = gate
+        self.cap = cap
+        super().__init__(
+            f"Case {case_id}: {gate} revision cap reached ({cap}). No further revisions allowed."
         )
 
 
@@ -263,6 +295,149 @@ def approve_final(
                 "gate": "final",
                 "decision": approval.decision.value,
                 "approved_by": approval.approved_by,
+            },
+        )
+    finally:
+        lock.release()
+
+    _audit(case, "control_run_started", {"case_id": case_id})
+    _run_worker_to_halt(case_id, root)
+
+
+def request_framing_revision(
+    case_id: str,
+    *,
+    edits: dict[str, object],
+    clarification_answers: dict[str, str],
+    cases_root: Path | None = None,
+) -> None:
+    """Request a framing revision: re-run framing with user edits and answers.
+
+    Writes a ``FramingApproval(decision=edit)`` artifact, increments
+    ``framing_revisions``, transitions to ``framing``, and restarts the
+    worker.  Refuses over-cap requests and raises ``WrongStage`` when the
+    case is not at ``awaiting_framing_approval``.
+    """
+    root = _resolve_root(cases_root)
+    case = load_case(case_id, cases_root=root)
+    state = load_case_state(case)
+
+    if state.stage is not CaseStage.AWAITING_FRAMING_APPROVAL:
+        raise WrongStage(
+            case_id,
+            "request_framing_revision",
+            state.stage.value,
+            CaseStage.AWAITING_FRAMING_APPROVAL.value,
+        )
+
+    # Validate clarification_answers keys against IntakeField names.
+    valid_fields = {field.value for field in IntakeField}
+    for key in clarification_answers:
+        if key not in valid_fields:
+            raise ValueError(
+                f"Unknown IntakeField '{key}' in clarification_answers. "
+                f"Valid fields: {', '.join(sorted(valid_fields))}."
+            )
+
+    # Build the FramingApproval artifact.  When only edits are provided the
+    # decision is 'edit'; when only clarification_answers, 'answer_clarifications'.
+    # When both are provided, 'edit' takes precedence (edits are the stronger
+    # signal).  Both payloads are always stored.
+    if edits and clarification_answers:
+        decision_value = FramingDecision.EDIT
+    elif edits:
+        decision_value = FramingDecision.EDIT
+    elif clarification_answers:
+        decision_value = FramingDecision.ANSWER_CLARIFICATIONS
+    else:
+        raise ValueError("At least one of edits or clarification_answers must be non-empty.")
+
+    approval = FramingApproval(
+        decision=decision_value,
+        approved_by="user",
+        approved_at=datetime.now(UTC),
+        edits=edits,
+        clarification_answers=clarification_answers,
+    )
+
+    # Enforce the revision cap before writing.
+    if state.framing_revisions >= MAX_FRAMING_REVISIONS:
+        raise RevisionCapReached(case_id, "framing", MAX_FRAMING_REVISIONS)
+
+    lock = RunLock(case.root)
+    lock.acquire()
+    try:
+        case.write_artifact(approval)
+        state = revision_transition(state, CaseStage.FRAMING)
+        save_case_state(case, state)
+        _audit(
+            case,
+            "framing_revision_requested",
+            {
+                "decision": approval.decision.value,
+                "edited_fields": sorted(edits.keys()),
+                "answered_fields": sorted(clarification_answers.keys()),
+                "framing_revisions": state.framing_revisions,
+            },
+        )
+    finally:
+        lock.release()
+
+    _audit(case, "control_run_started", {"case_id": case_id})
+    _run_worker_to_halt(case_id, root)
+
+
+def request_final_revision(
+    case_id: str,
+    *,
+    note: str,
+    cases_root: Path | None = None,
+) -> None:
+    """Request a final revision: re-run synthesis with the user's note.
+
+    Writes a ``FinalApproval(decision=revise)`` artifact, increments
+    ``final_revisions``, transitions to ``synthesis``, and restarts the
+    worker.  Refuses a second request and raises ``WrongStage`` when the
+    case is not at ``awaiting_final_approval``.
+    """
+    root = _resolve_root(cases_root)
+    case = load_case(case_id, cases_root=root)
+    state = load_case_state(case)
+
+    if state.stage is not CaseStage.AWAITING_FINAL_APPROVAL:
+        raise WrongStage(
+            case_id,
+            "request_final_revision",
+            state.stage.value,
+            CaseStage.AWAITING_FINAL_APPROVAL.value,
+        )
+
+    if not note.strip():
+        raise ValueError("note must be a non-empty string for a final revision.")
+
+    approval = FinalApproval(
+        decision=FinalDecision.REVISE,
+        note=note,
+        approved_by="user",
+        approved_at=datetime.now(UTC),
+    )
+
+    # Enforce the revision cap before writing.
+    if state.final_revisions >= MAX_FINAL_REVISIONS:
+        raise RevisionCapReached(case_id, "final", MAX_FINAL_REVISIONS)
+
+    lock = RunLock(case.root)
+    lock.acquire()
+    try:
+        case.write_artifact(approval)
+        state = revision_transition(state, CaseStage.SYNTHESIS)
+        save_case_state(case, state)
+        _audit(
+            case,
+            "final_revision_requested",
+            {
+                "note_length": len(note),
+                "final_revisions": state.final_revisions,
             },
         )
     finally:

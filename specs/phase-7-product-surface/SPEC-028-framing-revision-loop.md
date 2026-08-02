@@ -2,7 +2,7 @@
 id: SPEC-028
 title: Framing revision loop and final send-back
 phase: 7
-status: draft
+status: implemented
 depends_on: [SPEC-027]
 parallel_with: [SPEC-031]
 north_star_refs: ["8", "14", "15"]
@@ -106,7 +106,18 @@ make check
 
 ## Verification results
 
-—
+All acceptance criteria verified via `make check` (ruff + mypy + pytest, 590 passed):
+
+- `decision: edit` with non-empty edits re-runs framing; archived workspace `inputs/`
+  contains `framing_feedback.yaml` (with edits) and previous `decision_spec.yaml`;
+  new `decision_spec.yaml` written; `framing_revisions == 1`.
+- `decision: answer_clarifications` projects answers to the workspace; unknown
+  `IntakeField` key rejected at validation.
+- Third framing revision request refused with `RevisionCapReached` naming the cap (2).
+- `request_final_revision` routes to synthesis; synthesizer workspace `task.yaml`
+  contains the user note; second request refused; case re-parks at
+  `awaiting_final_approval`.
+- Both control functions raise `WrongStage` at the wrong stage.
 
 ## Open questions
 

@@ -72,6 +72,53 @@ def _framing_approval(case: Case) -> list[_Candidate]:
     return _singleton(case, FramingApproval, filename="framing_approval.yaml")
 
 
+def _framing_feedback(case: Case) -> list[_Candidate]:
+    """Project framing-revision feedback for a re-run of the framing stage.
+
+    Returns an empty list on the first framing run (no approval artifact) or
+    when the approval decision is ``approve``.  When the decision is ``edit``
+    or ``answer_clarifications``, projects the previous ``decision_spec``,
+    the user's ``edits`` and ``clarification_answers``, and an instruction
+    block telling the director to incorporate the feedback.
+    """
+    try:
+        approval = case.read_artifact(FramingApproval)
+    except FileNotFoundError:
+        return []
+
+    if approval.decision.value == "approve":
+        return []
+
+    candidates: list[_Candidate] = []
+
+    # Previous decision spec so the director can see what it produced last time.
+    spec_candidates = _decision_spec(case)
+    candidates.extend(spec_candidates)
+
+    # The edits and clarification_answers as a standalone feedback file.
+    feedback_payload: dict[str, object] = {
+        "kind": "framing_feedback",
+        "decision": approval.decision.value,
+        "edits": approval.edits,
+        "clarification_answers": approval.clarification_answers,
+        "instruction": (
+            "The user has requested a framing revision. The edits dict contains user "
+            "statements that override prior defaults — incorporate them verbatim as data. "
+            "The clarification_answers dict contains user-provided answers to the intake "
+            "clarification questions; attribute those values to the user, not to your own "
+            "inference. Produce a new decision_spec.yaml that reflects this feedback."
+        ),
+    }
+    candidates.append(
+        _Candidate(
+            filename="framing_feedback.yaml",
+            yaml_text=yaml.safe_dump(feedback_payload, sort_keys=False, allow_unicode=True),
+        )
+    )
+
+    return candidates
+
+
 def _preliminary_recommendation(case: Case) -> list[_Candidate]:
     return _singleton(
         case,
@@ -474,6 +521,7 @@ def _budget_snapshot(case: Case) -> list[_Candidate]:
 _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "intake_record": _intake_record,
     "framing_approval": _framing_approval,
+    "framing_feedback": _framing_feedback,
     "decision_spec": _decision_spec,
     "preliminary_recommendation": _preliminary_recommendation,
     "final_recommendation": _final_recommendation,

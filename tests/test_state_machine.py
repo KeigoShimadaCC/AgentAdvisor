@@ -11,6 +11,8 @@ from orchestrator.case_store import Case, create_case
 from orchestrator.state_machine import (
     ACTIVE_STAGES,
     ALLOWED_TRANSITIONS,
+    MAX_FINAL_REVISIONS,
+    MAX_FRAMING_REVISIONS,
     CaseStage,
     CaseState,
     IllegalTransition,
@@ -20,6 +22,7 @@ from orchestrator.state_machine import (
     StepResult,
     load_case_state,
     reduce,
+    revision_transition,
     run_case,
     save_case_state,
 )
@@ -283,3 +286,55 @@ def test_kill_and_resume_matches_uninterrupted_run(
         monkeypatch_interrupted.undo()
 
     assert uninterrupted_writes == interrupted_writes
+
+
+# ── SPEC-028 revision transitions ────────────────────────────────────────────
+
+
+class TestRevisionTransitions:
+    def test_framing_back_transition_allowed(self) -> None:
+        assert CaseStage.FRAMING in ALLOWED_TRANSITIONS[CaseStage.AWAITING_FRAMING_APPROVAL]
+
+    def test_synthesis_back_transition_allowed(self) -> None:
+        assert CaseStage.SYNTHESIS in ALLOWED_TRANSITIONS[CaseStage.AWAITING_FINAL_APPROVAL]
+
+    def test_revision_transition_framing_increments(self) -> None:
+        state = _state_for(CaseStage.AWAITING_FRAMING_APPROVAL)
+        new_state = revision_transition(state, CaseStage.FRAMING)
+        assert new_state.stage is CaseStage.FRAMING
+        assert new_state.framing_revisions == 1
+
+    def test_revision_transition_synthesis_increments(self) -> None:
+        state = _state_for(CaseStage.AWAITING_FINAL_APPROVAL)
+        new_state = revision_transition(state, CaseStage.SYNTHESIS)
+        assert new_state.stage is CaseStage.SYNTHESIS
+        assert new_state.final_revisions == 1
+
+    def test_framing_cap_enforced(self) -> None:
+        state = _state_for(CaseStage.AWAITING_FRAMING_APPROVAL).model_copy(
+            update={"framing_revisions": MAX_FRAMING_REVISIONS}
+        )
+        with pytest.raises(IllegalTransition, match="Framing revision cap"):
+            revision_transition(state, CaseStage.FRAMING)
+
+    def test_final_cap_enforced(self) -> None:
+        state = _state_for(CaseStage.AWAITING_FINAL_APPROVAL).model_copy(
+            update={"final_revisions": MAX_FINAL_REVISIONS}
+        )
+        with pytest.raises(IllegalTransition, match="Final revision cap"):
+            revision_transition(state, CaseStage.SYNTHESIS)
+
+    def test_revision_transition_wrong_stage_raises(self) -> None:
+        state = _state_for(CaseStage.SYNTHESIS)
+        with pytest.raises(IllegalTransition, match="Illegal transition"):
+            revision_transition(state, CaseStage.FRAMING)
+
+    def test_revision_transition_invalid_target_raises(self) -> None:
+        state = _state_for(CaseStage.AWAITING_FRAMING_APPROVAL)
+        with pytest.raises(IllegalTransition, match="FRAMING or SYNTHESIS"):
+            revision_transition(state, CaseStage.STRUCTURING)
+
+    def test_case_state_has_revision_fields(self) -> None:
+        state = _state_for(CaseStage.INTAKE)
+        assert state.framing_revisions == 0
+        assert state.final_revisions == 0

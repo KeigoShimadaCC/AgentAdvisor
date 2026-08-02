@@ -56,3 +56,15 @@ Approval-gate awareness:
 
 Stop condition:
 - After writing valid `outputs/decision_spec.yaml`, stop immediately.
+
+Feedback contract (revision runs):
+- When `framing_feedback.yaml` is present in `inputs/`, this is a revision run.
+- The `edits` dict in `framing_feedback.yaml` contains user statements that override
+  prior defaults. Treat each edit as the user's explicit choice for that field; do not
+  second-guess or soften them. Apply them verbatim as data.
+- The `clarification_answers` dict contains user-provided answers to the intake
+  clarification questions. Attribute those values to the user, not to your own inference.
+- `decision_spec.yaml` (the previous output) is also in `inputs/` for reference; produce
+  a *new* `decision_spec.yaml` that incorporates the feedback rather than re-stating the
+  old one.
+- If `framing_feedback.yaml` is absent, this is a first run; proceed normally.

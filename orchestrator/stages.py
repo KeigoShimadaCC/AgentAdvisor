@@ -19,6 +19,7 @@ from orchestrator.artifacts import (
     DisclosureRecord,
     EvidenceBatch,
     EvidenceRecord,
+    FinalApproval,
     FinalRecommendation,
     IntakeRecord,
     IssueTree,
@@ -276,7 +277,7 @@ class StageHandlers:
 
     def handle_framing(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
         task = InvokeTask(
-            task_id="T-framing",
+            task_id=f"T-framing-r{state.framing_revisions}",
             assignment=(
                 "Produce a schema-valid decision specification from the provided intake input.\n"
                 f"Case ID: {case.root.name}\nOwner: user"
@@ -870,8 +871,23 @@ class StageHandlers:
                 "claim's citation does not support it, either cite evidence that does or "
                 "remove the claim; do not restate it with softer wording."
             )
+        # Final-gate send-back: the user requested a revision with a note.
+        # This is independent of synthesis_retries (a review-triggered retry and a
+        # user-triggered revision are different events with different budgets).
+        if state.final_revisions > 0:
+            try:
+                final_approval = case.read_artifact(FinalApproval)
+                user_note = final_approval.note
+            except FileNotFoundError:
+                user_note = ""
+            if user_note:
+                retry_note += (
+                    "\nThe user rejected the final recommendation and requested a revision. "
+                    f"Their note: {user_note}\n"
+                    "Address the user's concerns alongside any review feedback."
+                )
         task = InvokeTask(
-            task_id=f"T-synthesis-{state.synthesis_retries}",
+            task_id=f"T-synthesis-{state.synthesis_retries}-fr-{state.final_revisions}",
             assignment=(
                 "Integrate all artifacts into a FinalRecommendation.\n"
                 "Cover all Section 16 blocks: executive recommendation, confidence explanation, "
@@ -910,7 +926,7 @@ class StageHandlers:
             return StepResult.error(f"Review setup failed: {exc}")
 
         task = InvokeTask(
-            task_id=f"T-review-{state.synthesis_retries}",
+            task_id=f"T-review-{state.synthesis_retries}-fr-{state.final_revisions}",
             assignment=(
                 "Verify the FinalRecommendation against the verification worksheet.\n"
                 "Return one citation verdict for EVERY item_id in the worksheet; a review "

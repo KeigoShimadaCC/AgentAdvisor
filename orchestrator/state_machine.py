@@ -42,12 +42,18 @@ class CaseState(ArtifactModel):
     stage: CaseStage = CaseStage.INTAKE
     repair_cycle: int = Field(default=0, ge=0)
     synthesis_retries: int = Field(default=0, ge=0)
+    framing_revisions: int = Field(default=0, ge=0)
+    final_revisions: int = Field(default=0, ge=0)
     budget_counters: dict[str, int] = Field(default_factory=dict)
     framing_approved: bool = False
     final_approved: bool = False
     failure_cause: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+MAX_FRAMING_REVISIONS = 2
+MAX_FINAL_REVISIONS = 1
 
 
 class StepOutcome(Enum):
@@ -108,7 +114,9 @@ ACTIVE_STAGES: tuple[CaseStage, ...] = (
 ALLOWED_TRANSITIONS: dict[CaseStage, frozenset[CaseStage]] = {
     CaseStage.INTAKE: frozenset({CaseStage.FRAMING, CaseStage.FAILED}),
     CaseStage.FRAMING: frozenset({CaseStage.AWAITING_FRAMING_APPROVAL, CaseStage.FAILED}),
-    CaseStage.AWAITING_FRAMING_APPROVAL: frozenset({CaseStage.STRUCTURING, CaseStage.FAILED}),
+    CaseStage.AWAITING_FRAMING_APPROVAL: frozenset(
+        {CaseStage.STRUCTURING, CaseStage.FRAMING, CaseStage.FAILED}
+    ),
     CaseStage.STRUCTURING: frozenset({CaseStage.PROVISIONAL_THESIS, CaseStage.FAILED}),
     CaseStage.PROVISIONAL_THESIS: frozenset({CaseStage.PLANNING, CaseStage.FAILED}),
     CaseStage.PLANNING: frozenset({CaseStage.INVESTIGATION, CaseStage.FAILED}),
@@ -126,7 +134,9 @@ ALLOWED_TRANSITIONS: dict[CaseStage, frozenset[CaseStage]] = {
     CaseStage.REVIEW: frozenset(
         {CaseStage.AWAITING_FINAL_APPROVAL, CaseStage.SYNTHESIS, CaseStage.FAILED}
     ),
-    CaseStage.AWAITING_FINAL_APPROVAL: frozenset({CaseStage.DONE, CaseStage.FAILED}),
+    CaseStage.AWAITING_FINAL_APPROVAL: frozenset(
+        {CaseStage.DONE, CaseStage.SYNTHESIS, CaseStage.FAILED}
+    ),
     CaseStage.DONE: frozenset(),
     CaseStage.FAILED: frozenset(),
 }
@@ -201,6 +211,47 @@ def save_case_state(case: Case, state: CaseState) -> None:
 def _next_or_raise(from_stage: CaseStage, to_stage: CaseStage) -> None:
     if to_stage not in ALLOWED_TRANSITIONS[from_stage]:
         raise IllegalTransition(f"Illegal transition: {from_stage.name} -> {to_stage.name}")
+
+
+def revision_transition(
+    state: CaseState,
+    target: CaseStage,
+) -> CaseState:
+    """Perform an explicit backward transition for a revision request.
+
+    Unlike ``reduce`` (which is driven by step results), this is triggered
+    directly by the control layer when a user requests a framing or final
+    revision.  The revision cap is enforced here so it lives in deterministic
+    routing, not in prompts.
+
+    Raises ``IllegalTransition`` if the transition is not allowed or the
+    revision cap has been reached.
+    """
+    if target is CaseStage.FRAMING:
+        if state.framing_revisions >= MAX_FRAMING_REVISIONS:
+            raise IllegalTransition(
+                f"Framing revision cap reached ({MAX_FRAMING_REVISIONS}). "
+                "No further framing revisions allowed."
+            )
+        _next_or_raise(state.stage, target)
+        return state.model_copy(
+            update={"stage": target, "framing_revisions": state.framing_revisions + 1}
+        )
+
+    if target is CaseStage.SYNTHESIS:
+        if state.final_revisions >= MAX_FINAL_REVISIONS:
+            raise IllegalTransition(
+                f"Final revision cap reached ({MAX_FINAL_REVISIONS}). "
+                "No further final revisions allowed."
+            )
+        _next_or_raise(state.stage, target)
+        return state.model_copy(
+            update={"stage": target, "final_revisions": state.final_revisions + 1}
+        )
+
+    raise IllegalTransition(
+        f"revision_transition only targets FRAMING or SYNTHESIS, not {target.name}"
+    )
 
 
 def route(state: CaseState) -> StepPlan:
