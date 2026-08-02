@@ -171,6 +171,22 @@ def collect(case_dir: Path) -> dict[str, Any]:
     total_attempts = sum(role.attempts for role in roles.values())
     total_successes = sum(role.successes for role in roles.values())
 
+    # Coercion accounting: extract from audit log's payload.coercions field.
+    coercion_by_type: Counter[str] = Counter()
+    coercion_by_role: Counter[str] = Counter()
+    coercion_by_field: Counter[str] = Counter()
+    coercion_count = 0
+    for event in invocations:
+        payload = event.get("payload") or {}
+        coercions = payload.get("coercions")
+        if not coercions:
+            continue
+        coercion_count += len(coercions)
+        coercion_by_role[str(event.get("actor"))] += len(coercions)
+        for rec in coercions:
+            coercion_by_type[str(rec.get("type"))] += 1
+            coercion_by_field[str(rec.get("field"))] += 1
+
     return {
         "case_id": case_dir.name,
         "wall_clock_s": wall_clock_s,
@@ -204,6 +220,12 @@ def collect(case_dir: Path) -> dict[str, Any]:
             for role in sorted(roles.values(), key=lambda item: -item.total_tokens)
         },
         "records": dict(records),
+        "coercions": {
+            "total": coercion_count,
+            "by_type": dict(coercion_by_type.most_common()),
+            "by_role": dict(coercion_by_role.most_common()),
+            "by_field": dict(coercion_by_field.most_common(20)),
+        },
         "process": {
             "gate_findings": gate_findings,
             "gate_blocking_checks": gate_blocks,
@@ -321,6 +343,18 @@ def _format_text(metrics: dict[str, Any], counters: dict[str, Any] | None) -> st
     elif counters is not None:
         lines.append("")
         lines.append("Budget consumed: nothing recorded in state.yaml.")
+
+    coercions = metrics.get("coercions", {})
+    if coercions.get("total", 0) > 0:
+        lines.append("")
+        lines.append(f"Coercions:   {coercions['total']} total")
+        for ctype, count in coercions.get("by_type", {}).items():
+            lines.append(f"  {count:>4}  {ctype}")
+        top_fields = coercions.get("by_field", {})
+        if top_fields:
+            lines.append("  Top fields:")
+            for field, count in list(top_fields.items())[:10]:
+                lines.append(f"    {count:>4}  {field}")
 
     return "\n".join(lines)
 

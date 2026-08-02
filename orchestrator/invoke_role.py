@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
@@ -13,6 +14,7 @@ from pydantic import BaseModel
 from orchestrator.artifacts import AuditEvent, AuditUsage, DecisionSpec, IntakeRecord, TaskRecord
 from orchestrator.artifacts.schema_export import MODEL_EXPORTS
 from orchestrator.artifacts.yaml_io import (
+    CoercionReport,
     coerce_payload_for_model,
     fill_missing_required_defaults,
     load_model_from_yaml_text,
@@ -154,22 +156,30 @@ def _validate_output(
     artifact_type: str,
     yaml_text: str,
     case: Case,
-) -> BaseModel:
+) -> tuple[BaseModel, CoercionReport]:
+    """Validate the YAML output, coercing common mistakes if needed.
+
+    Returns the validated artifact and a CoercionReport (empty if no
+    coercion was needed).
+    """
     model_type = _artifact_model_type(artifact_type)
+    report = CoercionReport()
     try:
         artifact = load_model_from_yaml_text(model_type, yaml_text)
     except Exception:
         # Try coercing common model formatting mistakes (nested objects -> strings, etc.)
         # Then try filling missing required fields with conservative defaults.
         payload = yaml.safe_load(yaml_text)
-        coerced = coerce_payload_for_model(model_type, payload)
-        filled = fill_missing_required_defaults(model_type, coerced)
+        coerced = coerce_payload_for_model(model_type, payload, report=report)
+        filled = fill_missing_required_defaults(model_type, coerced, report=report)
         if filled is not payload:
             artifact = model_type.model_validate(filled)
         else:
             raise
+    # Cross-field validation runs after successful model validation, whether
+    # or not coercion was needed.  Its failure must not trigger coercion.
     _apply_cross_field_validation(artifact_type=artifact_type, artifact=artifact, case=case)
-    return artifact
+    return artifact, report
 
 
 def _audit_attempt(
@@ -182,6 +192,7 @@ def _audit_attempt(
     backend_result: RoleResult | None,
     status: str,
     detail: str | None,
+    coercion_report: CoercionReport | None = None,
 ) -> None:
     usage = None
     if backend_result is not None and backend_result.usage is not None:
@@ -190,20 +201,29 @@ def _audit_attempt(
             output_tokens=backend_result.usage.output_tokens,
             total_tokens=backend_result.usage.total_tokens,
         )
+    payload: dict[str, Any] = {
+        "task_id": task_id,
+        "attempt": attempt,
+        "status": status,
+        "detail": detail,
+        "backend_status": backend_result.status.value if backend_result is not None else None,
+    }
+    if coercion_report is not None and coercion_report.has_coercions:
+        payload["coercions"] = [
+            {
+                "field": rec.field_path,
+                "type": rec.coercion_type,
+                "from": rec.original_type,
+                "to": rec.coerced_to,
+            }
+            for rec in coercion_report.records
+        ]
     case.audit(
         AuditEvent(
             ts=datetime.now(UTC),
             actor=role,
             event_type="role_invocation_attempt",
-            payload={
-                "task_id": task_id,
-                "attempt": attempt,
-                "status": status,
-                "detail": detail,
-                "backend_status": backend_result.status.value
-                if backend_result is not None
-                else None,
-            },
+            payload=payload,
             model=model,
             cli_version=backend_result.cli_version if backend_result is not None else None,
             usage=usage,
@@ -304,7 +324,7 @@ def _invoke_internal(
                     raise FileNotFoundError(f"Required output file not found: {layout.output_path}")
                 output_yaml = layout.output_path.read_text(encoding="utf-8")
 
-            artifact = _validate_output(
+            artifact, coercion_report = _validate_output(
                 artifact_type=normalized_task.output_artifact_type,
                 yaml_text=output_yaml,
                 case=case,
@@ -326,6 +346,7 @@ def _invoke_internal(
                 backend_result=backend_result,
                 status="ok",
                 detail=None,
+                coercion_report=coercion_report if coercion_report.has_coercions else None,
             )
             archive_final(case, role, normalized_task.task_id, layout.path)
             delete_runtime_workspace(layout.path)

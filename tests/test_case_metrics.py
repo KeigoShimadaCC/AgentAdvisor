@@ -36,7 +36,11 @@ def _invocation(
     model: str = "composer-2.5",
     tokens: tuple[int, int] = (100, 50),
     duration_ms: int = 1000,
+    coercions: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
+    payload: dict[str, Any] = {"attempt": attempt, "status": status, "task_id": f"T-{actor}"}
+    if coercions:
+        payload["coercions"] = coercions
     return _event(
         "role_invocation_attempt",
         actor=actor,
@@ -44,7 +48,7 @@ def _invocation(
         model=model,
         duration_ms=duration_ms,
         usage={"input_tokens": tokens[0], "output_tokens": tokens[1]},
-        payload={"attempt": attempt, "status": status, "task_id": f"T-{actor}"},
+        payload=payload,
     )
 
 
@@ -181,3 +185,57 @@ def test_a_corrupt_line_is_skipped_rather_than_aborting_the_report(
 def test_a_missing_audit_log_is_reported_clearly(case_dir: Path) -> None:
     with pytest.raises(FileNotFoundError, match="No audit log"):
         collect(case_dir)
+
+
+def test_coercion_events_are_extracted_from_audit_log(case_dir: Path) -> None:
+    """Coercion accounting: the audit log records what the coercion layer changed."""
+    _write(
+        case_dir,
+        [
+            _invocation(
+                "analyst",
+                ts="2026-08-02T10:00:00Z",
+                coercions=[
+                    {"field": "method", "type": "enum_coerce", "from": "str", "to": "str"},
+                    {
+                        "field": "limitations",
+                        "type": "list_item_flatten",
+                        "from": "dict",
+                        "to": "str",
+                    },
+                ],
+            ),
+            _invocation(
+                "synthesizer",
+                ts="2026-08-02T10:01:00Z",
+                coercions=[
+                    {
+                        "field": "model_stability",
+                        "type": "model_stability_fix",
+                        "from": "dict",
+                        "to": "dict",
+                    },
+                ],
+            ),
+            _invocation("intake", ts="2026-08-02T10:02:00Z"),
+        ],
+    )
+
+    coercions = collect(case_dir)["coercions"]
+    assert coercions["total"] == 3
+    assert coercions["by_type"]["enum_coerce"] == 1
+    assert coercions["by_type"]["list_item_flatten"] == 1
+    assert coercions["by_type"]["model_stability_fix"] == 1
+    assert coercions["by_role"]["analyst"] == 2
+    assert coercions["by_role"]["synthesizer"] == 1
+    assert coercions["by_field"]["method"] == 1
+    assert coercions["by_field"]["limitations"] == 1
+
+
+def test_no_coercion_events_means_empty_summary(case_dir: Path) -> None:
+    _write(case_dir, [_invocation("intake", ts="2026-08-02T10:00:00Z")])
+    coercions = collect(case_dir)["coercions"]
+    assert coercions["total"] == 0
+    assert coercions["by_type"] == {}
+    assert coercions["by_role"] == {}
+    assert coercions["by_field"] == {}

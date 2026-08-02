@@ -73,6 +73,8 @@ def _categorise(annotation: Any) -> str:
     - ``date``       – date or datetime
     - ``primitive``  – int, float, bool
     - ``dict``       – dict / mapping
+    - ``tuple``      – tuple (passthrough; Pydantic coerces lists to tuples)
+    - ``list_prim``  – list of primitives (passthrough)
     - ``unknown``    – anything else (should fail the test)
     """
     if _is_str_type(annotation):
@@ -93,6 +95,22 @@ def _categorise(annotation: Any) -> str:
     origin = get_origin(annotation)
     if origin is dict or base is dict:
         return "dict"
+    if origin is tuple or base is tuple:
+        return "tuple"
+    if origin is list:
+        # list of primitives (int, float, bool) — passthrough
+        args = get_args(annotation)
+        if args and _base_type(args[0]) in (int, float, bool):
+            return "list_prim"
+    # Multi-type union (e.g. float | NonEmptyStr) — passthrough if all
+    # non-None args are known types.  The coercion layer passes these
+    # through unchanged; pydantic selects the matching branch.
+    if origin in (Union, UnionType):
+        non_none = [a for a in get_args(annotation) if a is not type(None)]
+        if len(non_none) > 1:
+            sub_cats = {_categorise(a) for a in non_none}
+            if sub_cats <= KNOWN_CATEGORIES:
+                return "union"
     return "unknown"
 
 
@@ -105,6 +123,9 @@ KNOWN_CATEGORIES = {
     "date",
     "primitive",
     "dict",
+    "tuple",
+    "list_prim",
+    "union",
 }
 
 

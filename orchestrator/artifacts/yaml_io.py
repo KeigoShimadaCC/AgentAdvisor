@@ -1,13 +1,47 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import StrEnum
 from pathlib import Path
 from types import UnionType
-from typing import Any, Union, cast, get_args, get_origin
+from typing import Annotated, Any, Union, cast, get_args, get_origin
 
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
+
+
+@dataclass
+class CoercionRecord:
+    """A single field that was coerced."""
+
+    field_path: str
+    coercion_type: str  # "string_flatten", "list_item_flatten", "enum_coerce",
+    # "model_stability_fix", "confidence_from_word", "default_fill",
+    # "vague_date_null"
+    original_type: str
+    coerced_to: str
+
+
+@dataclass
+class CoercionReport:
+    """Accumulates records of what the coercion layer changed."""
+
+    records: list[CoercionRecord] = field(default_factory=list)
+
+    @property
+    def has_coercions(self) -> bool:
+        return bool(self.records)
+
+    def add(self, record: CoercionRecord) -> None:
+        self.records.append(record)
+
+    def summary(self) -> dict[str, int]:
+        """Count of each coercion type."""
+        counts: dict[str, int] = {}
+        for rec in self.records:
+            counts[rec.coercion_type] = counts.get(rec.coercion_type, 0) + 1
+        return counts
 
 
 class _NoAliasSafeDumper(yaml.SafeDumper):
@@ -83,12 +117,22 @@ def _unwrap_optional(annotation: Any) -> Any:
 
 
 def _base_type(annotation: Any) -> Any:
-    """Extract the underlying type from Annotated[T, ...]."""
+    """Extract the underlying type from Annotated[T, ...].
+
+    For ``Annotated[str, Field(...)]``, ``get_origin`` returns
+    ``typing.Annotated`` and ``get_args`` returns ``(str, Field(...))``,
+    so we return ``args[0]`` to get ``str``.
+
+    For ``dict[str, int]``, ``get_origin`` returns ``dict``, which is the
+    correct base type (not ``str`` from ``args[0]``).
+    """
     origin = get_origin(annotation)
-    if origin is not None:
+    if origin is Annotated:
         args = get_args(annotation)
         if args:
             return args[0]
+    if origin is not None:
+        return origin
     return annotation
 
 
@@ -243,7 +287,13 @@ def _fix_model_stability_consistency(payload: Any) -> Any:
     return payload
 
 
-def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
+def coerce_payload_for_model(
+    model_type: type[BaseModel],
+    payload: Any,
+    *,
+    report: CoercionReport | None = None,
+    path_prefix: str = "",
+) -> Any:
     """Coerce common model formatting mistakes before validation.
 
     Handles:
@@ -261,6 +311,17 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
     coerced = dict(payload)
     changed = False
 
+    def _record(name: str, ctype: str, orig: Any, new: Any) -> None:
+        if report is not None:
+            report.add(
+                CoercionRecord(
+                    field_path=f"{path_prefix}{name}" if path_prefix else name,
+                    coercion_type=ctype,
+                    original_type=type(orig).__name__,
+                    coerced_to=type(new).__name__ if new is not None else "None",
+                )
+            )
+
     for field_name, field_info in model_type.model_fields.items():
         if field_name not in coerced:
             continue
@@ -271,12 +332,14 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
         if _accepts_none(field_info.annotation) and _is_unparseable_date(annotation, value):
             coerced[field_name] = None
             changed = True
+            _record(field_name, "vague_date_null", value, None)
 
         elif _is_str_type(annotation) and not isinstance(value, str):
             flattened = _flatten_to_string(value)
             if flattened is not None:
                 coerced[field_name] = flattened
                 changed = True
+                _record(field_name, "string_flatten", value, flattened)
 
         elif _is_list_of_str_type(annotation) and isinstance(value, list):
             new_items: list[Any] = []
@@ -294,6 +357,7 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
             if any_coerced:
                 coerced[field_name] = new_items
                 changed = True
+                _record(field_name, "list_item_flatten", value, new_items)
 
         elif _is_strenum_type(annotation) and isinstance(value, str):
             enum_class = _base_type(annotation)
@@ -301,6 +365,7 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
             if coerced_val is not value:
                 coerced[field_name] = coerced_val
                 changed = True
+                _record(field_name, "enum_coerce", value, coerced_val)
 
         elif _is_list_of_model_type(annotation) and isinstance(value, list):
             item_type = _base_type(get_args(annotation)[0])
@@ -308,7 +373,9 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
             any_coerced = False
             for item in value:
                 if isinstance(item, dict):
-                    coerced_item = coerce_payload_for_model(item_type, item)
+                    coerced_item = coerce_payload_for_model(
+                        item_type, item, report=report, path_prefix=f"{field_name}."
+                    )
                     if coerced_item is not item:
                         coerced_items.append(coerced_item)
                         any_coerced = True
@@ -322,7 +389,9 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
 
         elif _is_model_type(annotation) and isinstance(value, dict):
             nested_type = _base_type(annotation)
-            coerced_nested = coerce_payload_for_model(nested_type, value)
+            coerced_nested = coerce_payload_for_model(
+                nested_type, value, report=report, path_prefix=f"{field_name}."
+            )
             # Fix ModelStability consistency: share must equal runs_supporting / runs_total
             coerced_nested = _fix_model_stability_consistency(coerced_nested)
             if coerced_nested is not value:
@@ -336,6 +405,7 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
                 if from_word is not None:
                     coerced[field_name] = from_word
                     changed = True
+                    _record(field_name, "confidence_from_word", value, from_word)
 
     return coerced if changed else payload
 
@@ -360,7 +430,12 @@ _DEFAULT_FILLERS: dict[str, dict[str, Any]] = {
 }
 
 
-def fill_missing_required_defaults(model_type: type[BaseModel], payload: Any) -> Any:
+def fill_missing_required_defaults(
+    model_type: type[BaseModel],
+    payload: Any,
+    *,
+    report: CoercionReport | None = None,
+) -> Any:
     """Fill in missing required fields with conservative defaults.
 
     Only fills fields that have a known safe default (model_stability,
@@ -381,5 +456,14 @@ def fill_missing_required_defaults(model_type: type[BaseModel], payload: Any) ->
         if field_name in _DEFAULT_FILLERS:
             filled[field_name] = dict(_DEFAULT_FILLERS[field_name])
             changed = True
+            if report is not None:
+                report.add(
+                    CoercionRecord(
+                        field_path=field_name,
+                        coercion_type="default_fill",
+                        original_type="Missing",
+                        coerced_to="dict",
+                    )
+                )
 
     return filled if changed else payload
