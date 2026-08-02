@@ -310,8 +310,12 @@ def run_case(
     *,
     max_repair_cycles: int = 2,
     max_synthesis_retries: int = 1,
+    initial_state: CaseState | None = None,
 ) -> CaseState:
-    state = load_case_state(case)
+    # Callers holding a BudgetLedger must pass their own state: the ledger mutates
+    # state.budget_counters in place, and re-loading here would strand those counters
+    # on an object that is never checkpointed.
+    state = initial_state if initial_state is not None else load_case_state(case)
 
     while True:
         if state.stage in (CaseStage.DONE, CaseStage.FAILED):

@@ -76,7 +76,7 @@ from orchestrator.case_store import Case, create_case
 from orchestrator.invoke_role import clear_cross_field_validation_hooks
 from orchestrator.memory import MemoryStore
 from orchestrator.pipeline import run
-from orchestrator.state_machine import CaseStage
+from orchestrator.state_machine import CaseStage, load_case_state
 
 # ── artifact factories ───────────────────────────────────────────────────────
 
@@ -872,6 +872,32 @@ def test_pipeline_stub_produces_thinktank_artifacts(stub_env: Case, tmp_path: Pa
     recorded = store.prior_cases()
     assert [entry.case_id for entry in recorded] == [case.root.name]
     assert recorded[0].recommended_action
+
+
+def test_budget_consumption_is_persisted_not_stranded_in_memory(stub_env: Case, tmp_path: Path):
+    """Counters must survive to disk, or caps reset on every resume and status lies."""
+    case = stub_env
+    backend = PipelineStubBackend(case)
+
+    run(
+        case,
+        raw_prompt="I have $50k and want semiconductor exposure. Nvidia or ETF?",
+        backend=backend,
+        budget_config=BudgetConfig(
+            max_agent_invocations=25,
+            max_concurrent_workers=1,
+            max_repair_cycles=1,
+            max_research_tasks=8,
+            max_high_tier_calls=20,
+            max_wall_clock_s=3600,
+        ),
+        auto_approve=True,
+        memory_store=MemoryStore(tmp_path / "memory"),
+    )
+
+    persisted = load_case_state(Case(root=case.root))
+    assert persisted.budget_counters.get("agent_invocations", 0) > 0
+    assert persisted.budget_counters["agent_invocations"] <= 25
 
 
 def test_coerce_flattens_nested_objects():

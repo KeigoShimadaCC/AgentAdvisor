@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import date, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, cast, get_args, get_origin
+from types import UnionType
+from typing import Any, Union, cast, get_args, get_origin
 
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
@@ -66,6 +68,20 @@ def _flatten_to_string(value: Any) -> str | None:
     return None
 
 
+def _unwrap_optional(annotation: Any) -> Any:
+    """Return `T` for `T | None`.
+
+    Optional fields reach the union branch of `get_origin`, which the list predicates
+    below do not recognise, so without this every `list[...] | None` field would skip
+    coercion entirely.
+    """
+    if get_origin(annotation) in (Union, UnionType):
+        non_none = [arg for arg in get_args(annotation) if arg is not type(None)]
+        if len(non_none) == 1:
+            return non_none[0]
+    return annotation
+
+
 def _base_type(annotation: Any) -> Any:
     """Extract the underlying type from Annotated[T, ...]."""
     origin = get_origin(annotation)
@@ -96,6 +112,29 @@ def _is_strenum_type(annotation: Any) -> bool:
     """Check if annotation is a StrEnum subclass."""
     base = _base_type(annotation)
     return isinstance(base, type) and issubclass(base, StrEnum)
+
+
+def _accepts_none(annotation: Any) -> bool:
+    return get_origin(annotation) in (Union, UnionType) and type(None) in get_args(annotation)
+
+
+def _is_unparseable_date(annotation: Any, value: Any) -> bool:
+    """A vague deadline like "this quarter" is information, but it is not a date.
+
+    The raw prompt keeps the user's wording, so nulling the parsed field loses nothing
+    the case cannot recover, whereas failing validation loses the whole case.
+    """
+    if annotation is not date and annotation is not datetime:
+        return False
+    if not isinstance(value, str):
+        return False
+    for parser in (date.fromisoformat, datetime.fromisoformat):
+        try:
+            parser(value)
+        except ValueError:
+            continue
+        return False
+    return True
 
 
 def _is_list_of_model_type(annotation: Any) -> bool:
@@ -227,9 +266,13 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
             continue
 
         value = coerced[field_name]
-        annotation = field_info.annotation
+        annotation = _unwrap_optional(field_info.annotation)
 
-        if _is_str_type(annotation) and not isinstance(value, str):
+        if _accepts_none(field_info.annotation) and _is_unparseable_date(annotation, value):
+            coerced[field_name] = None
+            changed = True
+
+        elif _is_str_type(annotation) and not isinstance(value, str):
             flattened = _flatten_to_string(value)
             if flattened is not None:
                 coerced[field_name] = flattened

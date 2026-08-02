@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from orchestrator.artifacts import (
+    DecisionSpec,
+    IntakeRecord,
     ObjectionRecord,
     PreliminaryRecommendation,
 )
 from orchestrator.artifacts.yaml_io import (
+    _accepts_none,
     coerce_payload_for_model,
     fill_missing_required_defaults,
 )
@@ -126,3 +131,55 @@ def test_a_known_enum_mistake_is_mapped_to_the_valid_value() -> None:
     model = ObjectionRecord.model_validate(coerce_payload_for_model(ObjectionRecord, payload))
 
     assert model.resolution_status.value == "open"
+
+
+def _intake_payload(**overrides: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "raw_prompt": "Our 10-person startup needs a customer dashboard this quarter.",
+        "decision_question": "Should we build a custom pipeline or buy a SaaS dashboard?",
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_optional_list_fields_are_coerced_too() -> None:
+    """`list[str] | None` reaches the union branch, which used to skip coercion."""
+    payload = _intake_payload(
+        alternatives_mentioned=[
+            {"Option A": "building a custom pipeline"},
+            {"Option B": "buying a SaaS tool"},
+        ],
+        objectives=[{"description": "ship this quarter"}],
+    )
+
+    record = IntakeRecord.model_validate(coerce_payload_for_model(IntakeRecord, payload))
+
+    assert record.alternatives_mentioned == [
+        "building a custom pipeline",
+        "buying a SaaS tool",
+    ]
+    assert record.objectives == ["ship this quarter"]
+
+
+def test_a_vague_deadline_becomes_null_rather_than_failing_the_case() -> None:
+    payload = _intake_payload(deadline="this quarter")
+
+    record = IntakeRecord.model_validate(coerce_payload_for_model(IntakeRecord, payload))
+
+    assert record.deadline is None
+    assert "this quarter" in record.raw_prompt
+
+
+def test_a_real_deadline_survives_coercion() -> None:
+    payload = _intake_payload(deadline="2026-09-30")
+
+    coerced = coerce_payload_for_model(IntakeRecord, payload)
+
+    assert IntakeRecord.model_validate(coerced).deadline == date(2026, 9, 30)
+
+
+def test_a_required_date_is_left_alone_so_the_error_still_surfaces() -> None:
+    """Nulling a required field would only trade one validation error for another."""
+    annotation = DecisionSpec.model_fields["deadline"].annotation
+
+    assert not _accepts_none(annotation)

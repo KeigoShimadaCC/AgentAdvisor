@@ -126,7 +126,12 @@ def run(
     if auto_approve:
         final_state = _run_unattended(case, handler_map, budget, state)
     else:
-        final_state = run_case(case, handler_map, max_synthesis_retries=MAX_SYNTHESIS_RETRIES)
+        final_state = run_case(
+            case,
+            handler_map,
+            max_synthesis_retries=MAX_SYNTHESIS_RETRIES,
+            initial_state=state,
+        )
 
     if final_state.stage is CaseStage.DONE:
         _record_into_memory(case, store)
@@ -174,6 +179,7 @@ def _run_unattended(
             handler_map,
             max_repair_cycles=budget.max_repair_cycles,
             max_synthesis_retries=MAX_SYNTHESIS_RETRIES,
+            initial_state=state,
         )
 
         if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
