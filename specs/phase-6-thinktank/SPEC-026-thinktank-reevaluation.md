@@ -41,16 +41,16 @@ same rubric and put the two columns next to each other.
 
 ## Deliverables
 
-- [x] extended rubric and scorer with legacy-comparable scoring preserved
-- [x] five live scenario runs
-- [x] comparison report
+- [ ] extended rubric and scorer with legacy-comparable scoring preserved
+- [ ] five live scenario runs
+- [ ] comparison report
 
 ## Acceptance criteria
 
-- [x] All five scenarios reach `done`.
-- [x] The report contains a per-scenario, per-dimension before/after table computed with the
+- [ ] All five scenarios reach `done`.
+- [ ] The report contains a per-scenario, per-dimension before/after table computed with the
       identical legacy criteria.
-- [x] Regressions, including wall clock and token cost, are stated explicitly.
+- [ ] Regressions, including wall clock and token cost, are stated explicitly.
 
 ## Verification plan
 
@@ -58,7 +58,8 @@ same rubric and put the two columns next to each other.
 
 ## Verification results
 
-Filled in after the live run.
+Not yet run. SPEC-023 to SPEC-025 are `implemented`, so the live comparison is the remaining
+gate for all four Phase 6 specs.
 
 ## Open questions
 

@@ -2,7 +2,7 @@
 id: SPEC-025
 title: Institutional memory (case memory, specialist packs, outcome calibration, standing programs)
 phase: 6
-status: approved
+status: implemented
 depends_on: [SPEC-024]
 parallel_with: []
 north_star_refs: ["6.7", "18", "19", "21"]
@@ -94,8 +94,10 @@ used to alter a live case.
 
 ## Verification results
 
-2026-08-02. `make check` green. Memory round-trip, retrieval, reputation, Brier and classifier
-tests pass; workspace injection verified for researcher and negatively for reviewer.
+2026-08-02. `make check` green (lint, mypy, 296 unit tests). Memory round-trip, retrieval,
+reputation, Brier and classifier tests pass; workspace injection verified for researcher and
+negatively for reviewer. The live benchmark leg (SPEC-026) has not been run, so the spec stays
+`implemented` rather than `verified`.
 
 ## Open questions
 

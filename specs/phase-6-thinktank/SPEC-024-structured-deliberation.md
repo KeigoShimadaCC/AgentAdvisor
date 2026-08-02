@@ -2,7 +2,7 @@
 id: SPEC-024
 title: Structured deliberation (issue tree, living thesis, dual-track reasoning, pre-mortem)
 phase: 6
-status: approved
+status: implemented
 depends_on: [SPEC-023]
 parallel_with: []
 north_star_refs: ["5", "6.1", "6.2", "6.3", "9", "12", "16"]
@@ -107,8 +107,9 @@ tests/test_pipeline_stub.py`, then `make check`, then the live benchmark suite i
 
 ## Verification results
 
-2026-08-02. `make check` green. Stub pipeline exercises structuring, dual-track with a forced
-disagreement, interim thesis update, and pre-mortem. Live results in SPEC-026.
+2026-08-02. `make check` green (lint, mypy, 296 unit tests). Stub pipeline exercises structuring,
+dual-track with a forced disagreement, interim thesis update, and pre-mortem. The live benchmark
+leg (SPEC-026) has not been run, so the spec stays `implemented` rather than `verified`.
 
 ## Open questions
 

@@ -21,7 +21,7 @@ North star 13 (compare decision quality with resource consumption), 17 (investme
 
 ## Scope
 
-- Select a real, personally relevant investment-style decision with the user at approval time (fallback: a public-company invest/stage/decline decision).
+- Select a real, personally relevant investment-style decision with the user at approval time (fallback: a public-company invest/stage/decline decision). **Chosen 2026-08-02: a career or compensation decision.** It is investment-style in the sense that matters here, a capital-allocation choice under uncertainty with an irreversible component, and benchmark scenario 04 already shows the pipeline handles the shape.
 - Run via `advisor new` with default budget and the production role configs (Director opus-5 family, Challenger gpt-5.6 family, workers Cursor-pool, per the 2026-07-30 research).
 - Capture: total/per-role invocations and tokens, wall clock, retry-ladder frequency, budget headroom, auditor findings usefulness, repair-cycle behavior, subjective output quality against the Section 3 promise (all twelve elements present and meaningful).
 - Findings report `report-and-findings/<date>-first-real-case.md` (metrics tables + qualitative assessment + defect list); ROADMAP Phase 4 findings updated; new emergent-work candidates filed.
@@ -38,7 +38,7 @@ The case runs untouched first (no mid-run tuning) to get honest baseline metrics
 ## Deliverables
 
 - [ ] Completed real case under `cases/` (local only, gitignored)
-- [ ] `scripts/case_metrics.py`
+- [x] `scripts/case_metrics.py` — written early (2026-08-02) so the Phase 6 benchmark runs could be measured with the same instrument; 8 unit tests over a synthetic audit log
 - [ ] `report-and-findings/<date>-first-real-case.md`
 - [ ] ROADMAP Phase 4 findings + emergent-work updates
 
