@@ -85,7 +85,10 @@ _SINGLETON_ARTIFACT_TYPES: tuple[type[BaseModel], ...] = (
 )
 
 
-def _default_cases_root() -> Path:
+def default_cases_root() -> Path:
+    configured = os.getenv("AGENTADVISOR_CASES_ROOT")
+    if configured:
+        return Path(configured).expanduser()
     return Path(__file__).resolve().parents[1] / "cases"
 
 
@@ -428,7 +431,7 @@ def create_case(slug: str, cases_root: Path | None = None) -> Case:
     if not _SLUG_RE.fullmatch(slug):
         raise ValueError(f"Invalid slug '{slug}'. Use lowercase letters, digits, and hyphens.")
 
-    root = cases_root or _default_cases_root()
+    root = cases_root or default_cases_root()
     root.mkdir(parents=True, exist_ok=True)
 
     max_number = 0
@@ -468,7 +471,7 @@ def load_case(case_id: str, cases_root: Path | None = None) -> Case:
     if _CASE_DIR_RE.fullmatch(case_id) is None:
         raise ValueError(f"Invalid case_id '{case_id}'")
 
-    root = cases_root or _default_cases_root()
+    root = cases_root or default_cases_root()
     case_root = root / case_id
     if not case_root.exists():
         raise FileNotFoundError(f"Case directory does not exist: {case_root}")

@@ -5,12 +5,31 @@ build-backend = "hatchling.build"
 [project]
 name = "decision-intelligence-platform"
 version = "0.1.0"
-description = "Personal multi-agent decision-intelligence platform."
+description = "Multi-agent decision-intelligence platform: runs framing, evidence, adversarial challenge and synthesis over an imperfectly defined decision and returns a recommendation with explicit uncertainty and a traceable chain from objectives to conclusion."
 requires-python = ">=3.12"
+keywords = [
+  "decision-intelligence",
+  "multi-agent",
+  "orchestration",
+  "agent-backend",
+  "cursor-cli",
+  "evidence",
+  "uncertainty",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: End Users/Desktop",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Private :: Do Not Upload",
+]
 dependencies = [
   "pydantic>=2",
   "pyyaml",
 ]
+
+[project.scripts]
+advisor = "orchestrator.cli:main"
 
 [dependency-groups]
 dev = [

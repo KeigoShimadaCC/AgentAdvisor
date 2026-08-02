@@ -17,6 +17,8 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 5 | Evaluation and hardening | not_started | 4 |
 | 6 | Think-tank architecture | in_progress | 4 |
 
+**Current position (2026-08-02).** The pipeline runs end to end and all five benchmark scenarios completed at 1.89/2.0 average. SPEC-019 is now implemented, so a case is driven entirely by `advisor new | status | approve | resume | report | list` and the root README documents the walkthrough. Two things are open: Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI); Phase 6 tiers 1–3 are implemented and unit-verified but the before/after live comparison (SPEC-026) that justifies their cost is mid-flight. `make check` is green: lint, mypy, 313 unit tests, plus 17 live tests that are deselected by default.
+
 ---
 
 ## Phase 0 — Foundations [done]
@@ -102,7 +104,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | Spec | Task | Status |
 |---|---|---|
 | SPEC-018 | Stage wiring (end-to-end pipeline) | verified |
-| SPEC-019 | User CLI | draft |
+| SPEC-019 | User CLI | implemented |
 | SPEC-020 | First real decision case | draft |
 
 **Findings**
@@ -114,6 +116,8 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 - (2026-07-31) Citation hooks fixed: skip validation when blackboard is empty (provisional thesis stage). Task graph budget kind fixed to `agent_invocations`. Synthesizer timeout increased to 600s.
 - (2026-08-02) **All 5 e2e scenarios completed successfully.** Average score 1.89/2.0 (94.4%). Four rounds of fixes applied: (1) analyst task dispatch mapping, (2) synthesis coercion + missing field defaults, (3) enum coercion for challenger, (4) model_stability consistency + dangling citation ID tolerance. 181 unit tests pass. Full details in `../report-and-findings/2026-08-02-e2e-final-evaluation.md`.
 - (2026-08-02) Key results: Decision completeness 2.00/2.0, Adversarial robustness 2.00/2.0, Traceability 2.00/2.0 across all scenarios. S04 achieved perfect 2.00/2.0. Weakest dimension: Evidence quality (1.53 avg, source authority scoring gap). No assumption records produced in any scenario (planner does not commission assumption-gathering tasks). 52% invocation success rate (99/207 failed). Coercion layer is critical for pipeline completion.
+- (2026-08-02) **Phase 4 is not closeable yet: SPEC-019 is marked `in_progress` but none of its three deliverables exist** (`orchestrator/cli.py`, the `advisor` entry point, `tests/test_cli.py`). The status was advanced during the SPEC-018 commit rather than by CLI work. Until then, cases are driven through `orchestrator/pipeline.py` and `scripts/run_e2e_eval.py`, which means DoD D ("a new decision needs a prompt and configuration only") is unproven. The root `README.md` is a SPEC-019 deliverable and is deliberately not written before it. **Resolved the same day** by implementing SPEC-019.
+- (2026-08-02) **SPEC-019 implemented.** `advisor new | status | approve | resume | report | list`, exit codes 0/2/3, `--json` for tooling, `--budget-profile`, auditable `FramingApproval` artifacts for both gates, and `AGENTADVISOR_CASES_ROOT` so cases can live outside the repo. 17 CLI tests; suite now 313. `--depth` was specced but dropped: nothing downstream reads `DecisionSpec.depth`, so the flag would have been decoration. Phase 4's remaining item is SPEC-020.
 
 ## Phase 5 — Evaluation and hardening [not_started]
 
@@ -141,14 +145,17 @@ think tank from a one-off engagement.
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-023 | Epistemic hygiene layer | approved |
-| SPEC-024 | Structured deliberation | approved |
-| SPEC-025 | Institutional memory | approved |
+| SPEC-023 | Epistemic hygiene layer | implemented |
+| SPEC-024 | Structured deliberation | implemented |
+| SPEC-025 | Institutional memory | implemented |
 | SPEC-026 | Think-tank re-evaluation | approved |
 
 **Findings**
 
-- —
+- (2026-08-02) Tiers 1–3 are implemented and green under `make check` (lint, mypy, 296 unit tests, 17 live tests deselected). New deterministic modules: `orchestrator/gates.py` (scheduled process gates that can cancel tasks), `evidence_critic.py` (primary-source and cluster-concentration scoring), `verification.py` (reviewer worksheet with a single synthesis retry edge), `issue_tree.py` (MECE structuring with cycle/dangling-parent rejection and leaf coverage), `thesis.py` (append-only revision ledger), `tracks.py` (dual-track directors plus reconciliation on disagreement), `memory.py` + `calibration.py` (cross-case store, source reputation by registrable domain, Brier scoring), `skills.py` (keyword-selected specialist packs injected into researcher workspaces only). Four new roles: `structurer`, `assumption_analyst`, `director-b`, `premortem`.
+- (2026-08-02) Cross-case memory lives in a gitignored root `memory/` directory (`cases.yaml`, `evidence.yaml`, `assumptions.yaml`), not in `cases/`, because it outlives any single case. Outcomes are recorded with `scripts/record_outcome.py`, which is what makes the Brier calibration series accumulate.
+- (2026-08-02) Track B's output contract initially described fields absent from the schema, which would have made every dual-track run fail validation. Fixed in `cursor/roles/director-b.md`; worth remembering that role md contracts drift from schemas silently because only runtime validation catches them.
+- **(2026-08-02) SPEC-023 to SPEC-025 stay `implemented`, not `verified`.** Their acceptance criteria are met deterministically, but each verification plan ends with the live benchmark suite in SPEC-026, which has not been run. Phase 6 cannot close until that comparison exists.
 
 ---
 
@@ -168,6 +175,8 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 - Domain Specialist skill packs under `cursor/skills/` (north star 6.7); the MVP relies on the generic Researcher and Analyst
 - ~~Per-task marginal-value gate (north star Section 13 rule)~~ **Promoted and implemented 2026-07-31 in SPEC-009**, since adding `estimated_cost` to `TaskRecord` made the real rule cheaper than the planned workaround.
 - Evaluation of workflow variations (north star Section 19 item 3); SPEC-021 runs baseline + full workflow only
+- (2026-08-02) A static check that every `cursor/roles/<role>.md` output contract matches the artifact schema the orchestrator validates it against. The track B defect was invisible to `make check` and would only have surfaced as a live validation failure.
+- (2026-08-02) Coercion-layer accounting: the Phase 4 runs depended on coercion to complete, so how often it fires, and for which role and field, should be measured rather than assumed benign.
 
 **Promoted**
 
