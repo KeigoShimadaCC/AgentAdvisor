@@ -15,15 +15,17 @@ Build and execute a reproducible quantitative decision model for the assigned ta
 2. Build probabilities base-rate-first:
    - Start from a named reference class prior.
    - Record explicit adjustments from that base rate.
-   - Every adjustment must cite supporting `evidence_id` values.
+   - Every adjustment must cite supporting evidence IDs.
    - Prefer probability ranges when uncertainty is material; avoid false precision.
 3. Make assumptions explicit:
    - Every material modeling assumption must either reference an existing `AssumptionRecord` (`A-...`)
      or be proposed clearly so it can be added to the assumption registry.
 4. Write a standalone Python script at:
    - `analysis/<task-id>/model.py`
-   - Standard library only. Do not use external dependencies.
+   - Standard library plus `yaml` (PyYAML), which is guaranteed present. Nothing else.
    - If any stochastic logic exists, use a fixed seed.
+   - The orchestrator re-runs it with the working directory set to `analysis/<task-id>/`,
+     so write `results.yaml` with a bare relative filename.
 5. Execute the script and have it write deterministic results to:
    - `analysis/<task-id>/results.yaml`
    - Include scenario probabilities, per-alternative expected values, a sensitivity table, and break-even thresholds.
@@ -33,6 +35,30 @@ Build and execute a reproducible quantitative decision model for the assigned ta
 Every number in `analysis_result.yaml` must come from the executed script output.
 No prose arithmetic, ever.
 The orchestrator re-runs your script in a fresh subprocess and rejects outputs that do not reproduce.
+
+## The probability block, exactly
+
+Most rejected analyses fail here, so read this before writing any YAML. Every
+`scenarios[*].probability` is a `ProbabilityEstimate`:
+
+| Field | Rule |
+|---|---|
+| `method` | Exactly one of `reference_class`, `scenario_model`, `structured_subjective`. There is no `base_rate` method. |
+| `reference_class` | Required when `method: reference_class`. The named population you drew the prior from. |
+| `base_rate` | Required when `method: reference_class`. The prior itself, 0 to 1. |
+| `point` | A single probability, 0 to 1. |
+| `interval_low` / `interval_high` | A range instead of a point. |
+| `adjustments` | List of `{description, delta, evidence_ids}`. |
+
+Give **either** `point` **or** the interval pair, never both, and never neither.
+
+Each entry in `adjustments` has exactly these three keys:
+
+- `description`: a string saying what moves the estimate and why.
+- `delta`: a signed number.
+- `evidence_ids`: a **list** of `E-<number>` IDs, at least one.
+
+Not `reason`, not `evidence_id`. Those are rejected as unknown fields.
 
 ## Required artifact consistency
 
@@ -77,30 +103,33 @@ results_path: analysis/T-003/results.yaml
 scenarios:
   - scenario_name: bull
     probability:
-      method: base_rate
-      point: 0.25
+      method: reference_class
       reference_class: "historical tech sector earnings beat rate"
+      base_rate: 0.20
+      point: 0.25
       adjustments:
-        - delta: 0.05
-          reason: "strong order book"
-          evidence_id: E-002
+        - description: "Order book is running ahead of the reference cohort."
+          delta: 0.05
+          evidence_ids:
+            - E-002
   - scenario_name: base
     probability:
-      method: base_rate
-      point: 0.50
+      method: reference_class
       reference_class: "historical base case"
+      base_rate: 0.50
+      point: 0.50
       adjustments: []
   - scenario_name: bear
     probability:
-      method: base_rate
-      point: 0.20
+      method: reference_class
       reference_class: "historical tech sector earnings miss rate"
+      base_rate: 0.20
+      point: 0.20
       adjustments: []
   - scenario_name: failure
     probability:
-      method: base_rate
+      method: scenario_model
       point: 0.05
-      reference_class: "tail risk scenarios"
       adjustments: []
 expected_values_by_alternative:
   invest_now: 12500
@@ -187,7 +216,19 @@ for growth in [0.15, 0.05, -0.10]:
     sensitivity.append(row)
 
 results = {
-    "scenarios": [{"scenario_name": s, "probability": {"method": "base_rate", "point": p, "reference_class": "historical", "adjustments": []}} for s, p in scenarios.items()],
+    "scenarios": [
+        {
+            "scenario_name": s,
+            "probability": {
+                "method": "reference_class",
+                "reference_class": "historical sector outcomes",
+                "base_rate": p,
+                "point": p,
+                "adjustments": [],
+            },
+        }
+        for s, p in scenarios.items()
+    ],
     "expected_values_by_alternative": expected_values,
     "sensitivity_table": sensitivity,
     "break_even_thresholds": [{"parameter": "earnings_growth", "threshold_value": 0.08, "favored_alternative_below": "staged_entry", "favored_alternative_above": "invest_now"}],

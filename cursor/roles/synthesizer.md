@@ -141,9 +141,13 @@ recommendation_confidence:
   value: 0.68
   basis: "Staged entry balances risk across scenarios"
 model_stability:
-  share_of_sensitivity_runs_supporting_recommendation: 0.67
-  runs_total: 3
-  runs_supporting: 2
+  share_of_sensitivity_runs_supporting_recommendation: 0.75
+  runs_total: 4
+  runs_supporting: 3
 ```
+
+`share_of_sensitivity_runs_supporting_recommendation` must equal
+`runs_supporting / runs_total` exactly. Pick counts whose ratio you can write without
+rounding; 2 of 3 is rejected because 0.67 is not 2/3.
 
 IMPORTANT: Every string field must be a plain string (not a nested object). Every list field must be a YAML list. Every number must be a number, not a string.

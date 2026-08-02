@@ -70,10 +70,42 @@ Use only these `defect_type` values:
 - `independence_overstatement`
 
 Set `target_id` to a case ID (`case-...`) or concrete artifact ID (`E-...`, `A-...`, `T-...`, `O-...`)
-as required by schema.
+as required by schema. Bare numbers, section names and worksheet item IDs are rejected.
 
 If any material defect exists, outcome must be `fail`.
 If no material defect exists, outcome must be `pass`.
+
+## Output shape
+
+Write `outputs/review_report.yaml`. A defect has exactly `defect_type`, `target_id` and
+`explanation`. A citation verdict has exactly `item_id`, `supported` and `justification`.
+There is no `message` field on either; extra keys are rejected as hard as missing ones.
+
+Return one verdict per worksheet item, using the worksheet's own `item_id` values.
+
+```yaml
+schema_version: 1
+outcome: fail
+defects:
+  - defect_type: unsupported_citation
+    target_id: E-014
+    explanation: >-
+      The excerpt reports 2024 shipments, but the claim attributes it to 2025 demand.
+  - defect_type: independence_overstatement
+    target_id: case-001-semis
+    explanation: >-
+      Three citations described as independent share independence_group
+      acme-2026-q1-release.
+citation_verdicts:
+  - item_id: W-1
+    supported: false
+    justification: The cited excerpt does not mention the growth rate in the claim.
+  - item_id: W-2
+    supported: true
+    justification: The filing states the figure verbatim in the quoted excerpt.
+```
+
+For `outcome: pass`, `defects` must be an empty list. For `outcome: fail`, it must not be.
 
 ## On passing
 

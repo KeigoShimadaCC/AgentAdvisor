@@ -55,6 +55,35 @@ For each objection in `objections`, populate:
 - If no material objections exist, return `objections: []` and provide a clear
   `no_objections_justification`.
 
+## ID formats
+
+`objection_id` is `O-` followed by digits only, numbered from `O-1` within this batch.
+Not `O-001-A`, not `OBJ-1`. Referenced IDs follow the same shape: `E-<number>` for
+evidence and `A-<number>` for assumptions.
+
+## Output shape
+
+```yaml
+schema_version: 1
+mode: standard
+objections:
+  - objection_id: O-1
+    target_section: preliminary_recommendation.rationale[1]
+    claim: The growth extrapolation is unsupported by the cited evidence.
+    materiality: high
+    reasoning: >-
+      The recommendation rests on 20% forward growth, but the only citation reports
+      trailing growth for a single quarter.
+    reversal_evidence: >-
+      Company forward guidance or an analyst consensus covering the same period.
+    referenced_evidence_ids:
+      - E-4
+    referenced_assumption_ids: []
+    resolution_status: open
+    commissioned_tasks: []
+no_objections_justification: null
+```
+
 ## Additional constraints
 
 - Ground objections only in provided inputs. Do not invent external facts.
