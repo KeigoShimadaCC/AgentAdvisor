@@ -32,6 +32,90 @@ def _load_scenario(path: Path) -> dict[str, Any]:
     return loaded
 
 
+def _phase6_metrics(case: Case, events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Counters for the structures Phase 6 introduced.
+
+    The rubric predates them, so without these the before/after comparison would show
+    only whether the new stages hurt the old score, not whether they did anything.
+    """
+    shared = case.root / "shared"
+
+    issue_tree_path = shared / "issue_tree.yaml"
+    leaf_count = 0
+    node_count = 0
+    if issue_tree_path.exists():
+        tree = yaml.safe_load(issue_tree_path.read_text(encoding="utf-8")) or {}
+        nodes = tree.get("nodes", [])
+        node_count = len(nodes)
+        parents = {node.get("parent_id") for node in nodes}
+        leaf_count = sum(1 for node in nodes if node.get("node_id") not in parents)
+
+    critique_path = shared / "evidence_critique.yaml"
+    critique: dict[str, Any] = {}
+    if critique_path.exists():
+        critique = yaml.safe_load(critique_path.read_text(encoding="utf-8")) or {}
+
+    premortem_path = shared / "premortem_report.yaml"
+    failure_modes = 0
+    if premortem_path.exists():
+        report = yaml.safe_load(premortem_path.read_text(encoding="utf-8")) or {}
+        failure_modes = len(report.get("failure_modes", []))
+
+    gate_dir = shared / "gates"
+    gate_reports = list(gate_dir.glob("*.yaml")) if gate_dir.exists() else []
+    gate_blocks = 0
+    gate_warns = 0
+    for path in gate_reports:
+        report = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        for finding in report.get("findings", []):
+            if finding.get("severity") == "block":
+                gate_blocks += 1
+            elif finding.get("severity") == "warn":
+                gate_warns += 1
+
+    thesis_dir = shared / "thesis"
+    thesis_files = list(thesis_dir.glob("*.yaml")) if thesis_dir.exists() else []
+    thesis_changes = 0
+    for path in thesis_files:
+        revision = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        if revision.get("changed"):
+            thesis_changes += 1
+
+    divergence_path = shared / "track_divergence.yaml"
+    track_agreement: bool | None = None
+    if divergence_path.exists():
+        divergence = yaml.safe_load(divergence_path.read_text(encoding="utf-8")) or {}
+        track_agreement = divergence.get("agreement")
+
+    worksheet_path = shared / "verification_worksheet.yaml"
+    worksheet_items = 0
+    if worksheet_path.exists():
+        worksheet = yaml.safe_load(worksheet_path.read_text(encoding="utf-8")) or {}
+        worksheet_items = len(worksheet.get("items", []))
+
+    review_events = [e for e in events if e.get("event_type") == "review_evaluated"]
+    resynthesis_count = sum(1 for e in review_events if not e.get("payload", {}).get("accepted"))
+
+    return {
+        "issue_tree_nodes": node_count,
+        "issue_tree_leaves": leaf_count,
+        "evidence_primary_share": critique.get("primary_source_share"),
+        "evidence_authority_mean": critique.get("corpus_authority_mean"),
+        "evidence_max_cluster_share": critique.get("max_cluster_share"),
+        "evidence_independent_groups": critique.get("independent_group_count"),
+        "evidence_gaps": len(critique.get("gaps", [])),
+        "premortem_failure_modes": failure_modes,
+        "gate_reports": len(gate_reports),
+        "gate_blocking_findings": gate_blocks,
+        "gate_warning_findings": gate_warns,
+        "thesis_revisions": len(thesis_files),
+        "thesis_changes": thesis_changes,
+        "track_agreement": track_agreement,
+        "verification_worksheet_items": worksheet_items,
+        "resynthesis_cycles": resynthesis_count,
+    }
+
+
 def _extract_metrics(case: Case) -> dict[str, Any]:
     """Extract usage metrics from the case audit log."""
     audit_path = case.root / "audit.jsonl"
@@ -68,6 +152,7 @@ def _extract_metrics(case: Case) -> dict[str, Any]:
     has_final_rec = (case.root / "outputs" / "final_recommendation.md").exists()
 
     return {
+        **_phase6_metrics(case, events),
         "total_invocations": len(invocations),
         "successful_invocations": len(successful),
         "failed_invocations": len(failed),
