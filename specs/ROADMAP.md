@@ -16,6 +16,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | not_started | 4 |
 | 6 | Think-tank architecture | in_progress | 4 |
+| 7 | Product surface | not_started | 4, 6 |
 
 ---
 
@@ -150,6 +151,49 @@ think tank from a one-off engagement.
 
 - —
 
+## Phase 7 — Product surface [not_started]
+
+Promoted 2026-08-02 by user direction from the frontend discovery report at
+`phase-7-product-surface/frontend-discovery-report.md`. The report answers north star open
+question 21.12 (visual interface vs Markdown artifacts): the selected direction is a local-first
+web app in which each case is a single "living brief" with two signed checkpoint sheets, five
+inspection rooms, and four never-collapsed uncertainty encodings. The report also identified the
+engine defects that would make an honest UI impossible today (approval edits consumed by nothing,
+budget counters never persisted, unsafe resume, `done` ≠ review-passed, renderer citation spam);
+SPEC-027 to SPEC-031 close those first, SPEC-032/033 build the read model and service shell,
+SPEC-034 to SPEC-036 build the screens, and SPEC-037 verifies the whole product in a real
+browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smoke).
+
+**Specs**
+
+| Spec | Task | Status |
+|---|---|---|
+| SPEC-027 | Case control service and run supervisor | draft |
+| SPEC-028 | Framing revision loop and final send-back | draft |
+| SPEC-029 | Budget truth and disclosed stops | draft |
+| SPEC-030 | Safe resume and delivery-integrity persistence | draft |
+| SPEC-031 | Renderer and presentation-data fixes | draft |
+| SPEC-032 | CaseView projection, fixture case, generated frontend types | draft |
+| SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | draft |
+| SPEC-034 | Commissioning flow and scope checkpoint UI | draft |
+| SPEC-035 | Living brief, progress experience, delivery checkpoint UI | draft |
+| SPEC-036 | Rooms and record inspector | draft |
+| SPEC-037 | Frontend e2e suite in a real browser | draft |
+
+**Findings**
+
+- (2026-08-02) Discovery findings that shaped the specs, verified against the implementation and
+  the two real cases: approval is two booleans nothing external can set; `FramingApproval.edits`
+  and `clarification_answers` are written but never consumed; `state.yaml` `budget_counters` is
+  always `{}` (ledger aliasing), leaving `DisclosureRecord` unreachable; resume is non-idempotent
+  (zombie `active` tasks, workspace-archive `FileExistsError` → case `FAILED`, duplicate ID
+  minting on re-unpack); a case reaches `done` even when review fails after its single retry
+  (case-001 shipped exactly so); the renderer appends the full citation list to every bullet
+  (~40% of the reference report); coercion sentinels ("Not independently assessed",
+  `runs_total==1`) render as measurements. The only live progress signal is per-event-flushed
+  `audit.jsonl` (no `stage_started` event exists); StubBackend + archived real cases enable
+  full frontend development and three of SPEC-037's four e2e modes at zero token cost.
+
 ---
 
 ## Emergent work
@@ -171,6 +215,7 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 
 **Promoted**
 
+- Frontend product surface: discovery report + spec family SPEC-027…SPEC-037 → **Phase 7** (2026-08-02, user-directed)
 - Per-workspace permission profiles (`.cursor/cli.json`) → SPEC-006 (2026-07-30, spec review); implemented and verified 2026-07-31
 - Out-of-repo runtime workspaces + `assert_isolated` guard → SPEC-004/SPEC-006 (2026-07-31, forced by the leakage finding); implemented and verified
 - Per-task marginal-value gate → SPEC-009 (2026-07-31); implemented and verified
