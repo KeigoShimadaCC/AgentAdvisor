@@ -53,7 +53,7 @@ from orchestrator.render import write_final_recommendation_markdown
 from orchestrator.reproduce import reproduce_analysis_result
 from orchestrator.roles_config import load_role_config
 from orchestrator.stability import compute_model_stability
-from orchestrator.state_machine import CaseState, StepHandler, StepPlan, StepResult
+from orchestrator.state_machine import CaseState, StepHandler, StepPlan, StepResult, save_case_state
 from orchestrator.task_graph import TaskExecutionResult, TaskGraph
 from orchestrator.thesis import write_thesis
 from orchestrator.tracks import build_position, compare_tracks
@@ -567,7 +567,7 @@ class StageHandlers:
             return StepResult.error(f"Assumption extraction failed: {exc}")
         assert isinstance(artifact, AssumptionBatch)
 
-        records = unpack_assumption_batch(case, artifact)
+        records = unpack_assumption_batch(case, artifact, task_id="T-assumption-ledger")
         self._gate(case, "assumption_ledger")
         _audit(
             case,
@@ -743,7 +743,7 @@ class StageHandlers:
         assert isinstance(artifact, ObjectionBatch)
 
         # Unpack objections into individual records
-        unpack_objection_batch(case, artifact)
+        unpack_objection_batch(case, artifact, task_id=f"T-challenge-{state.repair_cycle}")
 
         self._gate(case, "challenge")
         _audit(
@@ -1046,6 +1046,10 @@ class StageHandlers:
         case.write_artifact(artifact)
 
         accepted = review_is_acceptable(artifact, worksheet)
+        # Persist the review verdict as an engine fact so ``done`` never silently
+        # means "review failed" and a crash before review is distinguishable (None).
+        state.review_accepted = accepted
+        save_case_state(case, state)
         _audit(
             case,
             "review_evaluated",

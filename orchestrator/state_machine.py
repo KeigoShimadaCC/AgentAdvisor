@@ -49,6 +49,7 @@ class CaseState(ArtifactModel):
     elapsed_s: float = Field(default=0.0)
     framing_approved: bool = False
     final_approved: bool = False
+    review_accepted: bool | None = Field(default=None)
     failure_cause: str | None = None
     created_at: datetime
     updated_at: datetime

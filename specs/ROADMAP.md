@@ -184,7 +184,7 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 | SPEC-027 | Case control service and run supervisor | implemented |
 | SPEC-028 | Framing revision loop and final send-back | implemented |
 | SPEC-029 | Budget truth and disclosed stops | implemented |
-| SPEC-030 | Safe resume and delivery-integrity persistence | draft |
+| SPEC-030 | Safe resume and delivery-integrity persistence | implemented |
 | SPEC-031 | Renderer and presentation-data fixes | in_progress |
 | SPEC-032 | CaseView projection, fixture case, generated frontend types | draft |
 | SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | draft |

@@ -51,12 +51,43 @@ def record_thesis_revision(
     trigger: ThesisTrigger,
     objection_ids: list[str] | None = None,
 ) -> ThesisRevision:
-    """Append the current thesis to the ledger and return the new entry."""
+    """Append the current thesis to the ledger and return the new entry.
+
+    A duplicate guard skips the append when the head revision has identical
+    ``trigger``, ``preferred_alternative``, and ``rationale_digest`` to the
+    new one, auditing ``thesis_revision_skipped_duplicate`` instead.
+    """
     ledger = load_ledger(case)
     previous = ledger[-1] if ledger else None
     previous_alternative = previous.preferred_alternative if previous else None
 
     joined_rationale = " ".join(recommendation.rationale)
+    new_rationale_digest = [
+        _truncate_at_word_boundary(reason, _RATIONALE_DIGEST_CHARS)
+        for reason in recommendation.rationale[:3]
+    ]
+
+    # Duplicate guard: skip when the head revision is identical in the three
+    # fields that define whether the thesis actually moved.
+    if previous is not None:
+        if (
+            previous.trigger == trigger
+            and previous.preferred_alternative == recommendation.preferred_alternative
+            and previous.rationale_digest == new_rationale_digest
+        ):
+            case.audit(
+                AuditEvent(
+                    ts=datetime.now(UTC),
+                    actor="thesis_ledger",
+                    event_type="thesis_revision_skipped_duplicate",
+                    payload={
+                        "trigger": trigger.value,
+                        "preferred_alternative": recommendation.preferred_alternative,
+                    },
+                )
+            )
+            return previous
+
     revision = ThesisRevision(
         revision=len(ledger) + 1,
         trigger=trigger,
@@ -66,10 +97,7 @@ def record_thesis_revision(
             previous_alternative is not None
             and previous_alternative != recommendation.preferred_alternative
         ),
-        rationale_digest=[
-            _truncate_at_word_boundary(reason, _RATIONALE_DIGEST_CHARS)
-            for reason in recommendation.rationale[:3]
-        ],
+        rationale_digest=new_rationale_digest,
         changed_because_evidence_ids=sorted(set(_EVIDENCE_RE.findall(joined_rationale))),
         changed_because_assumption_ids=sorted(set(_ASSUMPTION_RE.findall(joined_rationale))),
         changed_because_objection_ids=sorted(set(objection_ids or [])),

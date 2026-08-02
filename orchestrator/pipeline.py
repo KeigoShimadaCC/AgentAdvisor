@@ -8,6 +8,7 @@ supports both interactive (halt at approval gates) and unattended
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from orchestrator.citations import register_citation_hooks
 from orchestrator.memory import MemoryStore, write_digests
 from orchestrator.stages import StageHandlers
 from orchestrator.state_machine import (
+    ACTIVE_STAGES,
     CaseStage,
     CaseState,
     StepHandler,
@@ -67,6 +69,45 @@ DEEP_BUDGET = BudgetConfig(
 )
 
 MAX_SYNTHESIS_RETRIES = 1
+
+
+@dataclass(frozen=True, slots=True)
+class ResumeReport:
+    """Result of preparing a case for safe resume."""
+
+    reset_task_ids: list[str] = field(default_factory=list)
+    was_interrupted: bool = False
+
+
+def prepare_resume(case: Case) -> ResumeReport:
+    """Reconcile orphaned active tasks before resuming an interrupted case.
+
+    Returns a report of which task ids were reset and whether the case was
+    in an active (non-terminal) stage.  Idempotent: calling it on a case with
+    no orphaned tasks is a no-op.
+    """
+    state = load_case_state(case)
+    was_interrupted = state.stage in ACTIVE_STAGES
+
+    task_graph = TaskGraph(case)
+    reset_task_ids = task_graph.reconcile_orphans()
+
+    case.audit(
+        AuditEvent(
+            ts=datetime.now(UTC),
+            actor="orchestrator",
+            event_type="prepare_resume",
+            payload={
+                "reset_task_ids": reset_task_ids,
+                "was_interrupted": was_interrupted,
+            },
+        )
+    )
+
+    return ResumeReport(
+        reset_task_ids=reset_task_ids,
+        was_interrupted=was_interrupted,
+    )
 
 
 def select_budget_for_depth(depth: Depth) -> tuple[BudgetConfig, str]:
@@ -166,6 +207,11 @@ def run(
 
     # Initialize budget ledger from current state
     state = load_case_state(case)
+
+    # Safe-resume: reconcile orphaned active tasks when resuming an interrupted case.
+    if state.stage in ACTIVE_STAGES and state.stage is not CaseStage.INTAKE:
+        prepare_resume(case)
+
     if state.started_at_run is None:
         state = state.model_copy(update={"started_at_run": clock_fn()})
     ledger = BudgetLedger(state, budget, tier_map)

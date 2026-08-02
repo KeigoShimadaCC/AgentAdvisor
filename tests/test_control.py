@@ -20,7 +20,7 @@ from orchestrator.artifacts import (
 )
 from orchestrator.case_store import load_case
 from orchestrator.control import (
-    ResumeBlocked,
+    WorkerFailed,
     approve_final,
     approve_framing,
     case_status,
@@ -292,7 +292,7 @@ class TestPauseResume:
         status = case_status(case_id, cases_root=control_env)
         assert status.stage is CaseStage.AWAITING_FINAL_APPROVAL
 
-    def test_resume_refuses_orphaned_active_tasks(self, control_env: Path) -> None:
+    def test_resume_reconciles_orphaned_active_tasks(self, control_env: Path) -> None:
         from orchestrator.artifacts import TaskRecord, TaskRole, TaskStatus
 
         case_id = new_case(
@@ -333,8 +333,25 @@ class TestPauseResume:
         )
         case.write_artifact(task)
 
-        with pytest.raises(ResumeBlocked):
+        # Resume now reconciles orphaned tasks instead of refusing.
+        # The worker may fail on the incomplete case, but reconciliation
+        # must happen before the worker starts.
+        try:
             resume(case_id, cases_root=control_env)
+        except WorkerFailed:
+            pass  # Worker fails on incomplete case; that's expected.
+
+        case = load_case(case_id, cases_root=control_env)
+        reconciled_task = case.read_artifact(TaskRecord, "T-001")
+        assert reconciled_task.status is TaskStatus.PLANNED
+
+        audit_lines = (case.root / "audit.jsonl").read_text(encoding="utf-8").strip().split("\n")
+        events = [json.loads(line) for line in audit_lines]
+        reset_events = [
+            event for event in events if event.get("event_type") == "task_reset_on_resume"
+        ]
+        assert len(reset_events) >= 1
+        assert "T-001" in reset_events[0]["payload"]["task_ids"]
 
     def test_resume_on_terminal_stage_raises(self, control_env: Path) -> None:
         case_id = new_case(

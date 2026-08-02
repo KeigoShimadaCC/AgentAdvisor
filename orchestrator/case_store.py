@@ -434,7 +434,11 @@ class Case:
             raise FileNotFoundError(f"Workspace path is not a directory: {workspace_path}")
         destination = self.root / "agents" / f"{role}--{task_id}"
         if destination.exists():
-            raise FileExistsError(f"Archive destination already exists: {destination}")
+            # Collision-safe: archive to the next available --rerun-<n> suffix.
+            n = 0
+            while destination.exists():
+                n += 1
+                destination = self.root / "agents" / f"{role}--{task_id}--rerun-{n}"
         shutil.copytree(workspace_path, destination)
         return destination
 

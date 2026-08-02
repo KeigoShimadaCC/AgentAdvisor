@@ -2,7 +2,7 @@
 id: SPEC-030
 title: Safe resume and delivery-integrity persistence
 phase: 7
-status: draft
+status: implemented
 depends_on: [SPEC-029]
 parallel_with: []
 north_star_refs: ["5.4", "18"]

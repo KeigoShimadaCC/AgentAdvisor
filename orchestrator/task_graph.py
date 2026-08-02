@@ -227,6 +227,29 @@ class TaskGraph:
             budget_refused=budget_refused,
         )
 
+    def reconcile_orphans(self) -> list[str]:
+        """Reset all ``active`` tasks to ``planned`` (safe-resume reconciliation).
+
+        Called after an interrupted run is loaded.  Returns the sorted list of
+        task ids that were reset and audits a ``task_reset_on_resume`` event.
+        Scans all task records on the blackboard, not just those tracked in the
+        graph's ``task_ids`` list, so tasks written outside the graph (e.g. by a
+        crashed worker) are still reconciled.
+        """
+        with self._lock:
+            all_records = self._case.list_artifacts(TaskRecord)
+            active_ids = [
+                record.task_id for record in all_records if record.status is TaskStatus.ACTIVE
+            ]
+            for task_id in active_ids:
+                self._set_task_status_unlocked(task_id, TaskStatus.PLANNED)
+            if active_ids:
+                self._audit_unlocked(
+                    event_type="task_reset_on_resume",
+                    payload={"task_ids": sorted(active_ids)},
+                )
+            return sorted(active_ids)
+
     def cancel_tasks(
         self,
         task_ids: Iterable[str],
@@ -338,7 +361,7 @@ class TaskGraph:
             if isinstance(artifact, EvidenceBatch):
                 unpack_evidence_batch(self._case, artifact)
             elif isinstance(artifact, ObjectionBatch):
-                unpack_objection_batch(self._case, artifact)
+                unpack_objection_batch(self._case, artifact, task_id=task_id)
             else:
                 self._case.write_artifact(artifact)
 

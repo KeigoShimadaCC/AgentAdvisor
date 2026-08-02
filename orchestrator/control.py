@@ -42,6 +42,7 @@ from orchestrator.state_machine import (
 )
 from orchestrator.supervisor import CaseLocked, RunLock
 from orchestrator.supervisor import stop as supervisor_stop
+from orchestrator.task_graph import TaskGraph
 
 _BUDGET_PROFILES: dict[str, BudgetConfig] = {
     "default": DEFAULT_BUDGET,
@@ -466,7 +467,8 @@ def resume(
 ) -> None:
     """Restart a worker for a parked or interrupted case.
 
-    Refuses cases with orphaned ``active`` tasks (safe-resume is SPEC-030).
+    Orphaned ``active`` tasks are reconciled (reset to ``planned``) before the
+    worker is started, so a killed run can resume without corruption.
     """
     root = _resolve_root(cases_root)
     case = load_case(case_id, cases_root=root)
@@ -475,21 +477,22 @@ def resume(
     if state.stage in (CaseStage.DONE, CaseStage.FAILED):
         raise ValueError(f"Case {case_id} is at terminal stage '{state.stage.value}'.")
 
-    orphaned = _has_active_tasks(case)
-    if orphaned:
-        _audit(
-            case,
-            "control_interrupted_detected",
-            {"case_id": case_id, "orphaned_tasks": orphaned},
-        )
-        raise ResumeBlocked(case_id, orphaned)
-
     # Reclaim a stale lock if present.
     lock = RunLock(case.root)
     if lock.is_stale():
         lock.release()
     if lock.is_held():
         raise CaseLocked(case_id, lock.holder_pid() or -1, lock.age_s())
+
+    # Reconcile orphaned active tasks (SPEC-030 safe-resume).
+    task_graph = TaskGraph(case)
+    reset_task_ids = task_graph.reconcile_orphans()
+    if reset_task_ids:
+        _audit(
+            case,
+            "control_resume_reconciled",
+            {"case_id": case_id, "reset_task_ids": reset_task_ids},
+        )
 
     _audit(case, "control_run_started", {"case_id": case_id})
     _run_worker_to_halt(case_id, root)

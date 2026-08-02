@@ -200,26 +200,41 @@ def test_unpack_objection_batch_empty_outcome_audits_zero_records(tmp_path: Path
     assert events[0].payload["id_mapping"] == []
 
 
-def test_unpack_is_not_idempotent_and_mints_new_ids_on_replay(tmp_path: Path) -> None:
-    case = create_case("unpack-non-idempotent", cases_root=tmp_path)
+def test_unpack_evidence_batch_is_idempotent_via_marker(tmp_path: Path) -> None:
+    """Re-unpacking the same task_id is a no-op: marker prevents duplicate ids."""
+    case = create_case("unpack-idempotent", cases_root=tmp_path)
     evidence_batch = EvidenceBatch(
         task_id="T-004",
         question="Replay probe",
         records=[_evidence("E-777")],
         search_notes="Single-source replay test.",
     )
+
+    first_evidence = unpack_evidence_batch(case, evidence_batch)
+    second_evidence = unpack_evidence_batch(case, evidence_batch)
+
+    assert [item.evidence_id for item in first_evidence] == ["E-001"]
+    # Second unpack returns the same records — no new ids minted.
+    assert [item.evidence_id for item in second_evidence] == ["E-001"]
+
+    events = _audit_lines(case.root)
+    skip_events = [event for event in events if event.event_type == "unpack_skipped_duplicate"]
+    assert len(skip_events) == 1
+    assert skip_events[0].payload["task_id"] == "T-004"
+    assert skip_events[0].payload["artifact_type"] == "evidence_batch"
+
+
+def test_unpack_objection_batch_without_task_id_remains_non_idempotent(tmp_path: Path) -> None:
+    """Without a task_id, no marker is recorded, so unpacking mints fresh ids."""
+    case = create_case("unpack-no-marker", cases_root=tmp_path)
     objection_batch = ObjectionBatch(
         mode=ObjectionMode.STANDARD,
         objections=[_objection("O-777")],
     )
 
-    first_evidence = unpack_evidence_batch(case, evidence_batch)
-    second_evidence = unpack_evidence_batch(case, evidence_batch)
     first_objection = unpack_objection_batch(case, objection_batch)
     second_objection = unpack_objection_batch(case, objection_batch)
 
-    assert [item.evidence_id for item in first_evidence] == ["E-001"]
-    assert [item.evidence_id for item in second_evidence] == ["E-002"]
     assert [item.objection_id for item in first_objection] == ["O-001"]
     assert [item.objection_id for item in second_objection] == ["O-002"]
 
