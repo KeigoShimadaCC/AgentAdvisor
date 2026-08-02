@@ -37,13 +37,21 @@ from orchestrator.workspace import (
     delete_runtime_workspace,
 )
 
+# Source titles and publishers routinely contain a colon, and an unquoted one makes the
+# whole artifact unparseable, so the quoting rule is worth the two lines it costs here.
+_YAML_QUOTING_RULE = (
+    'Quote any string value containing a colon, for example publisher: "Applied '
+    'Economics: Case Studies". '
+)
 FIXED_PROMPT = (
     "Read AGENTS.md for role instructions. Read task.yaml and inputs/. "
-    "Write exactly the required output file under outputs/ and stop."
+    + _YAML_QUOTING_RULE
+    + "Write exactly the required output file under outputs/ and stop."
 )
 FIXED_READ_ONLY_PROMPT = (
     "Read AGENTS.md for role instructions. Read task.yaml and inputs/. "
-    "Return exactly one fenced ```yaml``` block containing the required artifact and stop."
+    + _YAML_QUOTING_RULE
+    + "Return exactly one fenced ```yaml``` block containing the required artifact and stop."
 )
 DEFAULT_TIMEOUT_S = 120.0
 DEFAULT_PROJECTION_BUDGET_CHARS = 20_000

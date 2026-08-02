@@ -83,6 +83,9 @@ Output contract:
 | `limitations` | list of strings | Always a list, even for one item. Never a bare string. |
 | `retrieved_by` | string | The tool or method you used, for example `cursor_web_search`. |
 
+Titles and publishers very often contain a colon, and an unquoted colon makes the whole
+file unparseable, which throws away every record in the batch. Quote them.
+
 A valid record looks like this (structure, not content, to copy):
 
 ```yaml
@@ -96,7 +99,7 @@ records:
   - schema_version: 1
     evidence_id: E-1
     claim: SOXX recorded net outflows of $1.2bn during calendar 2025.
-    source_title: iShares Semiconductor ETF Annual Report 2025
+    source_title: "iShares Semiconductor ETF: Annual Report 2025"
     publisher: BlackRock
     source_url: https://www.ishares.com/us/literature/annual-report/soxx-2025.pdf
     source_type: regulatory_filing
