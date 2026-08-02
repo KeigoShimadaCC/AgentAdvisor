@@ -271,7 +271,7 @@ def _make_premortem_report() -> PreMortemReport:
                     "Sequential datacenter revenue growth below 5% in any quarter",
                     "Hyperscaler capex guidance revised down",
                 ],
-                preventive_action="Cap the position and set a review trigger on quarterly guidance.",
+                preventive_action="Cap the position; review on quarterly guidance.",
                 referenced_evidence_ids=["E-002"],
                 referenced_assumption_ids=[],
             ),

@@ -124,7 +124,7 @@ def _check_undisclosed_objections(
     undisclosed = [
         record.objection_id
         for record in open_material
-        if not any(token in disclosed for token in _significant_tokens(record.claim))
+        if not _is_disclosed(record.claim, disclosed)
     ]
     if not undisclosed:
         return []
@@ -171,9 +171,25 @@ _STOPWORDS = frozenset(
 )
 
 
-def _significant_tokens(text: str, *, limit: int = 4) -> list[str]:
+def _significant_tokens(text: str, *, limit: int = 6) -> list[str]:
     tokens = [token for token in re.findall(r"[a-z]{4,}", text.lower()) if token not in _STOPWORDS]
     return tokens[:limit]
+
+
+DISCLOSURE_TOKEN_SHARE = 0.5
+
+
+def _is_disclosed(claim: str, disclosed_text: str) -> bool:
+    """A single shared word is not disclosure; require most of the claim to appear.
+
+    Matching on ``any`` token lets an unrelated sentence that happens to reuse one word
+    silently satisfy the check, which is the failure this gate exists to catch.
+    """
+    tokens = _significant_tokens(claim)
+    if not tokens:
+        return True
+    hits = sum(1 for token in tokens if token in disclosed_text)
+    return hits / len(tokens) >= DISCLOSURE_TOKEN_SHARE
 
 
 def build_verification_worksheet(case: Case) -> VerificationWorksheet:

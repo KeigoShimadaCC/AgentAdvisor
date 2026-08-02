@@ -20,10 +20,6 @@ def _normalize_alternative(value: str) -> str:
     return _NON_ALNUM_RE.sub(" ", value.lower()).strip()
 
 
-def _top_reason(recommendation: PreliminaryRecommendation) -> str:
-    return recommendation.rationale[0] if recommendation.rationale else "no rationale supplied"
-
-
 def build_position(
     *,
     track_id: str,
@@ -35,7 +31,7 @@ def build_position(
         model=model,
         model_family=family(model, canonical=True),
         preferred_alternative=recommendation.preferred_alternative,
-        top_reason=_top_reason(recommendation),
+        top_reason=recommendation.rationale[0],
         recommendation_confidence=recommendation.recommendation_confidence.value,
     )
 

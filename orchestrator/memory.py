@@ -48,6 +48,9 @@ MAX_SOURCE_REPUTATIONS = 8
 MAX_RECURRING_ASSUMPTIONS = 5
 MAX_PRIOR_EVIDENCE = 6
 MIN_KEYWORD_OVERLAP = 0.12
+MIN_SHARED_KEYWORDS = 2
+"""Two unrelated decisions routinely share one ordinary word ("buy", "sell"). One
+shared token is coincidence, not relevance, so a match needs at least two."""
 
 USAGE_NOTE = (
     "Prior-case context only. Nothing in this digest may be cited as evidence in the current "
@@ -113,6 +116,11 @@ def overlap(left: list[str], right: list[str]) -> float:
     if not left_set or not right_set:
         return 0.0
     return len(left_set & right_set) / len(left_set | right_set)
+
+
+def is_related(query: list[str], candidate: list[str]) -> bool:
+    shared = set(query) & set(candidate)
+    return len(shared) >= MIN_SHARED_KEYWORDS and overlap(query, candidate) >= MIN_KEYWORD_OVERLAP
 
 
 def registrable_domain(url: str) -> str:
@@ -232,8 +240,7 @@ class MemoryStore:
         candidates = [
             entry
             for entry in self.prior_cases()
-            if entry.case_id != exclude_case_id
-            and overlap(query, entry.keywords) >= (MIN_KEYWORD_OVERLAP)
+            if entry.case_id != exclude_case_id and is_related(query, entry.keywords)
         ]
         candidates.sort(key=lambda entry: overlap(query, entry.keywords), reverse=True)
         selected = candidates[:MAX_PRIOR_CASES]
@@ -254,13 +261,11 @@ class MemoryStore:
         scored = [
             (overlap(query, entry.topics), entry)
             for entry in self.prior_evidence()
-            if entry.from_case_id != exclude_case_id
+            if entry.from_case_id != exclude_case_id and is_related(query, entry.topics)
         ]
-        selected = [
-            entry
-            for score, entry in sorted(scored, key=lambda pair: pair[0], reverse=True)
-            if score >= MIN_KEYWORD_OVERLAP
-        ][:MAX_PRIOR_EVIDENCE]
+        selected = [entry for _, entry in sorted(scored, key=lambda pair: pair[0], reverse=True)][
+            :MAX_PRIOR_EVIDENCE
+        ]
         return PriorEvidenceDigest(
             generated_at=datetime.now(UTC),
             entries=selected,
