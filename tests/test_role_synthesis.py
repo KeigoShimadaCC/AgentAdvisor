@@ -28,6 +28,7 @@ from orchestrator.backend import (
     StubBackend,
 )
 from orchestrator.case_store import Case, create_case
+from orchestrator.citations import validate_final_recommendation_citations
 from orchestrator.invoke_role import (
     InvokeTask,
     RoleInvocationFailed,
@@ -35,7 +36,6 @@ from orchestrator.invoke_role import (
     invoke,
     register_cross_field_validation_hook,
 )
-from orchestrator.render import validate_final_recommendation_citations
 from orchestrator.roles_config import PermissionProfile, RoleConfig, family, load_role_config
 
 

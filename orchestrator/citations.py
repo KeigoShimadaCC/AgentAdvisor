@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable, Sequence
 
 from pydantic import BaseModel
 
-from orchestrator.artifacts import AssumptionRecord, EvidenceRecord, PreliminaryRecommendation
+from orchestrator.artifacts import (
+    AssumptionRecord,
+    EvidenceRecord,
+    FinalRecommendation,
+    PreliminaryRecommendation,
+)
 from orchestrator.case_store import Case
 from orchestrator.invoke_role import register_cross_field_validation_hook
 
@@ -93,8 +99,55 @@ def validate_preliminary_recommendation_citations(artifact: BaseModel, case: Cas
         )
 
 
+# --- FinalRecommendation citation validation ---
+
+
+def _sorted_unique_evidence_ids(evidence_ids: Iterable[str]) -> list[str]:
+    return sorted(set(evidence_ids))
+
+
+def collect_final_recommendation_citation_ids(recommendation: FinalRecommendation) -> list[str]:
+    """Collect every evidence ID referenced anywhere in a FinalRecommendation."""
+    collected: list[str] = list(recommendation.citations)
+    for scenario in recommendation.scenario_analysis:
+        for adjustment in scenario.probability.adjustments:
+            collected.extend(adjustment.evidence_ids)
+    for probability in recommendation.outcome_probabilities.values():
+        for adjustment in probability.adjustments:
+            collected.extend(adjustment.evidence_ids)
+    return _sorted_unique_evidence_ids(collected)
+
+
+def validate_final_recommendation_citations(
+    recommendation: FinalRecommendation, evidence_records: Sequence[EvidenceRecord]
+) -> None:
+    """Raise ValueError if the recommendation cites evidence IDs that do not exist."""
+    available_ids = {record.evidence_id for record in evidence_records}
+    referenced_ids = collect_final_recommendation_citation_ids(recommendation)
+    missing_ids = [
+        evidence_id for evidence_id in referenced_ids if evidence_id not in available_ids
+    ]
+    if missing_ids:
+        missing = ", ".join(missing_ids)
+        raise ValueError(f"FinalRecommendation cites missing evidence IDs: {missing}")
+
+
+def validate_final_recommendation_citations_from_case(artifact: BaseModel, case: Case) -> None:
+    """Cross-field hook wrapper for FinalRecommendation citation validation."""
+    if not isinstance(artifact, FinalRecommendation):
+        return
+    evidence_records = case.list_artifacts(EvidenceRecord)
+    if not evidence_records:
+        return
+    validate_final_recommendation_citations(artifact, evidence_records)
+
+
 def register_citation_hooks() -> None:
     register_cross_field_validation_hook(
         "preliminary_recommendation",
         validate_preliminary_recommendation_citations,
+    )
+    register_cross_field_validation_hook(
+        "final_recommendation",
+        validate_final_recommendation_citations_from_case,
     )

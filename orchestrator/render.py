@@ -10,6 +10,10 @@ from orchestrator.artifacts import (
     ProbabilityEstimate,
 )
 from orchestrator.case_store import atomic_write_text
+from orchestrator.citations import (
+    collect_final_recommendation_citation_ids,
+    validate_final_recommendation_citations,
+)
 
 PROVENANCE_SOURCED_FACT = "sourced_fact"
 PROVENANCE_ASSUMPTION = "assumption"
@@ -52,30 +56,6 @@ def _ensure_terminal_punctuation(text: str) -> str:
     if stripped.endswith((".", "!", "?")):
         return stripped
     return f"{stripped}."
-
-
-def collect_final_recommendation_citation_ids(recommendation: FinalRecommendation) -> list[str]:
-    collected: list[str] = list(recommendation.citations)
-    for scenario in recommendation.scenario_analysis:
-        for adjustment in scenario.probability.adjustments:
-            collected.extend(adjustment.evidence_ids)
-    for probability in recommendation.outcome_probabilities.values():
-        for adjustment in probability.adjustments:
-            collected.extend(adjustment.evidence_ids)
-    return _sorted_unique_evidence_ids(collected)
-
-
-def validate_final_recommendation_citations(
-    recommendation: FinalRecommendation, evidence_records: Sequence[EvidenceRecord]
-) -> None:
-    available_ids = {record.evidence_id for record in evidence_records}
-    referenced_ids = collect_final_recommendation_citation_ids(recommendation)
-    missing_ids = [
-        evidence_id for evidence_id in referenced_ids if evidence_id not in available_ids
-    ]
-    if missing_ids:
-        missing = ", ".join(missing_ids)
-        raise ValueError(f"FinalRecommendation cites missing evidence IDs: {missing}")
 
 
 def render_final_recommendation_markdown(
