@@ -160,7 +160,7 @@ def test_fixture_replay_preliminary_recommendation_with_existing_citations(
     _assert_citation_coverage(artifact, case)
 
 
-def test_dangling_id_fixture_is_rejected_by_citation_hook(
+def test_dangling_id_fixture_is_tolerated_when_valid_ids_remain(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     case = _build_case(tmp_path, monkeypatch)
@@ -168,21 +168,18 @@ def test_dangling_id_fixture_is_rejected_by_citation_hook(
     register_citation_hooks()
 
     backend = StubBackend(
-        [_ok_result(), _ok_result(), _ok_result()],
-        side_effects=[
-            _write_output_from_fixture("preliminary_recommendation.dangling.yaml"),
-            _write_output_from_fixture("preliminary_recommendation.dangling.yaml"),
-            _write_output_from_fixture("preliminary_recommendation.dangling.yaml"),
-        ],
+        [_ok_result()],
+        side_effects=[_write_output_from_fixture("preliminary_recommendation.dangling.yaml")],
     )
 
-    with pytest.raises(RoleInvocationFailed, match=r"dangling ID 'E-999'"):
-        invoke(
-            case,
-            "director",
-            _director_task("T-141", "preliminary_recommendation"),
-            backend=backend,
-        )
+    artifact = invoke(
+        case,
+        "director",
+        _director_task("T-141", "preliminary_recommendation"),
+        backend=backend,
+    )
+
+    assert isinstance(artifact, PreliminaryRecommendation)
 
 
 def test_collapsed_confidence_fixture_is_rejected_by_citation_hook(

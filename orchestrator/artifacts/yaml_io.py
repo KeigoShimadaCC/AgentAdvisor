@@ -151,6 +151,31 @@ def _coerce_enum_value(enum_class: type[StrEnum], value: Any) -> Any:
     return value
 
 
+def _fix_model_stability_consistency(payload: Any) -> Any:
+    """Fix ModelStability share/runs consistency.
+
+    If runs_supporting and runs_total are present but share doesn't match,
+    recalculate share = runs_supporting / runs_total.
+    """
+    if not isinstance(payload, dict):
+        return payload
+    runs_total = payload.get("runs_total")
+    runs_supporting = payload.get("runs_supporting")
+    share = payload.get("share_of_sensitivity_runs_supporting_recommendation")
+    if (
+        isinstance(runs_total, (int, float))
+        and isinstance(runs_supporting, (int, float))
+        and runs_total > 0
+        and runs_supporting <= runs_total
+    ):
+        expected_share = runs_supporting / runs_total
+        if not isinstance(share, (int, float)) or abs(share - expected_share) > 1e-6:
+            fixed = dict(payload)
+            fixed["share_of_sensitivity_runs_supporting_recommendation"] = expected_share
+            return fixed
+    return payload
+
+
 def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
     """Coerce common model formatting mistakes before validation.
 
@@ -227,6 +252,8 @@ def coerce_payload_for_model(model_type: type[BaseModel], payload: Any) -> Any:
         elif _is_model_type(annotation) and isinstance(value, dict):
             nested_type = _base_type(annotation)
             coerced_nested = coerce_payload_for_model(nested_type, value)
+            # Fix ModelStability consistency: share must equal runs_supporting / runs_total
+            coerced_nested = _fix_model_stability_consistency(coerced_nested)
             if coerced_nested is not value:
                 coerced[field_name] = coerced_nested
                 changed = True

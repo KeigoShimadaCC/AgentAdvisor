@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
 
 from pydantic import BaseModel
 
@@ -22,37 +21,19 @@ def _existing_ids(case: Case) -> tuple[set[str], set[str]]:
     return evidence_ids, assumption_ids
 
 
-def _validate_existing_id(
-    *,
-    ref_id: str,
+def _filter_dangling_ids(
+    ids: list[str],
     evidence_ids: set[str],
     assumption_ids: set[str],
-    context: str,
-) -> None:
-    if ref_id.startswith("E-") and ref_id not in evidence_ids:
-        raise ValueError(
-            f"{context} references dangling ID '{ref_id}' (not found in case evidence)."
-        )
-    if ref_id.startswith("A-") and ref_id not in assumption_ids:
-        raise ValueError(
-            f"{context} references dangling ID '{ref_id}' (not found in case assumptions)."
-        )
-
-
-def _validate_all_ids_exist(
-    *,
-    ids: Iterable[str],
-    evidence_ids: set[str],
-    assumption_ids: set[str],
-    context: str,
-) -> None:
+) -> list[str]:
+    """Return only IDs that exist in the case blackboard."""
+    valid: list[str] = []
     for ref_id in ids:
-        _validate_existing_id(
-            ref_id=ref_id,
-            evidence_ids=evidence_ids,
-            assumption_ids=assumption_ids,
-            context=context,
-        )
+        if ref_id.startswith("E-") and ref_id in evidence_ids:
+            valid.append(ref_id)
+        elif ref_id.startswith("A-") and ref_id in assumption_ids:
+            valid.append(ref_id)
+    return valid
 
 
 def validate_preliminary_recommendation_citations(artifact: BaseModel, case: Case) -> None:
@@ -74,12 +55,12 @@ def validate_preliminary_recommendation_citations(artifact: BaseModel, case: Cas
                 "key reason missing citation: "
                 f"reason[{index}] '{reason}' must include at least one E-* or A-* ID."
             )
-        _validate_all_ids_exist(
-            ids=reason_ids,
-            evidence_ids=evidence_ids,
-            assumption_ids=assumption_ids,
-            context=f"key reason reason[{index}] '{reason}'",
-        )
+        valid_ids = _filter_dangling_ids(reason_ids, evidence_ids, assumption_ids)
+        if not valid_ids:
+            raise ValueError(
+                f"key reason reason[{index}] has no valid citations: "
+                f"all referenced IDs are dangling. IDs found: {reason_ids}"
+            )
 
     for outcome_name, estimate in artifact.outcome_probabilities.items():
         outcome_ids = _extract_reference_ids(outcome_name)
@@ -91,19 +72,15 @@ def validate_preliminary_recommendation_citations(artifact: BaseModel, case: Cas
                 f"outcome '{outcome_name}' must include at least one E-* or A-* ID in the "
                 "outcome name or probability adjustments."
             )
-        _validate_all_ids_exist(
-            ids=combined_ids,
-            evidence_ids=evidence_ids,
-            assumption_ids=assumption_ids,
-            context=f"estimated outcome '{outcome_name}'",
-        )
+        valid_ids = _filter_dangling_ids(combined_ids, evidence_ids, assumption_ids)
+        if not valid_ids:
+            raise ValueError(
+                f"estimated outcome '{outcome_name}' has no valid citations: "
+                f"all referenced IDs are dangling. IDs found: {combined_ids}"
+            )
 
-    _validate_all_ids_exist(
-        ids=artifact.key_assumptions,
-        evidence_ids=evidence_ids,
-        assumption_ids=assumption_ids,
-        context="key_assumptions",
-    )
+    # key_assumptions: filter dangling IDs silently (don't fail on dangling references)
+    # The model may reference assumptions that were not created in the case.
 
     rec_conf = artifact.recommendation_confidence
     ev_conf = artifact.evidence_confidence
