@@ -2,7 +2,7 @@
 id: SPEC-019
 title: User CLI
 phase: 4
-status: implemented
+status: verified
 depends_on: [SPEC-018]
 parallel_with: []
 north_star_refs: ["15"]

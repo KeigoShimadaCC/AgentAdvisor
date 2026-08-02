@@ -2,7 +2,7 @@
 id: SPEC-020
 title: First real decision case
 phase: 4
-status: draft
+status: approved
 depends_on: [SPEC-019]
 parallel_with: []
 north_star_refs: ["17", "13", "18"]
