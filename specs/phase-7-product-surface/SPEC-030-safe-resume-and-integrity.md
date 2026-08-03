@@ -2,11 +2,11 @@
 id: SPEC-030
 title: Safe resume and delivery-integrity persistence
 phase: 7
-status: implemented
+status: verified
 depends_on: [SPEC-029]
 parallel_with: []
 north_star_refs: ["5.4", "18"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-030 — Safe resume and delivery-integrity persistence
@@ -101,7 +101,9 @@ make check
 
 ## Verification results
 
-—
+**2026-08-03 — verification plan executed.** `make check` green: ruff, ruff format, mypy on 65 source files, 639 unit tests (17 live deselected).
+
+Spec's own plan run in full — 27 tests: `tests/test_safe_resume.py`, `tests/test_task_graph.py`, `tests/test_case_store.py`: all pass.
 
 ## Open questions
 

@@ -2,11 +2,11 @@
 id: SPEC-032
 title: CaseView projection, committed fixture case, and generated frontend types
 phase: 7
-status: implemented
+status: verified
 depends_on: [SPEC-023, SPEC-024, SPEC-025, SPEC-030, SPEC-031]
 parallel_with: []
 north_star_refs: ["9", "15", "17"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-032 — CaseView projection, committed fixture case, and generated frontend types
@@ -114,7 +114,9 @@ make check
 
 ## Verification results
 
-—
+**2026-08-03 — verification plan executed.** `make check` green: ruff, ruff format, mypy on 65 source files, 639 unit tests (17 live deselected).
+
+Spec's own plan run in full — 21 tests: `tests/test_caseview.py`: all pass. `make schemas && make frontend-types` regenerated 60 schemas with 0 changed and left `schemas/` and `frontend/src/generated/` byte-identical; `npx tsc --noEmit` exited 0.
 
 ## Open questions
 

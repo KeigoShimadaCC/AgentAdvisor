@@ -16,7 +16,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | in_progress | 4 |
 | 6 | Think-tank architecture | done | 4 |
-| 7 | Product surface | not_started | 4, 6 |
+| 7 | Product surface | in_progress | 4, 6 |
 
 **Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). Carried-over engineering tasks completed: citation checking consolidated into `citations.py`, coercion-layer property test covering every artifact model, coercion-layer accounting instrumentation with audit-log extraction. `make check` is green: lint, mypy, 522 unit tests, plus 17 live tests that are deselected by default.
 
@@ -164,7 +164,7 @@ think tank from a one-off engagement.
 - (2026-08-02) **Role definitions were teaching schemas the orchestrator rejects.** The analyst's own worked example used `method: base_rate` (not a `ProbabilityMethod`) and an adjustment shape of `{delta, reason, evidence_id}` instead of `{description, delta, evidence_ids}`, which accounts for most of the 30 validation failures in scenario 01. The researcher contract listed field names without types, so `directness: direct` and a bare-string `limitations` looked reasonable. Both rewritten in `a2ef43d`, along with a static check (`tests/test_role_contracts.py`) that validates every worked example against the schema its role config declares; it caught a fourth instance immediately in `synthesizer.md`. Separately, whole researcher batches were being discarded for unquoted colons in source titles, so the shared invocation prompt now carries a YAML quoting rule (`22077f5`). Early signal from scenario 04, which picked the fixes up mid-run: invocation success rose from 46% (scenario 01) and 57% (scenario 02) to 78%.
 - (2026-08-03) **Phase 6 comparison complete.** All five scenarios re-run with all fixes applied. Average score 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, input tokens 11.9M to 7.1M (-40%), wall clock 285 min to 202 min (-29%). Scenario 02 evidence quality flat at 1.33 is the remaining gap. Full report: `../report-and-findings/2026-08-03-phase-6-before-after.md`. SPEC-023 through SPEC-026 all verified.
 
-## Phase 7 — Product surface [not_started]
+## Phase 7 — Product surface [in_progress]
 
 Promoted 2026-08-02 by user direction from the frontend discovery report at
 `phase-7-product-surface/frontend-discovery-report.md`. The report answers north star open
@@ -181,12 +181,12 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-027 | Case control service and run supervisor | implemented |
-| SPEC-028 | Framing revision loop and final send-back | implemented |
-| SPEC-029 | Budget truth and disclosed stops | implemented |
-| SPEC-030 | Safe resume and delivery-integrity persistence | implemented |
-| SPEC-031 | Renderer and presentation-data fixes | in_progress |
-| SPEC-032 | CaseView projection, fixture case, generated frontend types | implemented |
+| SPEC-027 | Case control service and run supervisor | verified |
+| SPEC-028 | Framing revision loop and final send-back | verified |
+| SPEC-029 | Budget truth and disclosed stops | verified |
+| SPEC-030 | Safe resume and delivery-integrity persistence | verified |
+| SPEC-031 | Renderer and presentation-data fixes | verified |
+| SPEC-032 | CaseView projection, fixture case, generated frontend types | verified |
 | SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | draft |
 | SPEC-034 | Commissioning flow and scope checkpoint UI | draft |
 | SPEC-035 | Living brief, progress experience, delivery checkpoint UI | draft |
@@ -195,6 +195,27 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 **Findings**
 
+- **(2026-08-03) SPEC-027 to SPEC-032 verified; 639 unit tests green.** Each spec's own
+  verification plan was executed rather than inferred from a passing suite: 027 (30 tests plus a
+  clean `make schemas`), 028 (64), 029 (33), 030 (27), 031 (31), 032 (21 plus regenerating 60
+  schemas and `npx tsc --noEmit`). All six had sat at `implemented`/`in_progress` with the
+  results section empty, and the phase table still read `not_started` while six of its specs were
+  built — a status board that disagrees with itself is worse than none.
+- **(2026-08-03) The sentinel module had re-created the defect it exists to prevent.**
+  `artifacts/sentinels.py` hardcoded `"Not independently assessed"` and the qualitative-conversion
+  prefix, duplicating strings `yaml_io.py` owns and writes. Rewording either filler would have
+  silently stopped placeholder detection, and the renderer would present coercion defaults as
+  measurements again — north star Section 9's collapse defect, reintroduced through string
+  duplication. The markers are now derived from `_DEFAULT_FILLERS` and from a live
+  `_confidence_from_word` conversion, and `tests/test_sentinels.py` drives the real coercion
+  entry points so a reworded filler breaks a test instead of the product.
+- **(2026-08-03) Phase 7 tier 1 was implemented twice, in parallel, and the duplicate was
+  closed.** An independent branch built SPEC-027/028/031 while main built 027 to 032; the two
+  converged on the same module layout, the same routing-owned revision caps, the same re-run task
+  ids, and independently hit and fixed the same `archive_agent_workspace` collision with the same
+  `--rerun-<n>` scheme. All 22 overlapping files conflicted as add/add, so the duplicate was
+  closed rather than merged (PR #2). Worth remembering: parallel sessions need to claim specs
+  before implementing, not after.
 - (2026-08-02) Discovery findings that shaped the specs, verified against the implementation and
   the two real cases: approval is two booleans nothing external can set; `FramingApproval.edits`
   and `clarification_answers` are written but never consumed; `state.yaml` `budget_counters` is

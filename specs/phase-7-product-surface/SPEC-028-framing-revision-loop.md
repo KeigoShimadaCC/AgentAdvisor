@@ -2,11 +2,11 @@
 id: SPEC-028
 title: Framing revision loop and final send-back
 phase: 7
-status: implemented
+status: verified
 depends_on: [SPEC-027]
 parallel_with: [SPEC-031]
 north_star_refs: ["8", "14", "15"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-028 — Framing revision loop and final send-back
@@ -105,6 +105,12 @@ make check
 ```
 
 ## Verification results
+
+**2026-08-03 — verification plan executed.** `make check` green: ruff, ruff format, mypy on 65 source files, 639 unit tests (17 live deselected).
+
+Spec's own plan run in full — 64 tests: `tests/test_framing_revision.py`, `tests/test_final_sendback.py`, `tests/test_state_machine.py`: all pass.
+
+Recorded by the implementing session:
 
 All acceptance criteria verified via `make check` (ruff + mypy + pytest, 590 passed):
 

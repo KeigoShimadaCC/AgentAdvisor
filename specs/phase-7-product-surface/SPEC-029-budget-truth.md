@@ -2,11 +2,11 @@
 id: SPEC-029
 title: Budget truth and disclosed stops
 phase: 7
-status: implemented
+status: verified
 depends_on: [SPEC-028]
 parallel_with: [SPEC-031]
 north_star_refs: ["8", "13"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-029 — Budget truth and disclosed stops
@@ -105,7 +105,9 @@ make check
 
 ## Verification results
 
-—
+**2026-08-03 — verification plan executed.** `make check` green: ruff, ruff format, mypy on 65 source files, 639 unit tests (17 live deselected).
+
+Spec's own plan run in full — 33 tests: `tests/test_budget_truth.py`, `tests/test_budget.py`, `tests/test_pipeline_stub.py`: all pass.
 
 ## Open questions
 
