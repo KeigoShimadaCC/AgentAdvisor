@@ -33,7 +33,7 @@ SPEC-022 verified (workflow beats baseline 1.93 vs 1.44 on the rubric; all 19 Do
 checked; reports at `report-and-findings/2026-08-03-evaluation.md` and `dod-audit.md`).
 **All phases (0-7) are done. The MVP is complete.** `make check` is green: lint, mypy, 716 unit
 tests, plus 18 live tests deselected by default. `make frontend-check` passes (tsc, the
-type-generation drift check, and 71 frontend unit tests).
+type-generation drift check, and 77 frontend unit tests).
 
 ---
 
@@ -113,7 +113,7 @@ type-generation drift check, and 71 frontend unit tests).
 - ~~(2026-07-31) Final-recommendation citation checking is currently in `orchestrator/render.py` and the synthesis test file; it should be consolidated with `orchestrator/citations.py` (owned by SPEC-014) in Phase 4.~~ **Consolidated 2026-08-03** in `557569b`: `collect_final_recommendation_citation_ids` and `validate_final_recommendation_citations` moved to `citations.py`, with a cross-field validation hook registered for `FinalRecommendation` so citations are validated on write, not just on render.
 - (2026-07-31) Full suite: 176 unit tests + 13 live tests green.
 
-## Phase 4 — End-to-end workflow and CLI [in_progress]
+## Phase 4 — End-to-end workflow and CLI [done]
 
 **Specs**
 
@@ -148,7 +148,7 @@ type-generation drift check, and 71 frontend unit tests).
   Section 2 checkboxes checked, no waivers. Reports: `../report-and-findings/2026-08-03-evaluation.md`
   and `../report-and-findings/dod-audit.md`. **Phase 5 is done. All phases 0-7 complete.**
 
-## Phase 5 — Evaluation and hardening [not_started]
+## Phase 5 — Evaluation and hardening [done]
 
 **Specs**
 
@@ -159,7 +159,8 @@ type-generation drift check, and 71 frontend unit tests).
 
 **Findings**
 
-- (2026-08-03) SPEC-021 scripts and tests implemented without live CLI: `scripts/run_baseline.py` (single-shot Cursor CLI invocation with Section 16 output template), `scripts/run_benchmarks.py` (workflow runner reusing `run_scenario` with pre-seeded approvals, copies final package to `benchmarks/results/<case>/workflow/`). `tests/test_benchmark_configs.py` extended with budget profile validation, framing approval decision check, Section 18 dimension coverage, and script existence checks. 5 new tests, suite now 527. Live baseline+workflow runs still needed to produce `summary.json` results.
+- (2026-08-03) SPEC-021 scripts and tests implemented without live CLI: `scripts/run_baseline.py` (single-shot Cursor CLI invocation with Section 16 output template), `scripts/run_benchmarks.py` (workflow runner reusing `run_scenario` with pre-seeded approvals, copies final package to `benchmarks/results/<case>/workflow/`). `tests/test_benchmark_configs.py` extended with budget profile validation, framing approval decision check, Section 18 dimension coverage, and script existence checks. 5 new tests, suite now 527. ~~Live baseline+workflow runs still needed to produce `summary.json` results.~~ **Completed 2026-08-03.**
+- (2026-08-03) **SPEC-021 and SPEC-022 verified; Phase 5 done.** The live baseline and workflow runs completed on the Droid CLI backend and the workflow beat the baseline 1.93 vs 1.44 on the rubric. The full account was logged the same day under Phase 4's findings (the two phases closed in one session); reports: `../report-and-findings/2026-08-03-evaluation.md` and `../report-and-findings/dod-audit.md`.
 
 ## Phase 6 — Think-tank architecture [done]
 
@@ -190,7 +191,7 @@ think tank from a one-off engagement.
 - (2026-08-02) **Role definitions were teaching schemas the orchestrator rejects.** The analyst's own worked example used `method: base_rate` (not a `ProbabilityMethod`) and an adjustment shape of `{delta, reason, evidence_id}` instead of `{description, delta, evidence_ids}`, which accounts for most of the 30 validation failures in scenario 01. The researcher contract listed field names without types, so `directness: direct` and a bare-string `limitations` looked reasonable. Both rewritten in `a2ef43d`, along with a static check (`tests/test_role_contracts.py`) that validates every worked example against the schema its role config declares; it caught a fourth instance immediately in `synthesizer.md`. Separately, whole researcher batches were being discarded for unquoted colons in source titles, so the shared invocation prompt now carries a YAML quoting rule (`22077f5`). Early signal from scenario 04, which picked the fixes up mid-run: invocation success rose from 46% (scenario 01) and 57% (scenario 02) to 78%.
 - (2026-08-03) **Phase 6 comparison complete.** All five scenarios re-run with all fixes applied. Average score 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, input tokens 11.9M to 7.1M (-40%), wall clock 285 min to 202 min (-29%). Scenario 02 evidence quality flat at 1.33 is the remaining gap. Full report: `../report-and-findings/2026-08-03-phase-6-before-after.md`. SPEC-023 through SPEC-026 all verified.
 
-## Phase 7 — Product surface [in_progress]
+## Phase 7 — Product surface [done]
 
 Promoted 2026-08-02 by user direction from the frontend discovery report at
 `phase-7-product-surface/frontend-discovery-report.md`. The report answers north star open
@@ -221,6 +222,26 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 **Findings**
 
+- **(2026-08-04) Full audit sweep: the SPEC-037 suite could silently run against the wrong
+  servers.** The config reused any process already listening on the dev-default ports
+  (`reuseExistingServer` on 5173/8765, vite's `/api` proxy hardcoded to 8765), so a leftover
+  server was silently adopted as the stack under test. A leaked replay-mode backend — which lists
+  only its replay case (`service/app.py`) — made 4 fixture-mode tests fail while the app itself
+  was correct (confirmed by driving a clean stack in a browser). Fixed: dedicated e2e ports
+  (5273/8865), the vite proxy target now overridable via `AGENTADVISOR_API_PORT`, and
+  `reuseExistingServer: false` so an occupied port fails loudly. All three modes green after the
+  change (fixture 48, stub 10, replay 12). The same sweep upgraded the frontend toolchain
+  (vite 8, vitest 4, plugin-react 6, jsdom 30), clearing the esbuild/vite/vitest npm advisories;
+  the remaining react-router advisory (GHSA-qwww-vcr4-c8h2) targets RSC-mode server actions this
+  SPA does not have, and its fix exists only in react-router 8, so it is documented rather than
+  migrated. Also pruned: `benchmarks/results-phase6/` (uncited one-off output; the three
+  `results-phase6-rerun*` dirs stay because SPEC-021 cites them as evidence), two hand-renamed
+  `summary-rerun-*.json`, and the orphaned `scripts/score_scenario.py` (superseded by
+  `run_e2e_eval.py`). Docs synced with reality: README gained the web UI, the droid backend and
+  the measured case cost; AGENTS.md gained `frontend/`/`backends/`; six stale `case-fixture-*`
+  paths corrected; replay commands gained the required `--cases-root`; dod-audit A1's citation
+  fixed (SPEC-016 → SPEC-018); the three phase headers that still read
+  `in_progress`/`not_started` now agree with the phase table.
 - **(2026-08-03) Phase 7 closed: SPEC-033 to SPEC-037 verified, the product runs end to end in a
   browser.** SPEC-033 (app shell: `advisor ui`, SSE audit stream, replay mode, SPA scaffold, 18
   service + 25 event tests), SPEC-034 (commissioning + scope checkpoint, 30 frontend tests),

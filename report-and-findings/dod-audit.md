@@ -16,11 +16,11 @@ or filed as emergent work, with evidence links.
 **Status: Checked.**
 
 `advisor new "<prompt>"` starts a case and runs through Stages 1-10 (north star Section 8) with
-human approval gates at framing (Stage 2) and final delivery (Stage 9). Implemented in SPEC-016
+human approval gates at framing (Stage 2) and final delivery (Stage 9). Implemented in SPEC-018
 (stage wiring) and SPEC-019 (CLI). Verified end-to-end in SPEC-020 (case-014 ran the full workflow
 to `done`) and in SPEC-021 (3 benchmark scenarios ran unattended with pre-seeded approvals).
 
-Evidence: `specs/phase-4-e2e-workflow/SPEC-016*.md` (verified), `specs/phase-4-e2e-workflow/SPEC-019*.md`
+Evidence: `specs/phase-4-e2e-workflow/SPEC-018*.md` (verified), `specs/phase-4-e2e-workflow/SPEC-019*.md`
 (verified), `report-and-findings/2026-08-03-first-real-case.md`, `benchmarks/results/scenario-{01,02,03}/workflow/summary.json`.
 
 ### A2. Case can be checkpointed, resumed, and inspected mid-run

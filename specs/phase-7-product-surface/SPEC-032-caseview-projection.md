@@ -53,12 +53,12 @@ types from the existing `schema_export` pipeline.
     durations) plus SPEC-029's persisted counters and caps.
 - `orchestrator/artifacts/schema_export.py`: export `CaseView` and nested models
   (`schemas/case_view.schema.json` etc.) via the existing `MODEL_EXPORTS` mechanism.
-- **Fixture case** `tests/fixtures/cases/case-fixture-001/` — a trimmed, sanitized copy of the
+- **Fixture case** `tests/fixtures/cases/case-001-fixture-001/` — a trimmed, sanitized copy of the
   completed reference case (full directory shape: `state.yaml`, `audit.jsonl`, `shared/**`,
   `analysis/**`, `outputs/**`; agent workspace archives reduced to one exemplar). It must
   include the interesting truths: a failing review with `review_accepted: false`, the stability
   sentinel, open objections, a thesis flip, and a `no_evidence_found` honest-empty. A second
-  minimal fixture `case-fixture-002-parked/` parked at `awaiting_framing_approval` with
+  minimal fixture `case-002-fixture-002-parked/` parked at `awaiting_framing_approval` with
   clarification questions.
 - Type generation: `frontend/package.json` script `generate:types` (json-schema-to-typescript)
   emitting `frontend/src/generated/*.ts` from `schemas/*.schema.json`; `make frontend-types`
@@ -85,17 +85,17 @@ as SPEC-033 replay input and SPEC-037 dummy data — one asset, three consumers.
 
 - [x] `orchestrator/service/caseview.py` + models
 - [x] schema export entries + regenerated `schemas/`
-- [x] `tests/fixtures/cases/case-fixture-001/`, `case-fixture-002-parked/`
+- [x] `tests/fixtures/cases/case-001-fixture-001/`, `case-002-fixture-002-parked/`
 - [x] `frontend/src/generated/` types + `make frontend-types`
 - [x] `tests/test_caseview.py`
 
 ## Acceptance criteria
 
-- [x] `build_case_view(case-fixture-001)` returns a validating `CaseView` where: model stability
+- [x] `build_case_view(case-001-fixture-001)` returns a validating `CaseView` where: model stability
       is the `NotAssessed` variant (reason names the single-run sentinel); integrity carries
       `review_accepted == false` with the review defects; challenges list every open objection
       first; effort invocation count equals the hand-counted `role_invocation_attempt` lines.
-- [x] `build_case_view(case-fixture-002-parked)` yields `needs_you == scope_checkpoint` and the
+- [x] `build_case_view(case-002-fixture-002-parked)` yields `needs_you == scope_checkpoint` and the
       clarification questions with their materiality reasons.
 - [x] Probability entries never carry both a point and an interval (property test over fixtures).
 - [x] `make schemas` then `make frontend-types` is idempotent (`git diff --exit-code` on

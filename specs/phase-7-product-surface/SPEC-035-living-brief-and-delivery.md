@@ -116,7 +116,7 @@ shipped with the app (updated by hand from evaluation data), displayed only as r
 
 ```
 cd frontend && npm test -- --run
-uv run advisor ui --replay tests/fixtures/cases/case-fixture-001 --speed 60   # manual: assembly, narration, sealed card
+uv run advisor ui --cases-root tests/fixtures/cases --replay tests/fixtures/cases/case-001-fixture-001 --speed 60   # manual: assembly, narration, sealed card
 make frontend-check && make check
 ```
 
