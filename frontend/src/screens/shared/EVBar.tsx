@@ -1,3 +1,5 @@
+import { formatExpectedValue } from "../../copy/format";
+
 interface EVBarProps {
   /** The expected value for this option. */
   value: number | null | undefined;
@@ -23,9 +25,10 @@ export function EVBar({ value, min, max, label }: EVBarProps) {
   const span = max - min || 1;
   const crossesZero = min < 0 && max > 0;
   const pct = Math.max(0, Math.min(100, ((value - min) / span) * 100));
+  const formatted = formatExpectedValue(value);
 
   return (
-    <div className="ev-bar" role="img" aria-label={`${label}: expected value ${value}`}>
+    <div className="ev-bar" role="img" aria-label={`${label}: expected value ${formatted}`}>
       <div className="ev-bar-track">
         {crossesZero && (
           <div
@@ -42,7 +45,7 @@ export function EVBar({ value, min, max, label }: EVBarProps) {
           }}
         />
       </div>
-      <span className="ev-bar-value">{value}</span>
+      <span className="ev-bar-value">{formatted}</span>
     </div>
   );
 }

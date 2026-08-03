@@ -285,7 +285,30 @@ function IntegritySlip({ view }: { view: CaseView }) {
             ? "Rejected"
             : "Not reviewed"}
       </p>
-      {review?.review_outcome && <p>Outcome: {review.review_outcome}</p>}
+      {review?.review_outcome && (
+        <p className="screen-help">
+          Reviewer's own outcome: {review.review_outcome}
+          {review.review_accepted === false
+            ? " — the checks below overrode it."
+            : ""}
+        </p>
+      )}
+      {/* A rejection is usually driven by deterministic blocking checks rather
+          than reviewer-reported defects, so without these the verdict reads as
+          "Rejected" with nothing to act on — and next to a "pass" outcome it
+          looks like a contradiction. */}
+      {review?.review_blocking_findings && review.review_blocking_findings.length > 0 && (
+        <div className="integrity-blocking">
+          <h4>Why it was rejected</h4>
+          <ul>
+            {review.review_blocking_findings.map((f, i) => (
+              <li key={i}>
+                {(f as { message?: string }).message ?? (f as { check_id?: string }).check_id}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {review?.review_defects && review.review_defects.length > 0 && (
         <div className="integrity-defects">
           <h4>Defects</h4>

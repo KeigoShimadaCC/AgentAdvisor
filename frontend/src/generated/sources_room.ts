@@ -11,6 +11,7 @@ export type Directness = string;
 export type EvidenceId = string;
 export type Flags = string[];
 export type IndependenceGroup = string;
+export type Limitations = string[];
 export type PublicationDate = string;
 export type Publisher = string;
 export type Reliability = string;
@@ -37,6 +38,7 @@ export interface SourceView {
   evidence_id: EvidenceId;
   flags?: Flags;
   independence_group: IndependenceGroup;
+  limitations?: Limitations;
   publication_date: PublicationDate;
   publisher: Publisher;
   reliability: Reliability;

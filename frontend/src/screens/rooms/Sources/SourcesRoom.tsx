@@ -11,6 +11,7 @@ import {
   evidenceFlagLabel,
   levelLabel,
   ROOMS,
+  SOURCES_COPY,
 } from "../../../copy/terms";
 
 /** Filters a user can apply to the source corpus. */
@@ -260,13 +261,22 @@ function SourceCard({ source, expanded, onToggle }: SourceCardProps) {
         )}
       </dl>
 
-      {/* Limitations are always visible pre-expansion: the grade-derived
-          limitation line. Flags are listed separately below. */}
+      {/* Limitations are always visible pre-expansion (SPEC-036), taken
+          verbatim from the record.  The grade line is a separate statement:
+          calling "high reliability, high directness" a limitation asserted
+          the opposite of what the grades mean. */}
       <p className="source-card-limitations">
-        <span className="source-card-limitations-label">Limitations: </span>
-        <span className="source-card-limitations-text">
-          {levelLabel(source.reliability)} reliability, {levelLabel(source.directness)} directness
+        <span className="source-card-limitations-label">
+          {SOURCES_COPY.limitationsLabel}{" "}
         </span>
+        <span className="source-card-limitations-text">
+          {source.limitations && source.limitations.length > 0
+            ? source.limitations.join("; ")
+            : SOURCES_COPY.noLimitationsStated}
+        </span>
+      </p>
+      <p className="source-card-grade-line">
+        {levelLabel(source.reliability)} reliability, {levelLabel(source.directness)} directness
       </p>
 
       {source.flags && source.flags.length > 0 && (

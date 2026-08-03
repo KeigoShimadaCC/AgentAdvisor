@@ -16,6 +16,8 @@ const baseState: SheetState = {
   options: ["Stay", "Switch", "Negotiate"],
   originalOptions: ["Stay", "Switch", "Negotiate"],
   excludedQuestions: [],
+  optionAnnotations: {},
+  groundRuleEdits: {},
   confirmations: { deadline: false, risk_tolerance: false, reversibility: false },
   groundRuleKeys: ["deadline", "risk_tolerance", "reversibility"],
   clarificationAnswers: {},
@@ -39,6 +41,27 @@ describe("buildEdits", () => {
     const state = { ...baseState, excludedQuestions: ["Compare TCO"] };
     const edits = buildEdits(state);
     expect(edits.excluded_questions).toEqual(["Compare TCO"]);
+  });
+
+  it("includes option_annotations when a note is written", () => {
+    const state = { ...baseState, optionAnnotations: { Stay: "only if the raise lands" } };
+    const edits = buildEdits(state);
+    expect(edits.option_annotations).toEqual({ Stay: "only if the raise lands" });
+  });
+
+  it("ignores blank and whitespace-only annotations", () => {
+    const state = { ...baseState, optionAnnotations: { Stay: "", Switch: "   " } };
+    expect(buildEdits(state).option_annotations).toBeUndefined();
+  });
+
+  it("promotes ground-rule overrides to first-class spec fields", () => {
+    const state = {
+      ...baseState,
+      groundRuleEdits: { deadline: "2027-01-31", risk_tolerance: "high" },
+    };
+    const edits = buildEdits(state);
+    expect(edits.deadline).toBe("2027-01-31");
+    expect(edits.risk_tolerance).toBe("high");
   });
 });
 
@@ -123,6 +146,25 @@ describe("needsRevision", () => {
 
   it("is true when options changed", () => {
     expect(needsRevision({ ...baseState, options: ["Stay"] }, "Should I take the offer?")).toBe(true);
+  });
+
+  it("is true when an option is annotated", () => {
+    const state = { ...baseState, optionAnnotations: { Stay: "only with the raise" } };
+    expect(needsRevision(state, "Should I take the offer?")).toBe(true);
+  });
+
+  it("is true when an assumed ground rule is overridden", () => {
+    const state = { ...baseState, groundRuleEdits: { deadline: "2027-01-31" } };
+    expect(needsRevision(state, "Should I take the offer?")).toBe(true);
+  });
+
+  // Regression: the sheet used to keep excludedQuestions across a reload, so
+  // needsRevision stayed true forever and signing could never start the run.
+  it("is false again once the struck question is cleared", () => {
+    const struck = { ...baseState, excludedQuestions: ["X"] };
+    expect(needsRevision(struck, "Should I take the offer?")).toBe(true);
+    const cleared = { ...struck, excludedQuestions: [] };
+    expect(needsRevision(cleared, "Should I take the offer?")).toBe(false);
   });
 });
 

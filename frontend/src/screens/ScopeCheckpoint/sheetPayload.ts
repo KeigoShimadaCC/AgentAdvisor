@@ -24,12 +24,32 @@ export interface SheetState {
   originalOptions: string[];
   /** Outline question strings that have been struck through. */
   excludedQuestions: string[];
+  /** Free-text notes the user attached to options (option text → note). */
+  optionAnnotations: Record<string, string>;
+  /** Ground-rule values the user overrode on the sheet (key → new value). */
+  groundRuleEdits: Record<string, string>;
   /** Per-item ground-rule confirmations (key → confirmed). */
   confirmations: Record<string, boolean>;
   /** Ground-rule keys in display order. */
   groundRuleKeys: string[];
   /** Clarification answers collected upstream (field → value). */
   clarificationAnswers: Record<string, string>;
+}
+
+/** Annotations with the blank entries dropped, in stable key order. */
+function meaningfulAnnotations(state: SheetState): Array<[string, string]> {
+  return Object.entries(state.optionAnnotations)
+    .map(([option, note]) => [option, note.trim()] as [string, string])
+    .filter(([, note]) => note.length > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+}
+
+/** Ground-rule overrides with blanks dropped, in stable key order. */
+function meaningfulGroundRuleEdits(state: SheetState): Array<[string, string]> {
+  return Object.entries(state.groundRuleEdits)
+    .map(([key, value]) => [key, value.trim()] as [string, string])
+    .filter(([, value]) => value.length > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
 }
 
 /**
@@ -60,6 +80,18 @@ export function buildEdits(state: SheetState): Record<string, unknown> {
     edits.excluded_questions = state.excludedQuestions;
   }
 
+  const annotations = meaningfulAnnotations(state);
+  if (annotations.length > 0) {
+    edits.option_annotations = Object.fromEntries(annotations);
+  }
+
+  // Ground-rule overrides go up as first-class spec fields (``deadline``,
+  // ``risk_tolerance``, ``reversibility``) so the revised framing adopts the
+  // constraint the user actually signed off on.
+  for (const [key, value] of meaningfulGroundRuleEdits(state)) {
+    edits[key] = value;
+  }
+
   return edits;
 }
 
@@ -72,7 +104,9 @@ export function buildEdits(state: SheetState): Record<string, unknown> {
  */
 export function hasSheetEdits(state: SheetState): boolean {
   const edits = buildEdits(state);
-  return edits.alternatives !== undefined || edits.excluded_questions !== undefined;
+  // ``question`` is always present, so anything else in the object is a real
+  // edit — that keeps this in step with buildEdits as new edit kinds are added.
+  return Object.keys(edits).some((key) => key !== "question");
 }
 
 /**
@@ -112,7 +146,7 @@ export function buildRevisionPayload(
   state: SheetState,
 ): ScopeCheckpointPayload {
   const edits = buildEdits(state);
-  const hasEdits = edits.alternatives !== undefined || edits.excluded_questions !== undefined;
+  const hasEdits = hasSheetEdits(state);
   const hasAnswers = Object.keys(state.clarificationAnswers).length > 0;
 
   // If both edits and answers exist, "edit" takes precedence (matches the
@@ -137,11 +171,7 @@ export function needsRevision(
   originalRestatement: string,
 ): boolean {
   const restatementChanged = state.restatement.trim() !== originalRestatement.trim();
-  const optionsChanged =
-    state.options.length !== state.originalOptions.length ||
-    state.options.some((o, i) => o !== state.originalOptions[i]);
-  const questionsStruck = state.excludedQuestions.length > 0;
-  return restatementChanged || optionsChanged || questionsStruck;
+  return restatementChanged || hasSheetEdits(state);
 }
 
 /**
@@ -159,6 +189,10 @@ export function canonicalSheetContent(state: SheetState): string {
     state.options.join("\n"),
     "excluded_questions",
     state.excludedQuestions.join("\n"),
+    "option_annotations",
+    meaningfulAnnotations(state).map(([option, note]) => `${option}=${note}`).join("\n"),
+    "ground_rule_edits",
+    meaningfulGroundRuleEdits(state).map(([key, value]) => `${key}=${value}`).join("\n"),
     "ground_rules",
     state.groundRuleKeys.map((k) => `${k}=${state.confirmations[k] ? "confirmed" : "unconfirmed"}`).join("\n"),
   ].join("\n");

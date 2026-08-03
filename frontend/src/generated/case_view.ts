@@ -39,6 +39,9 @@ export type Outcome = string;
 export type Stage = string;
 export type Gates = GateSummaryView[];
 export type ReviewAccepted = boolean | null;
+export type ReviewBlockingFindings = {
+  [k: string]: unknown;
+}[];
 export type ReviewDefects = {
   [k: string]: unknown;
 }[];
@@ -104,6 +107,7 @@ export type Directness = string;
 export type EvidenceId = string;
 export type Flags = string[];
 export type IndependenceGroup = string;
+export type Limitations = string[];
 export type PublicationDate = string;
 export type Publisher = string;
 export type Reliability = string;
@@ -214,6 +218,7 @@ export interface IntegrityView {
   disclosure?: Disclosure;
   gates?: Gates;
   review_accepted?: ReviewAccepted;
+  review_blocking_findings?: ReviewBlockingFindings;
   review_defects?: ReviewDefects;
   review_outcome?: ReviewOutcome;
 }
@@ -316,6 +321,7 @@ export interface SourceView {
   evidence_id: EvidenceId;
   flags?: Flags;
   independence_group: IndependenceGroup;
+  limitations?: Limitations;
   publication_date: PublicationDate;
   publisher: Publisher;
   reliability: Reliability;

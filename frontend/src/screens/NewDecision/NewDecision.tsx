@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { api, type ErrorResponse } from "../../api/client";
 import {
   EFFORT_PROFILES,
@@ -83,9 +83,10 @@ export function NewDecision() {
   }
 
   // If a case was created but no clarification questions, go straight to scope.
+  // Declarative redirect: calling navigate() here would be a router state update
+  // during render, which React rejects with a cross-component setState warning.
   if (caseId && (!intake || !intake.clarification_questions || intake.clarification_questions.length === 0)) {
-    navigate(`/cases/${caseId}/scope`);
-    return null;
+    return <Navigate to={`/cases/${caseId}/scope`} replace />;
   }
 
   // ── Entry phase ─────────────────────────────────────────────────────────

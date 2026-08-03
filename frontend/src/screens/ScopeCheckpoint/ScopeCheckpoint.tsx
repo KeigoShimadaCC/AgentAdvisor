@@ -12,6 +12,8 @@ import {
   GROUND_RULE_LABELS,
   riskToleranceLabel,
   reversibilityLabel,
+  RISK_TOLERANCE_OPTIONS,
+  REVERSIBILITY_OPTIONS,
   EFFORT_LIMITS_INTRO,
   WHAT_IT_CAN_DO,
   WHAT_IT_CANT_DO,
@@ -60,7 +62,15 @@ function optionTokens(value: string): Set<string> {
  * on the sheet they sign. We compare significant tokens instead, and require a
  * clear majority overlap so a genuinely new alternative is still marked as ours.
  */
-function optionOrigin(option: string, intakeOptions: string[] | null | undefined): OptionOrigin {
+function optionOrigin(
+  option: string,
+  intakeOptions: string[] | null | undefined,
+  userAdded: ReadonlySet<string>,
+): OptionOrigin {
+  // An option the user typed into "add a missing option" on this sheet is
+  // theirs by construction — it never went through intake, so the token
+  // comparison below would always mis-credit it to the analysis.
+  if (userAdded.has(option)) return "yours";
   if (!intakeOptions || intakeOptions.length === 0) return "added-by-analysis";
 
   const optionTerms = optionTokens(option);
@@ -100,10 +110,15 @@ export function ScopeCheckpoint() {
   // ── Editable sheet state ────────────────────────────────────────────────
   const [restatement, setRestatement] = useState("");
   const [options, setOptions] = useState<string[]>([]);
-  const [optionAnnotations, setOptionAnnotations] = useState<Record<number, string>>({});
+  // Keyed by option text rather than index so removing an option cannot
+  // silently re-point a note at a different alternative.
+  const [optionAnnotations, setOptionAnnotations] = useState<Record<string, string>>({});
+  const [userAddedOptions, setUserAddedOptions] = useState<Set<string>>(new Set());
   const [newOption, setNewOption] = useState("");
   const [excludedQuestions, setExcludedQuestions] = useState<Set<string>>(new Set());
   const [confirmations, setConfirmations] = useState<Record<string, boolean>>({});
+  // Ground-rule values the user overrode on this sheet (key → new value).
+  const [groundRuleEdits, setGroundRuleEdits] = useState<Record<string, string>>({});
   const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
 
   // Track the original restatement so we can detect edits.
@@ -127,6 +142,16 @@ export function ScopeCheckpoint() {
         setRestatement(r);
         setOriginalRestatement(r);
         setOptions(specEnv.data.alternatives ? [...specEnv.data.alternatives] : []);
+        // Every piece of pending sheet input is relative to the spec we just
+        // replaced, so all of it resets together.  Leaving any of it behind
+        // makes ``needsRevision`` true forever and the sheet can never be
+        // signed — the user would loop through revisions without being told
+        // which stale edit is holding the gate shut.
+        setExcludedQuestions(new Set());
+        setOptionAnnotations({});
+        setUserAddedOptions(new Set());
+        setGroundRuleEdits({});
+        setNewOption("");
         // Initialize confirmations as all-unconfirmed.
         const keys = [GROUND_RULE_KEYS.deadline, GROUND_RULE_KEYS.riskTolerance, GROUND_RULE_KEYS.reversibility];
         setConfirmations(Object.fromEntries(keys.map((k) => [k, false])));
@@ -157,11 +182,20 @@ export function ScopeCheckpoint() {
 
   const groundRuleKeys = [GROUND_RULE_KEYS.deadline, GROUND_RULE_KEYS.riskTolerance, GROUND_RULE_KEYS.reversibility];
 
-  // Ground-rule values + assumed-because-skipped detection.
+  // Raw (enum/date) ground-rule values, with any user override applied.
+  const groundRuleRawValues: Record<string, string> = {
+    [GROUND_RULE_KEYS.deadline]: groundRuleEdits[GROUND_RULE_KEYS.deadline] ?? spec?.deadline ?? "",
+    [GROUND_RULE_KEYS.riskTolerance]:
+      groundRuleEdits[GROUND_RULE_KEYS.riskTolerance] ?? spec?.risk_tolerance ?? "",
+    [GROUND_RULE_KEYS.reversibility]:
+      groundRuleEdits[GROUND_RULE_KEYS.reversibility] ?? spec?.reversibility ?? "",
+  };
+
+  // The same values rendered through the lexicon for display.
   const groundRuleValues: Record<string, string> = {
-    [GROUND_RULE_KEYS.deadline]: spec?.deadline ?? "",
-    [GROUND_RULE_KEYS.riskTolerance]: riskToleranceLabel(spec?.risk_tolerance),
-    [GROUND_RULE_KEYS.reversibility]: reversibilityLabel(spec?.reversibility),
+    [GROUND_RULE_KEYS.deadline]: groundRuleRawValues[GROUND_RULE_KEYS.deadline],
+    [GROUND_RULE_KEYS.riskTolerance]: riskToleranceLabel(groundRuleRawValues[GROUND_RULE_KEYS.riskTolerance]),
+    [GROUND_RULE_KEYS.reversibility]: reversibilityLabel(groundRuleRawValues[GROUND_RULE_KEYS.reversibility]),
   };
   const assumedBecauseSkipped: Record<string, boolean> = {
     [GROUND_RULE_KEYS.deadline]: !intake?.deadline,
@@ -175,6 +209,8 @@ export function ScopeCheckpoint() {
     options,
     originalOptions: spec?.alternatives ? [...spec.alternatives] : [],
     excludedQuestions: [...excludedQuestions],
+    optionAnnotations,
+    groundRuleEdits,
     confirmations,
     groundRuleKeys,
     clarificationAnswers: {},
@@ -185,27 +221,41 @@ export function ScopeCheckpoint() {
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   function removeOption(index: number) {
+    const removed = options[index];
     setOptions((prev) => prev.filter((_, i) => i !== index));
     setOptionAnnotations((prev) => {
-      const next: Record<number, string> = {};
-      for (const [k, v] of Object.entries(prev)) {
-        const idx = Number(k);
-        if (idx < index) next[idx] = v;
-        else if (idx > index) next[idx - 1] = v;
-      }
+      const { [removed]: _dropped, ...rest } = prev;
+      return rest;
+    });
+    setUserAddedOptions((prev) => {
+      if (!prev.has(removed)) return prev;
+      const next = new Set(prev);
+      next.delete(removed);
       return next;
     });
   }
 
-  function annotateOption(index: number, text: string) {
-    setOptionAnnotations((prev) => ({ ...prev, [index]: text }));
+  function annotateOption(option: string, text: string) {
+    setOptionAnnotations((prev) => ({ ...prev, [option]: text }));
   }
 
   function addOption() {
     const text = newOption.trim();
     if (!text) return;
+    if (options.includes(text)) {
+      setNewOption("");
+      return;
+    }
     setOptions((prev) => [...prev, text]);
+    setUserAddedOptions((prev) => new Set(prev).add(text));
     setNewOption("");
+  }
+
+  function editGroundRule(key: string, value: string) {
+    setGroundRuleEdits((prev) => ({ ...prev, [key]: value }));
+    // A changed constraint invalidates the confirmation the user gave for the
+    // value they saw before, so they must re-confirm the new one.
+    setConfirmations((prev) => ({ ...prev, [key]: false }));
   }
 
   function toggleQuestion(q: string) {
@@ -288,24 +338,35 @@ export function ScopeCheckpoint() {
         <p className="section-help">{SCOPE_COPY.optionsHelp}</p>
         <ul className="options-list">
           {options.map((opt, i) => {
-            const origin = optionOrigin(opt, intakeOptions);
+            const origin = optionOrigin(opt, intakeOptions, userAddedOptions);
+            const annotationId = `option-note-${i}`;
             return (
               <li key={`${opt}-${i}`} className="option-row">
-                <span className={`option-origin origin-${origin}`} aria-label={OPTION_ORIGIN_LABELS[origin]}>
-                  {OPTION_ORIGIN_LABELS[origin]}
-                </span>
-                <span className="option-text">{opt}</span>
-                {optionAnnotations[i] && (
-                  <span className="option-annotation">{optionAnnotations[i]}</span>
-                )}
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => removeOption(i)}
-                  aria-label={`Remove option: ${opt}`}
-                >
-                  Remove
-                </button>
+                <div className="option-row-main">
+                  <span className={`option-origin origin-${origin}`} aria-label={OPTION_ORIGIN_LABELS[origin]}>
+                    {OPTION_ORIGIN_LABELS[origin]}
+                  </span>
+                  <span className="option-text">{opt}</span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => removeOption(i)}
+                    aria-label={`Remove option: ${opt}`}
+                  >
+                    Remove
+                  </button>
+                </div>
+                <label htmlFor={annotationId} className="sr-only">
+                  {`${SCOPE_COPY.annotateLabel}: ${opt}`}
+                </label>
+                <input
+                  id={annotationId}
+                  type="text"
+                  className="option-annotation-input"
+                  placeholder={SCOPE_COPY.annotatePlaceholder}
+                  value={optionAnnotations[opt] ?? ""}
+                  onChange={(e) => annotateOption(opt, e.target.value)}
+                />
               </li>
             );
           })}
@@ -361,24 +422,60 @@ export function ScopeCheckpoint() {
         <h2>{SCOPE_COPY.groundRulesTitle}</h2>
         <p className="section-help">{SCOPE_COPY.groundRulesHelp}</p>
         <ul className="ground-rules">
-          {groundRuleKeys.map((key) => (
-            <li key={key} className="ground-rule-item">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={confirmations[key] === true}
-                  onChange={() => toggleConfirmation(key)}
-                />
-                <span className="ground-rule-label">{GROUND_RULE_LABELS[key]}</span>
-                <span className="ground-rule-value">{groundRuleValues[key]}</span>
-                {assumedBecauseSkipped[key] && (
-                  <span className="assumed-mark">
-                    {SCOPE_COPY.declaredAssumptionLabel} {SCOPE_COPY.assumedEditableNote}
-                  </span>
+          {groundRuleKeys.map((key) => {
+            const editable = assumedBecauseSkipped[key];
+            const fieldId = `ground-rule-${key}`;
+            return (
+              <li key={key} className="ground-rule-item">
+                {/* The editable control lives outside this label: nesting it
+                    would make every keystroke toggle the confirmation. */}
+                <label className="ground-rule-confirm">
+                  <input
+                    type="checkbox"
+                    checked={confirmations[key] === true}
+                    onChange={() => toggleConfirmation(key)}
+                  />
+                  <span className="ground-rule-label">{GROUND_RULE_LABELS[key]}</span>
+                  {!editable && (
+                    <span className="ground-rule-value">{groundRuleValues[key]}</span>
+                  )}
+                </label>
+                {editable && (
+                  <div className="ground-rule-edit">
+                    <label htmlFor={fieldId} className="sr-only">
+                      {GROUND_RULE_LABELS[key]}
+                    </label>
+                    {key === GROUND_RULE_KEYS.deadline ? (
+                      <input
+                        id={fieldId}
+                        type="date"
+                        className="ground-rule-input"
+                        value={groundRuleRawValues[key]}
+                        onChange={(e) => editGroundRule(key, e.target.value)}
+                      />
+                    ) : (
+                      <select
+                        id={fieldId}
+                        className="ground-rule-input"
+                        value={groundRuleRawValues[key]}
+                        onChange={(e) => editGroundRule(key, e.target.value)}
+                      >
+                        {(key === GROUND_RULE_KEYS.riskTolerance
+                          ? RISK_TOLERANCE_OPTIONS
+                          : REVERSIBILITY_OPTIONS
+                        ).map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    )}
+                    <span className="assumed-mark">
+                      {SCOPE_COPY.declaredAssumptionLabel} {SCOPE_COPY.assumedEditableNote}
+                    </span>
+                  </div>
                 )}
-              </label>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
