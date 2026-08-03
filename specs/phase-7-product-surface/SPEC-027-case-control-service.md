@@ -2,11 +2,11 @@
 id: SPEC-027
 title: Case control service and run supervisor
 phase: 7
-status: implemented
+status: verified
 depends_on: [SPEC-018]
 parallel_with: [SPEC-031]
 north_star_refs: ["5.4", "14", "15"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-027 — Case control service and run supervisor
@@ -114,7 +114,9 @@ make check
 
 ## Verification results
 
-—
+**2026-08-03 — verification plan executed.** `make check` green: ruff, ruff format, mypy on 65 source files, 639 unit tests (17 live deselected).
+
+Spec's own plan run in full — 30 tests: `tests/test_control.py` + `tests/test_supervisor.py`: all pass. `make schemas` left `schemas/` byte-identical, confirming `final_approval.schema.json` is committed in sync.
 
 ## Open questions
 

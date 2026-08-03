@@ -2,11 +2,11 @@
 id: SPEC-031
 title: Renderer and presentation-data fixes
 phase: 7
-status: in_progress
+status: verified
 depends_on: [SPEC-018]
 parallel_with: [SPEC-027, SPEC-028, SPEC-029]
 north_star_refs: ["9", "10", "16"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-031 — Renderer and presentation-data fixes
@@ -106,7 +106,9 @@ make check
 
 ## Verification results
 
-—
+**2026-08-03 — verification plan executed.** `make check` green: ruff, ruff format, mypy on 65 source files, 639 unit tests (17 live deselected).
+
+Spec's own plan run in full — 31 tests: `tests/test_render.py`, `tests/test_normalize.py`, `tests/test_gates.py`, `tests/test_thesis.py`, plus the 8 new drift tests in `tests/test_sentinels.py`: all pass.
 
 ## Open questions
 
