@@ -1,0 +1,41 @@
+{
+  "scenario_id": "scenario-03",
+  "scenario_title": "Build vs Buy Analytics Stack (consistency rerun)",
+  "type": "workflow",
+  "case_id": "case-009-build-vs-buy",
+  "backend": "droid",
+  "status": "done",
+  "elapsed_seconds": 2424.6,
+  "input_tokens": 1373244,
+  "output_tokens": 303744,
+  "total_tokens": 1676988,
+  "invocations": 33,
+  "successful_invocations": 31,
+  "failed_invocations": 2,
+  "evidence_records": 46,
+  "assumption_records": 8,
+  "objection_records": 6,
+  "has_final_recommendation": true,
+  "scoring": {
+    "criterion_scores": {
+      "dc-1": 2,
+      "dc-2": 2,
+      "eq-1": 0,
+      "eq-2": 2,
+      "eq-3": 2,
+      "aq-1": 2,
+      "aq-3": 2,
+      "ar-1": 2,
+      "tr-1": 2,
+      "tr-2": 2
+    },
+    "dimension_scores": {
+      "decision_completeness": 2.0,
+      "evidence_quality": 1.3333333333333333,
+      "analytical_quality": 2.0,
+      "adversarial_robustness": 2.0,
+      "traceability": 2.0
+    },
+    "overall_score": 1.867
+  }
+}

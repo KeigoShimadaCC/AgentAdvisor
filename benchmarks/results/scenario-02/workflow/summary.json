@@ -1,0 +1,42 @@
+{
+  "scenario_id": "scenario-02",
+  "scenario_title": "Staged Angel Check for Friend's AI Startup",
+  "type": "workflow",
+  "case_id": "case-008-invest-startup-staged",
+  "backend": "droid",
+  "status": "done",
+  "elapsed_seconds": 2083.4,
+  "input_tokens": 1295269,
+  "output_tokens": 239720,
+  "total_tokens": 1534989,
+  "invocations": 31,
+  "successful_invocations": 30,
+  "failed_invocations": 1,
+  "evidence_records": 17,
+  "assumption_records": 7,
+  "objection_records": 6,
+  "analysis_results": 8,
+  "has_final_recommendation": true,
+  "scoring": {
+    "criterion_scores": {
+      "dc-1": 2,
+      "dc-2": 2,
+      "eq-1": 0,
+      "eq-2": 2,
+      "eq-3": 2,
+      "aq-1": 2,
+      "aq-3": 2,
+      "ar-1": 2,
+      "tr-1": 2,
+      "tr-2": 2
+    },
+    "dimension_scores": {
+      "decision_completeness": 2.0,
+      "evidence_quality": 1.3333333333333333,
+      "analytical_quality": 2.0,
+      "adversarial_robustness": 2.0,
+      "traceability": 2.0
+    },
+    "overall_score": 1.867
+  }
+}

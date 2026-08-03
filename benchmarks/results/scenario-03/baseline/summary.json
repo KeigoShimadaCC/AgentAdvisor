@@ -3,11 +3,11 @@
   "scenario_title": "Build vs Buy Analytics Stack",
   "type": "baseline",
   "model": "gpt-5.4",
-  "status": "exit_error",
-  "elapsed_seconds": 6.4,
-  "input_tokens": 0,
-  "output_tokens": 0,
-  "total_tokens": 0,
-  "output_length": 0,
-  "has_recommendation": false
+  "status": "ok",
+  "elapsed_seconds": 256.7,
+  "input_tokens": 62032,
+  "output_tokens": 13433,
+  "total_tokens": 75465,
+  "output_length": 8422,
+  "has_recommendation": true
 }

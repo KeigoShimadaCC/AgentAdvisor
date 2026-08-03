@@ -126,6 +126,10 @@ def run_one_baseline(
         workspace=workspace,
         timeout_s=_BASELINE_TIMEOUT_S,
         read_only=False,
+        # The baseline is a strong single agent with tool access. On droid this
+        # maps to `--auto medium`; without it the agent hits a permission wall
+        # ("Exec ended early: insufficient permission") and returns no report.
+        allow_shell=True,
     )
 
     start_time = time.time()

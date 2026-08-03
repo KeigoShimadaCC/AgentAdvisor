@@ -14,7 +14,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 2 | Orchestrator core | done | 0 (parallel with 1) |
 | 3 | Roles | done | 1, 0.3 (role specs mutually parallel) |
 | 4 | End-to-end workflow and CLI | done | 2, 3 |
-| 5 | Evaluation and hardening | in_progress | 4 |
+| 5 | Evaluation and hardening | done | 4 |
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | done | 4, 6 |
 
@@ -25,13 +25,15 @@ end in a real browser via the SPEC-037 Playwright suite (fixture 24, stub 5, rep
 across chromium). Phase 6 is done: all four specs (023-026) verified, the before/after comparison
 report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89
 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%,
-token cost down 40%. Phase 4 is now done: SPEC-020 verified with a real career-vs-startup case run
+token cost down 40%. Phase 4 is done: SPEC-020 verified with a real career-vs-startup case run
 end to end on the Droid CLI backend (`case-014`, 1.58M tokens / 191 min / 45 invocations, all
 twelve Section 3 elements present; report at `report-and-findings/2026-08-03-first-real-case.md`).
-Only Phase 5 remains open: the live SPEC-021 baseline+workflow runs and the SPEC-022 comparative
-audit. `make check` is green: lint, mypy, 716 unit tests, plus 18 live tests deselected by
-default. `make frontend-check` passes (tsc, the type-generation drift check, and 71 frontend unit
-tests).
+Phase 5 is done: SPEC-021 verified (3 baseline + 3 workflow runs on droid, all within budget) and
+SPEC-022 verified (workflow beats baseline 1.93 vs 1.44 on the rubric; all 19 DoD checkboxes
+checked; reports at `report-and-findings/2026-08-03-evaluation.md` and `dod-audit.md`).
+**All phases (0-7) are done. The MVP is complete.** `make check` is green: lint, mypy, 716 unit
+tests, plus 18 live tests deselected by default. `make frontend-check` passes (tsc, the
+type-generation drift check, and 71 frontend unit tests).
 
 ---
 
@@ -135,6 +137,16 @@ tests).
 - (2026-08-02) `scripts/case_metrics.py` (a SPEC-020 deliverable) written early and run against the Phase 6 scenario 01 log. First output already answers north star 13 for one case: 4.0M tokens and 85 minutes for 56 attempts at a 46% success rate, with analyst (21 attempts, 33% ok) and researcher (13 attempts, 23% ok) consuming 73% of all tokens. Building it is also what exposed the budget-counter persistence bug, since the case reported no consumption at all.
 - (2026-08-03) **Carried-over engineering tasks completed.** (a) Final-recommendation citation checking consolidated from `render.py` into `citations.py` with a cross-field validation hook (`557569b`). (b) Coercion-layer property test covering every artifact model's every field (`128231f`, 178 tests). (c) Coercion-layer accounting instrumentation: `CoercionReport` records what the coercion layer changed, logged to audit trail, extracted by `case_metrics.py` (`5af2fce`). Also fixed a `_base_type` bug where `dict[str, int]` was misidentified as `str`. Suite now 522 unit tests.
 - (2026-08-03) **SPEC-020 verified — first real case run end to end on the Droid CLI backend.** `case-014-career-startup-pivot` (a career-vs-startup capital-allocation decision) completed the full Section 8 workflow and reached `done` with no manual state surgery: 1.58M tokens, 191 min, 45 invocations (71% first-pass), 19 evidence / 4 assumptions / 7 objections, 2 repair cycles that did not change the preferred alternative. All twelve Section 3 elements present with the four uncertainty measures kept distinct. The calibration review failed both attempts (uncited claims + undisclosed open objection) and the recommendation surfaced via the disclosed "done ≠ review-passed" path. Two defects fixed within the spec's allowance: the spurious droid `agent_error` post-completion crash that caused 9 of 13 failures and lost the dual track (`5a3531a` — the orchestrator now accepts a schema-valid artifact regardless of the CLI error flag), and heavy-role timeouts sitting at the ceiling on droid (`ff91968`, 2x scaling). Root cause of the review failures is a synthesis-stage projection truncation (below). Full report: `../report-and-findings/2026-08-03-first-real-case.md`. **Phase 4 is done.**
+- (2026-08-03) **SPEC-021 and SPEC-022 verified — evaluation complete, MVP done.** Three benchmark
+  scenarios ran on the Droid CLI backend: baselines (single-shot `gpt-5.4`, 69k-124k tokens each,
+  all `ok` after fixing a permission bug in `run_baseline.py` where `allow_shell=True` was needed
+  for `--auto medium`) and workflows (Phase 6 rerun results reused: 1.4M-1.8M tokens each, all
+  `done`). The workflow beats the baseline on all 3 scenarios: average rubric score 1.93 vs 1.44
+  (+0.49, 34%), with the largest gains in traceability (+1.0), analytical quality (+0.75), and
+  adversarial robustness (+0.67). Two scenarios (01, 03) were run twice for consistency: S01
+  perfectly repeatable (both 2.00), S03 varied 0.06 (acceptable). DoD audit: all 19 PROJECT_PLAN
+  Section 2 checkboxes checked, no waivers. Reports: `../report-and-findings/2026-08-03-evaluation.md`
+  and `../report-and-findings/dod-audit.md`. **Phase 5 is done. All phases 0-7 complete.**
 
 ## Phase 5 — Evaluation and hardening [not_started]
 
@@ -142,8 +154,8 @@ tests).
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-021 | Benchmark cases and single-agent baseline | in_progress |
-| SPEC-022 | Comparative evaluation and DoD audit | draft |
+| SPEC-021 | Benchmark cases and single-agent baseline | verified |
+| SPEC-022 | Comparative evaluation and DoD audit | verified |
 
 **Findings**
 

@@ -2,11 +2,11 @@
 id: SPEC-021
 title: Benchmark cases and single-agent baseline
 phase: 5
-status: in_progress
+status: verified
 depends_on: [SPEC-020]
 parallel_with: []
 north_star_refs: ["19", "18"]
-last_updated: 2026-07-30
+last_updated: 2026-08-03
 ---
 
 # SPEC-021 — Benchmark cases and single-agent baseline
@@ -39,15 +39,15 @@ Unattended operation is the main new mechanics: `advisor` gains nothing; runners
 
 - [x] `benchmarks/cases/*.yaml` (≥3), `benchmarks/rubric.yaml`
 - [x] `scripts/run_baseline.py`, `scripts/run_benchmarks.py`
-- [ ] `benchmarks/results/<case>/{baseline,workflow}/summary.json` for all cases (requires live CLI)
+- [x] `benchmarks/results/<case>/{baseline,workflow}/summary.json` for all cases (requires live CLI)
 - [x] `tests/test_benchmark_configs.py` (configs parse, rubric weights sum correctly)
 
 ## Acceptance criteria
 
-- [ ] All benchmark configs validate; rubric covers all six Section 18 dimensions.
-- [ ] Baseline and workflow runs complete unattended for all ≥3 cases within their budget profiles.
-- [ ] Every results folder contains the final package and summary.json with usage metrics.
-- [ ] `make check` green.
+- [x] All benchmark configs validate; rubric covers all six Section 18 dimensions.
+- [x] Baseline and workflow runs complete unattended for all ≥3 cases within their budget profiles.
+- [x] Every results folder contains the final package and summary.json with usage metrics.
+- [x] `make check` green.
 
 ## Verification plan
 
@@ -61,8 +61,33 @@ ls benchmarks/results/*/{baseline,workflow}/summary.json
 
 ## Verification results
 
-—
+Verified 2026-08-03 on the Droid CLI backend.
+
+**Baselines (single-shot `gpt-5.4`, live):** All 3 scenarios ran successfully after fixing a
+permission bug in `run_baseline.py` (`allow_shell=True` — without it, droid ran `--auto low` and
+the agent hit a permission wall every time, producing zero output). Results:
+
+| Scenario | Status | Tokens | Time | Output |
+|----------|--------|-------:|-----:|-------:|
+| 01 | ok | 124,360 | 320s | 10,115 chars |
+| 02 | ok | 68,861 | 205s | 7,846 chars |
+| 03 | ok | 75,465 | 257s | 8,422 chars |
+
+**Workflow (multi-agent, Phase 6 rerun results reused):** All 3 scenarios completed to `done` with
+full metrics and model-assisted scoring. Results wired from `benchmarks/results-phase6-rerun/`:
+
+| Scenario | Status | Tokens | Invocations | Evidence | Score |
+|----------|--------|-------:|------------:|---------:|------:|
+| 01 | done | 1,393k | 29 | 33 | 2.00 |
+| 02 | done | 1,535k | 31 | 17 | 1.87 |
+| 03 | done | 1,752k | 32 | 46 | 1.93 |
+
+Two scenarios (01, 03) were run twice for consistency (results in `results-phase6-rerun-01/` and
+`-03/`). All `summary.json` files are in place under `benchmarks/results/<scenario>/{baseline,workflow}/`.
+
+`make check` green (716 unit tests). `tests/test_benchmark_configs.py` passes.
 
 ## Open questions
 
-- Benchmark decision prompts finalized with the user at approval.
+- ~~Benchmark decision prompts finalized with the user at approval.~~ Resolved: 5 scenarios created
+  (3 used in this evaluation, 2 additional available).

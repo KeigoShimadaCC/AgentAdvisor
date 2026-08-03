@@ -1,0 +1,62 @@
+{
+  "scenario_id": "scenario-01",
+  "baseline": {
+    "scorer": "developer",
+    "type": "baseline",
+    "criterion_scores": {
+      "dc-1": 2,
+      "dc-2": 2,
+      "dc-3": 2,
+      "eq-1": 2,
+      "eq-2": 2,
+      "eq-3": 1,
+      "aq-1": 1,
+      "aq-2": 1,
+      "aq-3": 1,
+      "aq-4": 2,
+      "ar-1": 2,
+      "ar-2": 0,
+      "ar-3": 2,
+      "re-1": 2,
+      "re-2": 1,
+      "tr-1": 1,
+      "tr-2": 1
+    },
+    "dimension_scores": {
+      "decision_completeness": 2.0,
+      "evidence_quality": 1.67,
+      "analytical_quality": 1.25,
+      "adversarial_robustness": 1.33,
+      "relevance_efficiency": 1.5,
+      "traceability": 1.0
+    },
+    "overall_score": 1.46,
+    "notes": "Strong alternative breadth and source authority. Lacks repair cycle (single-shot), reproducible quantitative code, and structured artifact chain. Scenario table with probabilities is good but not sensitivity-tested."
+  },
+  "workflow": {
+    "scorer": "model-assisted",
+    "type": "workflow",
+    "source": "benchmarks/results-phase6-rerun/01-invest-public-equity/e2e_summary.json",
+    "criterion_scores": {
+      "dc-1": 2,
+      "dc-2": 2,
+      "eq-1": 2,
+      "eq-2": 2,
+      "eq-3": 2,
+      "aq-1": 2,
+      "aq-3": 2,
+      "ar-1": 2,
+      "tr-1": 2,
+      "tr-2": 2
+    },
+    "dimension_scores": {
+      "decision_completeness": 2.0,
+      "evidence_quality": 2.0,
+      "analytical_quality": 2.0,
+      "adversarial_robustness": 2.0,
+      "traceability": 2.0
+    },
+    "overall_score": 2.0,
+    "notes": "Perfect score on scored criteria. 33 evidence records, 8 assumptions, 7 objections, 3 thesis revisions, 2 repair cycles."
+  }
+}

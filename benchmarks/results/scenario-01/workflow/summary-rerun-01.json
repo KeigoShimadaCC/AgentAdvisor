@@ -1,0 +1,41 @@
+{
+  "scenario_id": "scenario-01",
+  "scenario_title": "Public Equity Timing: Nvidia vs Semiconductor ETF (consistency rerun)",
+  "type": "workflow",
+  "case_id": "case-007-invest-public-equity",
+  "backend": "droid",
+  "status": "done",
+  "elapsed_seconds": 2431.1,
+  "input_tokens": 1525114,
+  "output_tokens": 269989,
+  "total_tokens": 1795103,
+  "invocations": 31,
+  "successful_invocations": 31,
+  "failed_invocations": 0,
+  "evidence_records": 34,
+  "assumption_records": 10,
+  "objection_records": 7,
+  "has_final_recommendation": true,
+  "scoring": {
+    "criterion_scores": {
+      "dc-1": 2,
+      "dc-2": 2,
+      "eq-1": 2,
+      "eq-2": 2,
+      "eq-3": 2,
+      "aq-1": 2,
+      "aq-3": 2,
+      "ar-1": 2,
+      "tr-1": 2,
+      "tr-2": 2
+    },
+    "dimension_scores": {
+      "decision_completeness": 2.0,
+      "evidence_quality": 2.0,
+      "analytical_quality": 2.0,
+      "adversarial_robustness": 2.0,
+      "traceability": 2.0
+    },
+    "overall_score": 2.0
+  }
+}

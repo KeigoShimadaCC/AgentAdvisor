@@ -1,0 +1,62 @@
+{
+  "scenario_id": "scenario-03",
+  "baseline": {
+    "scorer": "developer",
+    "type": "baseline",
+    "criterion_scores": {
+      "dc-1": 2,
+      "dc-2": 2,
+      "dc-3": 2,
+      "eq-1": 1,
+      "eq-2": 2,
+      "eq-3": 1,
+      "aq-1": 1,
+      "aq-2": 1,
+      "aq-3": 1,
+      "aq-4": 2,
+      "ar-1": 2,
+      "ar-2": 0,
+      "ar-3": 2,
+      "re-1": 2,
+      "re-2": 1,
+      "tr-1": 1,
+      "tr-2": 1
+    },
+    "dimension_scores": {
+      "decision_completeness": 2.0,
+      "evidence_quality": 1.33,
+      "analytical_quality": 1.25,
+      "adversarial_robustness": 1.33,
+      "relevance_efficiency": 1.5,
+      "traceability": 1.0
+    },
+    "overall_score": 1.4,
+    "notes": "Good cost break-even analysis but weaker source authority (secondary sources only). Same structural gaps as other baselines."
+  },
+  "workflow": {
+    "scorer": "model-assisted",
+    "type": "workflow",
+    "source": "benchmarks/results-phase6-rerun/03-build-vs-buy/e2e_summary.json",
+    "criterion_scores": {
+      "dc-1": 2,
+      "dc-2": 2,
+      "eq-1": 2,
+      "eq-2": 2,
+      "eq-3": 1,
+      "aq-1": 2,
+      "aq-3": 2,
+      "ar-1": 2,
+      "tr-1": 2,
+      "tr-2": 2
+    },
+    "dimension_scores": {
+      "decision_completeness": 2.0,
+      "evidence_quality": 1.67,
+      "analytical_quality": 2.0,
+      "adversarial_robustness": 2.0,
+      "traceability": 2.0
+    },
+    "overall_score": 1.93,
+    "notes": "Strong across all dimensions. 46 evidence records, 8 assumptions, 7 objections. Evidence quality slightly lower on source limitations."
+  }
+}

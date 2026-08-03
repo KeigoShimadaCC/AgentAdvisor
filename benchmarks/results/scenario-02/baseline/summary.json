@@ -3,11 +3,11 @@
   "scenario_title": "Staged Angel Check for Friend's AI Startup",
   "type": "baseline",
   "model": "gpt-5.4",
-  "status": "exit_error",
-  "elapsed_seconds": 6.3,
-  "input_tokens": 0,
-  "output_tokens": 0,
-  "total_tokens": 0,
-  "output_length": 0,
-  "has_recommendation": false
+  "status": "ok",
+  "elapsed_seconds": 204.6,
+  "input_tokens": 56151,
+  "output_tokens": 12710,
+  "total_tokens": 68861,
+  "output_length": 7846,
+  "has_recommendation": true
 }
