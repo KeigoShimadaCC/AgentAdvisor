@@ -508,6 +508,31 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
             raise _http_from_control(exc, case_id, config) from exc
         return JSONResponse(content={"case_id": case_id, "outcome_recorded": True})
 
+    # ── Test-only hooks (SPEC-037) ────────────────────────────────────────
+    #
+    # Compiled out of the normal service path by the env guard so the shipped
+    # surface stays identical to production.  Enabled only by
+    # ``AGENTADVISOR_TEST_HOOKS=1``.
+    test_hooks = os.environ.get("AGENTADVISOR_TEST_HOOKS", "") == "1"
+    if test_hooks:
+
+        @application.post("/api/_test/kill-worker/{case_id}")
+        async def _test_kill_worker(case_id: str) -> JSONResponse:
+            from orchestrator.supervisor import RunLock
+
+            case = _load_or_404(case_id, config)
+            RunLock(case.root).release()
+            return JSONResponse(content={"killed": True})
+
+        @application.get("/api/_test/case-file/{case_id}")
+        async def _test_case_file(case_id: str, path: str) -> JSONResponse:
+            case = _load_or_404(case_id, config)
+            target = _resolve_safe_path(case.root, path)
+            if target is None or not target.exists():
+                raise HTTPException(status_code=404, detail=f"File not found: {path}")
+            content = target.read_text(encoding="utf-8")
+            return JSONResponse(content={"path": path, "content": content})
+
 
 def _reject_replay(is_replay: bool) -> None:
     if is_replay:

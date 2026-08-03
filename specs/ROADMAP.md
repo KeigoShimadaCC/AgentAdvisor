@@ -191,7 +191,7 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 | SPEC-034 | Commissioning flow and scope checkpoint UI | implemented |
 | SPEC-035 | Living brief, progress experience, delivery checkpoint UI | implemented |
 | SPEC-036 | Rooms and record inspector | implemented |
-| SPEC-037 | Frontend e2e suite in a real browser | draft |
+| SPEC-037 | Frontend e2e suite in a real browser | implemented |
 
 **Findings**
 

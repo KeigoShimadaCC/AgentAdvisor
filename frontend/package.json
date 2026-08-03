@@ -11,12 +11,17 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "generate:types": "node scripts/generate-types.cjs",
-    "check:clean": "node scripts/generate-types.cjs --check"
+    "check:clean": "node scripts/generate-types.cjs --check",
+    "e2e": "playwright test --config=e2e/playwright.config.ts",
+    "e2e:typecheck": "tsc --noEmit --project e2e/tsconfig.json"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.48.0",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.0",
+    "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",

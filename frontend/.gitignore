@@ -1,2 +1,5 @@
 node_modules/
 dist/
+e2e/artifacts/
+e2e/.tmp/
+playwright-report/

@@ -2,7 +2,7 @@
 id: SPEC-037
 title: Frontend end-to-end suite in a real browser (fixture, stub, replay, live)
 phase: 7
-status: draft
+status: implemented
 depends_on: [SPEC-034, SPEC-035, SPEC-036]
 parallel_with: []
 north_star_refs: ["15", "18"]
