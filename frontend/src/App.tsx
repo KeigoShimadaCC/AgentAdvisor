@@ -4,6 +4,8 @@ import { CaseDetail } from "./pages/CaseDetail";
 import { NewDecision } from "./screens/NewDecision/NewDecision";
 import { ScopeCheckpoint } from "./screens/ScopeCheckpoint/ScopeCheckpoint";
 import { SignedRecord } from "./screens/ScopeCheckpoint/SignedRecord";
+import { Brief } from "./screens/Brief/Brief";
+import { Delivery } from "./screens/Delivery/Delivery";
 import { SourcesRoom } from "./screens/rooms/Sources/SourcesRoom";
 import { AssumptionsRoom } from "./screens/rooms/Assumptions/AssumptionsRoom";
 import { OptionsRoom } from "./screens/rooms/Options/OptionsRoom";
@@ -29,6 +31,8 @@ export function App() {
           <Route path="/cases/:caseId" element={<CaseDetail />} />
           <Route path="/cases/:caseId/scope" element={<ScopeCheckpoint />} />
           <Route path="/cases/:caseId/scope/signed" element={<SignedRecord />} />
+          <Route path="/cases/:caseId/brief" element={<Brief />} />
+          <Route path="/cases/:caseId/delivery" element={<Delivery />} />
           <Route path="/cases/:caseId/rooms/sources" element={<SourcesRoom />} />
           <Route path="/cases/:caseId/rooms/assumptions" element={<AssumptionsRoom />} />
           <Route path="/cases/:caseId/rooms/options" element={<OptionsRoom />} />

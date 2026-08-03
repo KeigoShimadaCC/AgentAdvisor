@@ -1,0 +1,13 @@
+{
+  "scenario_id": "scenario-03",
+  "scenario_title": "Build vs Buy Analytics Stack",
+  "type": "baseline",
+  "model": "gpt-5.4",
+  "status": "exit_error",
+  "elapsed_seconds": 6.4,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "total_tokens": 0,
+  "output_length": 0,
+  "has_recommendation": false
+}

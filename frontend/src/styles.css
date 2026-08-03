@@ -644,6 +644,582 @@ table.case-list th { font-weight: 600; color: var(--color-muted); font-size: 0.8
 .raw-path-input:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 .method-raw-view { background: #f5f5f5; padding: 0.75rem; border-radius: 4px; overflow-x: auto; font-size: 0.8125rem; max-height: 24rem; }
 
+/* ── SPEC-035: Brief, Delivery, uncertainty widgets, progress components ───── */
+
+.brief,
+.delivery {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.brief-header h2,
+.delivery > h2 {
+  font-size: 1.25rem;
+}
+
+.brief-section,
+.full-brief .brief-section {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.brief-section-settle {
+  animation: settleIn 0.25s ease;
+}
+
+@keyframes settleIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brief-section,
+  .brief-section-settle {
+    animation: none;
+    transition: none;
+  }
+}
+
+.brief-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.brief-section-status {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-border);
+  color: var(--color-muted);
+  text-transform: capitalize;
+}
+
+.status-partial { background: #fff8e1; color: #b8860b; }
+.status-final { background: #e8f5e9; color: #2e7d32; }
+
+.brief-section-placeholder {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.brief-block {
+  margin-bottom: 0.75rem;
+}
+
+.provenance-stripe {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.brief-block-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+/* Margin narration */
+.margin-narration {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.margin-narration h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.margin-narration-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.margin-narration-card {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.5rem;
+}
+
+.margin-narration-header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  color: var(--color-fg);
+}
+
+.margin-narration-ts {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.margin-narration-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding-left: 3rem;
+}
+
+.margin-narration-citations-label {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+/* Working view card */
+.working-view-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.working-view-card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.working-view-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.working-view-change {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 0.75rem;
+}
+
+.non-final-stamp {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #b8860b;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 3px;
+  padding: 0.125rem 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.working-view-summary {
+  margin-bottom: 0.5rem;
+}
+
+.working-view-because {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  margin-bottom: 0.5rem;
+}
+
+.working-view-because ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+}
+
+/* Method strip */
+.method-strip {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.method-phase-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.method-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.method-phase-completed {
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+.method-phase-active {
+  background: #f0f6ff;
+  border-color: #b8d4ff;
+  font-weight: 600;
+}
+
+.method-phase-pending {
+  color: var(--color-muted);
+}
+
+.method-phase-range {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.method-strip-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.method-leave-safely {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+/* Sealed answer card */
+.sealed-answer-card {
+  background: #f0f6ff;
+  border: 1px solid #b8d4ff;
+  border-radius: 6px;
+  padding: 1rem;
+  font-weight: 500;
+}
+
+/* Delivery */
+.answer-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1.25rem;
+}
+
+.answer-card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.answer-recommendation {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.answer-timing {
+  color: var(--color-muted);
+}
+
+.uncertainty-widgets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.uncertainty-widget {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.uncertainty-widget h4 {
+  font-size: 0.9375rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Probability band */
+.probability-band {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.probability-band-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.probability-band-phrase {
+  font-weight: 500;
+}
+
+.probability-band-range {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  margin-left: 0.25rem;
+}
+
+.probability-band-popover {
+  background: #f5f5f5;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.countable-dots {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.countable-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.countable-dot.filled {
+  background: var(--color-accent);
+}
+
+.probability-band-method {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.probability-band-adjustments {
+  list-style: disc;
+  padding-left: 1.25rem;
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+}
+
+/* Confidence bands */
+.confidence-band-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.confidence-band {
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  color: var(--color-muted);
+  background: #f5f5f5;
+}
+
+.confidence-band.active {
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.confidence-basis {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  margin-top: 0.5rem;
+}
+
+/* Source strength */
+.source-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.source-strength-grade {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.source-strength-bar {
+  flex: 1;
+  min-width: 80px;
+  height: 0.5rem;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.source-strength-fill {
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.source-strength-basis {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  flex-basis: 100%;
+}
+
+/* Stability dots */
+.stability-dots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stability-dots-caption {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.stability-dots-row {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.stability-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.stability-dot.filled {
+  background: var(--color-accent);
+}
+
+/* Not assessed */
+.not-assessed-widget {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.not-assessed-stamp {
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+/* Key reasons, tripwires, integrity slip */
+.key-reasons,
+.tripwires,
+.integrity-slip {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.key-reasons h3,
+.tripwires h3,
+.integrity-slip h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.key-reasons ul,
+.tripwires ul,
+.integrity-slip ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+}
+
+.key-reason-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.integrity-slip h4 {
+  font-size: 0.9375rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+/* Signature */
+.signature {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.signature h3 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.send-back {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.send-back textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  resize: vertical;
+}
+
+/* Failure paths */
+.failure-path,
+.early-stop {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.failure-path h3,
+.early-stop h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.failure-path p,
+.early-stop p {
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.early-stop-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.signed,
+.revision-sent {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1.25rem;
+}
+
 /* ── Record inspector (SPEC-036) ──────────────────────────────────────────── */
 
 .inspector-overlay {

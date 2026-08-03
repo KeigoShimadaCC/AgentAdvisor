@@ -1,0 +1,13 @@
+{
+  "scenario_id": "scenario-01",
+  "scenario_title": "Public Equity Timing: Nvidia vs Semiconductor ETF",
+  "type": "baseline",
+  "model": "gpt-5.4",
+  "status": "exit_error",
+  "elapsed_seconds": 6.9,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "total_tokens": 0,
+  "output_length": 0,
+  "has_recommendation": false
+}
