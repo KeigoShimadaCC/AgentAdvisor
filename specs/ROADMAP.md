@@ -16,9 +16,20 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | in_progress | 4 |
 | 6 | Think-tank architecture | done | 4 |
-| 7 | Product surface | in_progress | 4, 6 |
+| 7 | Product surface | done | 4, 6 |
 
-**Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). Carried-over engineering tasks completed: citation checking consolidated into `citations.py`, coercion-layer property test covering every artifact model, coercion-layer accounting instrumentation with audit-log extraction. Phase 7 backend specs (027-033) implemented: case control service, revision loops, budget truth, safe resume, CaseView projection, and web app shell (FastAPI + SSE + React SPA scaffold). `make check` is green: lint, mypy, 674 unit tests, plus 17 live tests that are deselected by default. `make frontend-check` passes (tsc + type generation clean).
+**Current position (2026-08-03).** Phase 7 is done: all eleven specs (027-037) verified. The web
+product (FastAPI + SSE service, React SPA with commissioning, scope checkpoint, living brief,
+delivery checkpoint, five rooms, record inspector, four uncertainty encodings) is verified end to
+end in a real browser via the SPEC-037 Playwright suite (fixture 24, stub 5, replay 6 = 35 tests
+across chromium). Phase 6 is done: all four specs (023-026) verified, the before/after comparison
+report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89
+to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%,
+token cost down 40%. Phases 4 and 5 remain open: Phase 4 needs SPEC-020 (a real, non-benchmark
+decision run through the CLI — in progress now via the Droid CLI backend), and Phase 5 needs the
+live SPEC-021 baseline+workflow runs and the SPEC-022 comparative audit. `make check` is green:
+lint, mypy, 697 unit tests, plus live tests deselected by default. `make frontend-check` passes
+(tsc + type generation clean); 58 frontend unit tests pass.
 
 ---
 
@@ -194,6 +205,24 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 | SPEC-037 | Frontend e2e suite in a real browser | verified |
 
 **Findings**
+
+- **(2026-08-03) Phase 7 closed: SPEC-033 to SPEC-037 verified, the product runs end to end in a
+  browser.** SPEC-033 (app shell: `advisor ui`, SSE audit stream, replay mode, SPA scaffold, 18
+  service + 25 event tests), SPEC-034 (commissioning + scope checkpoint, 30 frontend tests),
+  SPEC-035 (living brief, progress experience, delivery checkpoint with the four never-collapsed
+  uncertainty encodings, 58 frontend tests total), SPEC-036 (five rooms + record inspector), and
+  SPEC-037 (Playwright e2e). The 58 frontend unit tests and 35 Playwright e2e tests (fixture 24,
+  stub 5, replay 6) all pass; `make check` stays at 697 Python tests.
+- **(2026-08-03) SPEC-037 verification found and fixed a class of honest-UI defects the earlier
+  unit tests could not see, because they only surface in a real browser.** (a) Vite bound IPv6
+  `::1` only, so Playwright on `127.0.0.1` got connection-refused for every test; fixed with
+  `--host 127.0.0.1`. (b) The Challenges room rendered the raw `target_section` field path (e.g.
+  `preliminary_recommendation.rationale[0]`), leaking an internal stage enum into the DOM in
+  violation of SPEC-036's terminology rule; added `targetSectionLabel()` so only a human phrase
+  shows. (c) `SourceMixBar` put `aria-label` on plain `<div>`s (aria-prohibited-attr); moved to
+  `title` + a summarised parent `role="img"`. (d) Several status colours (`#ffa000`, `#b8860b`,
+  `#2e7d32`) were below WCAG AA contrast; darkened. The axe and terminology sweeps that caught
+  these now run with no rules disabled, so a regression fails a test rather than shipping.
 
 - **(2026-08-03) SPEC-027 to SPEC-032 verified; 639 unit tests green.** Each spec's own
   verification plan was executed rather than inferred from a passing suite: 027 (30 tests plus a
