@@ -102,3 +102,46 @@ framing_revision_requested:
 final_revision_requested:
   template: "Final revision requested"
   technical: false
+
+# Refusals, failures and cancellations. These are user-facing on purpose: a run
+# that investigated less than it could have must say so while it is happening,
+# not only in the final disclosure block.
+
+task_failed:
+  template: "Task {task_id} failed: {error}"
+  technical: false
+
+task_budget_refused:
+  template: "Task {task_id} was not started — the invocation budget is exhausted"
+  technical: false
+
+task_marginal_value_refused:
+  template: "Task {task_id} was skipped — its expected value ({expected_marginal_value}) did not justify its cost ({estimated_cost})"
+  technical: false
+
+tasks_cancelled:
+  template: "Cancelled {task_ids}: {reason}"
+  technical: false
+
+# Bookkeeping. Real events, but they describe the machinery rather than the
+# investigation, so they stay in the Method room.
+
+case_memory_write_failed:
+  template: "Could not write this case to cross-case memory: {error}"
+  technical: true
+
+prepare_resume:
+  template: "Prepared resume (reset tasks: {reset_task_ids})"
+  technical: true
+
+task_reset_on_resume:
+  template: "Reset orphaned tasks on resume: {task_ids}"
+  technical: true
+
+thesis_revision_skipped_duplicate:
+  template: "Thesis unchanged after {trigger} — no revision recorded"
+  technical: true
+
+unpack_skipped_duplicate:
+  template: "Skipped duplicate {artifact_type} for task {task_id}"
+  technical: true
