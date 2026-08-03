@@ -26,7 +26,11 @@ outcome probability, evidence confidence, recommendation confidence, and model s
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
-- [Cursor CLI](https://cursor.com/cli) (`cursor-agent`) authenticated and on `PATH`
+- An agent CLI backend, authenticated and on `PATH` — either the
+  [Cursor CLI](https://cursor.com/cli) (`cursor-agent`, the default) or the Factory
+  [Droid CLI](https://factory.ai) (`droid`, select with `--backend droid` or
+  `AGENTADVISOR_BACKEND=droid`)
+- Node.js and npm, only if you use the web UI (`advisor ui`)
 
 ## Install
 
@@ -62,8 +66,9 @@ uv run advisor approve case-001-semis
 
 The pipeline now runs unattended for a while: structuring, provisional thesis, planning,
 investigation, evidence critique, assumption ledger, preliminary recommendation,
-pre-mortem, adversarial challenge, repair, synthesis and review. Expect roughly an hour
-and a few hundred thousand tokens for a standard case.
+pre-mortem, adversarial challenge, repair, synthesis and review. Expect a few hours and
+one to two million tokens for a standard case (the first verified real case took
+1.58M tokens and 191 minutes over 45 invocations on the droid backend).
 
 Check on it at any time:
 
@@ -102,9 +107,12 @@ uv run advisor report case-001-semis
 | `advisor resume <case-id>` | Continue a case interrupted mid-stage |
 | `advisor report <case-id>` | Print the final recommendation |
 | `advisor list [--json]` | Every case with its stage |
+| `advisor ui [--port p]` | Serve the local web UI (see below) |
 
 Useful flags:
 
+- `--backend {cursor,droid}` on `new` picks the agent CLI that roles run on
+  (default: `AGENTADVISOR_BACKEND`, else `cursor`).
 - `--budget-profile small` caps a run harder than the default (15 invocations instead
   of 40). Use it for cheap experiments.
 - `--edit <file.yaml>` on `approve` records framing corrections instead of a plain
@@ -115,6 +123,21 @@ Useful flags:
 
 Exit codes: `0` success, `2` your mistake (unknown case, wrong stage), `3` the pipeline
 failed (the cause is printed).
+
+## Web UI
+
+The same cases can be driven from a local web app: each case is a living advisory
+brief with two signed checkpoint sheets (scope and delivery), five inspection rooms
+(sources, assumptions, options, challenges, method), and the four uncertainty measures
+in four distinct encodings.
+
+```bash
+uv run advisor ui            # FastAPI service + SSE on :8765
+cd frontend && npm install && npm run dev   # SPA on http://localhost:5173
+```
+
+See [`frontend/README.md`](frontend/README.md) for the dev setup, replay mode (re-watch
+a recorded case at scaled speed, zero tokens), and the Playwright e2e suite.
 
 ## Recording what actually happened
 
@@ -137,24 +160,31 @@ it has been running optimistic or pessimistic.
 ```
 cases/         # case blackboards: artifacts, state, audit log (gitignored)
 memory/        # cross-case memory: prior cases, source reputation, calibration (gitignored)
-orchestrator/  # the deterministic Python orchestrator
-cursor/roles/  # agent role definitions consumed by cursor-agent at runtime
+orchestrator/  # the deterministic Python orchestrator (incl. service/ for the web API)
+frontend/      # the web UI: React SPA, generated types, Playwright e2e suite
+backends/      # per-backend model configuration (e.g. backends/droid/models.yaml)
+cursor/roles/  # agent role definitions consumed by the agent CLI at runtime
 cursor/skills/ # domain specialist packs, selected per case by keyword
 specs/         # spec sheets; ROADMAP.md is the live status board
 benchmarks/    # benchmark decision cases used for evaluation
 schemas/       # exported JSON Schemas for every artifact type
+scripts/       # smoke tests, benchmark runners, outcome recording, case metrics
+tests/         # unit tests and committed fixture cases
 ```
 
 ## Development
 
 ```bash
-make check   # ruff, ruff format, mypy, pytest
-make test    # unit tests only
-make schemas # regenerate schemas/ from the pydantic models
+make check          # ruff, ruff format, mypy, pytest
+make test           # unit tests only
+make schemas        # regenerate schemas/ from the pydantic models
+make frontend-check # tsc, generated-type drift check, frontend unit tests
+make e2e-frontend   # Playwright e2e suite (fixture, stub, replay modes)
 ```
 
-Live tests that call real models are marked `live` and deselected by default:
+Live tests that call real models are marked `live` (plus `live_slow` for long runs) and
+deselected by default:
 
 ```bash
-uv run pytest -m live
+uv run pytest -m "live or live_slow"
 ```

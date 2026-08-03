@@ -19,8 +19,11 @@ const __dirname = path.dirname(__filename);
 
 const E2E_MODE = process.env.E2E_MODE ?? "fixture";
 
-const FRONTEND_PORT = 5173;
-const BACKEND_PORT = 8765;
+// Dedicated e2e ports, deliberately NOT the dev defaults (5173/8765): a
+// leftover dev server, replay server, or another session's stack must never
+// be able to stand in for the suite's own servers.
+const FRONTEND_PORT = 5273;
+const BACKEND_PORT = 8865;
 
 // Resolve repo and frontend dirs relative to this config file
 // (frontend/e2e/playwright.config.ts → frontend/ → repo root).
@@ -41,7 +44,7 @@ if (E2E_MODE === "replay") {
   // the replay case (config.cases_root is used by _load_or_404; without this
   // it defaults to <repo>/cases and the fixture is not found).
   backendCommand =
-    `${advisorUi} --cases-root tests/fixtures/cases --replay tests/fixtures/cases/case-001-fixture-001 --speed 1000`;
+    `${advisorUi} --port ${BACKEND_PORT} --cases-root tests/fixtures/cases --replay tests/fixtures/cases/case-001-fixture-001 --speed 1000`;
 } else if (E2E_MODE === "stub") {
   // Stub mode needs a fresh temp cases directory so each run starts clean.
   const stubCasesRoot = path.join(frontendDir, "e2e", ".tmp", "cases-stub");
@@ -55,7 +58,7 @@ if (E2E_MODE === "replay") {
   backendEnv = { AGENTADVISOR_BACKEND: "stub" };
 } else {
   // fixture (default)
-  backendCommand = `${advisorUi} --cases-root tests/fixtures/cases`;
+  backendCommand = `${advisorUi} --port ${BACKEND_PORT} --cases-root tests/fixtures/cases`;
 }
 
 export default defineConfig({
@@ -104,7 +107,10 @@ export default defineConfig({
       cwd: repoRoot,
       port: BACKEND_PORT,
       timeout: 30_000,
-      reuseExistingServer: !process.env.CI,
+      // Never reuse: a stale server (e.g. a leaked replay backend, which
+      // lists only its replay case) silently poisons the whole run. Failing
+      // loudly on an occupied port is the honest behavior.
+      reuseExistingServer: false,
       env: {
         ...process.env,
         AGENTADVISOR_TEST_HOOKS: "1",
@@ -116,8 +122,12 @@ export default defineConfig({
       cwd: frontendDir,
       port: FRONTEND_PORT,
       timeout: 30_000,
-      reuseExistingServer: !process.env.CI,
-      env: { ...process.env } as Record<string, string>,
+      reuseExistingServer: false,
+      env: {
+        ...process.env,
+        // Point vite.config.ts's /api proxy at the suite's own backend.
+        AGENTADVISOR_API_PORT: String(BACKEND_PORT),
+      } as Record<string, string>,
     },
   ],
 });

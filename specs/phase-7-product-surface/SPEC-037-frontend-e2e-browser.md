@@ -43,7 +43,7 @@ rare.
   - a small test-helper API in the service, enabled only by `AGENTADVISOR_TEST_HOOKS=1`:
     `POST /api/_test/kill-worker/{id}` and `GET /api/_test/case-file/{id}?path=` for crash
     simulation and disk assertions from tests without shelling in.
-- **Fixture-mode specs** (dummy data; `case-fixture-001` + `case-fixture-002-parked`):
+- **Fixture-mode specs** (dummy data; `case-001-fixture-001` + `case-002-fixture-002-parked`):
   - library states and needs-you funneling;
   - delivered-brief journey: answer card → key reason → thread panel → evidence excerpt
     (the chain terminus) → machinery toggle shows YAML;

@@ -15,10 +15,10 @@ It behaves like a small consulting team or investment committee, not a search as
 - If this file and the north star conflict: the north star wins on product intent and architecture; this file wins on repository mechanics.
 - Re-check current Cursor CLI docs (north star Section 24) before relying on specific CLI flags, models, or quotas.
 
-## Two harnesses, do not confuse them
+## Two kinds of harness, do not confuse them
 
-- **Factory AI (this environment) develops the platform:** writes specs, orchestrator code, schemas, and tests. This file is its guidance.
-- **Cursor CLI is the runtime harness for the product's own agents.** Everything under `cursor/` (role definition mds, skill mds) is a product artifact consumed by headless `cursor-agent` invocations at case runtime, not guidance for the development agent.
+- **The development agent (whatever coding agent is reading this file) develops the platform:** writes specs, orchestrator code, schemas, and tests. This file is its guidance.
+- **The runtime backends run the product's own agents.** Everything under `cursor/` (role definition mds, skill mds) is a product artifact consumed by headless agent-CLI invocations at case runtime, not guidance for the development agent. Two backends exist behind the `AgentBackend` interface: the Cursor CLI (`cursor-agent`, default) and the Factory Droid CLI (`droid`, selected with `--backend droid` or `AGENTADVISOR_BACKEND=droid`; model config in `backends/droid/models.yaml`). The Phase 4/5 verification runs (first real case, benchmarks, baselines) were executed on the droid backend.
 
 ## Repository layout
 
@@ -32,11 +32,13 @@ cursor/
                #  assumption_analyst, director, director-b, challenger, premortem,
                #  auditor, synthesizer, reviewer)
   skills/      # domain specialist packs (registry.yaml + <pack>/SKILL.md), keyword-selected per case
+backends/      # per-backend model configuration (backends/droid/models.yaml)
+frontend/      # web UI: React SPA (advisor ui backend + Vite dev server), generated TS types, Playwright e2e suite
 cases/         # runtime case blackboards, gitignored (cases/<case-id>/ per north star 7.3)
 memory/        # cross-case institutional memory, gitignored (cases, evidence, assumptions)
 benchmarks/    # benchmark decision cases for evaluation (north star Section 19)
-scripts/       # operator scripts: harness smoke test, e2e eval runner, scenario scoring, outcome recording
-tests/         # unit tests for deterministic components
+scripts/       # operator scripts: harness smoke tests, e2e eval runner, benchmark/baseline runners, outcome recording, case metrics
+tests/         # unit tests for deterministic components, plus committed fixture cases (tests/fixtures/)
 report-and-findings/  # research reports, test findings, experiment writeups (dated files)
 ```
 

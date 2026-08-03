@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.vite/
 e2e/artifacts/
 e2e/.tmp/
 playwright-report/

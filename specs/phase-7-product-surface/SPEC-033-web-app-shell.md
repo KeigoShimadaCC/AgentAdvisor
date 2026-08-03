@@ -121,7 +121,7 @@ catch-up, replay).
 ```
 uv run pytest tests/test_service_api.py tests/test_events.py -q
 make frontend-check && make frontend-build
-uv run advisor ui --replay tests/fixtures/cases/case-fixture-001 --speed 60   # manual smoke
+uv run advisor ui --cases-root tests/fixtures/cases --replay tests/fixtures/cases/case-001-fixture-001 --speed 60   # manual smoke
 make check
 ```
 
