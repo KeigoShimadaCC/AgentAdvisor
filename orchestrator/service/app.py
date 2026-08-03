@@ -11,8 +11,10 @@ exposed for ASGI servers that import a global.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
+import threading
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -57,6 +59,75 @@ _BLOCKED_PREFIXES: tuple[str, ...] = (".",)
 
 # A safe relative path: no traversal, no absolute paths.
 _SAFE_REL_RE = re.compile(r"^(?!.*\.\.).+$")
+
+
+# Stages where the pipeline is actively running (not waiting for user input
+# and not terminal).  If a case is in one of these stages when the server
+# starts, the worker process was likely killed by a restart and the case
+# is stranded.  Auto-resume recovers it.
+_ACTIVE_STAGES: frozenset[CaseStage] = frozenset(
+    {
+        CaseStage.INTAKE,
+        CaseStage.FRAMING,
+        CaseStage.STRUCTURING,
+        CaseStage.PROVISIONAL_THESIS,
+        CaseStage.PLANNING,
+        CaseStage.INVESTIGATION,
+        CaseStage.EVIDENCE_CRITIQUE,
+        CaseStage.ASSUMPTION_LEDGER,
+        CaseStage.PRELIMINARY_RECOMMENDATION,
+        CaseStage.PRE_MORTEM,
+        CaseStage.CHALLENGE,
+        CaseStage.REPAIR,
+        CaseStage.STOP_DECISION,
+        CaseStage.SYNTHESIS,
+        CaseStage.REVIEW,
+    }
+)
+
+_logger = logging.getLogger("orchestrator.service.auto_resume")
+
+
+def _find_stuck_cases(cases_root: Path) -> list[tuple[str, CaseStage]]:
+    """Return ``(case_id, stage)`` for every case stranded in an active stage."""
+    stuck: list[tuple[str, CaseStage]] = []
+    if not cases_root.exists():
+        return stuck
+    for entry in sorted(cases_root.iterdir()):
+        if not entry.is_dir() or not (entry / "state.yaml").exists():
+            continue
+        try:
+            case = load_case(entry.name, cases_root=cases_root)
+            state = load_case_state(case)
+        except Exception:  # noqa: BLE001
+            continue
+        if state.stage in _ACTIVE_STAGES:
+            stuck.append((entry.name, state.stage))
+    return stuck
+
+
+def _auto_resume_stuck_cases(cases_root: Path) -> None:
+    """Scan for stranded cases and resume each in a background thread."""
+    stuck = _find_stuck_cases(cases_root)
+    if not stuck:
+        return
+    for case_id, stage in stuck:
+        _logger.info("Auto-resuming stuck case %s (stage=%s)", case_id, stage.value)
+        thread = threading.Thread(
+            target=_resume_in_background,
+            args=(case_id, cases_root),
+            daemon=True,
+            name=f"auto-resume-{case_id}",
+        )
+        thread.start()
+
+
+def _resume_in_background(case_id: str, cases_root: Path) -> None:
+    """Call control.resume in a background thread, logging errors."""
+    try:
+        resume(case_id, cases_root=cases_root)
+    except Exception as exc:  # noqa: BLE001
+        _logger.warning("Auto-resume failed for %s: %s", case_id, exc)
 
 
 # ── Request/response models ──────────────────────────────────────────────────
@@ -242,6 +313,13 @@ def create_app(
     config = ServiceConfig(cases_root=cases_root, replay_dir=replay_dir, speed=speed)
     application = FastAPI(title="Advisor UI", version="1")
     application.state.config = config
+
+    # Auto-resume any cases stranded in an active stage by a prior crash.
+    @application.on_event("startup")
+    async def _startup_auto_resume() -> None:
+        if replay_dir is not None:
+            return  # read-only replay mode
+        _auto_resume_stuck_cases(config.cases_root)
 
     _register_routes(application, config)
     return application

@@ -185,3 +185,70 @@ def test_replay_mode_scope_checkpoint_rejected(tmp_path: Path) -> None:
         json={"decision": "approve"},
     )
     assert resp.status_code == 409
+
+
+# ── Auto-resume on startup ──────────────────────────────────────────────────
+
+
+def _make_state_yaml(case_id: str, stage: str) -> str:
+    return (
+        f"budget_counters: {{}}\n"
+        f"case_id: {case_id}\n"
+        f"created_at: '2026-08-04T00:00:00Z'\n"
+        f"elapsed_s: 0.0\n"
+        f"failure_cause: null\n"
+        f"final_approved: false\n"
+        f"final_revisions: 0\n"
+        f"framing_approved: false\n"
+        f"framing_revisions: 0\n"
+        f"repair_cycle: 0\n"
+        f"review_accepted: null\n"
+        f"schema_version: 1\n"
+        f"stage: {stage}\n"
+        f"started_at_run: null\n"
+        f"synthesis_retries: 0\n"
+        f"updated_at: '2026-08-04T00:00:00Z'\n"
+    )
+
+
+def _make_case_dir(root: Path, case_id: str, stage: str) -> None:
+    case_dir = root / case_id
+    case_dir.mkdir(parents=True, exist_ok=True)
+    (case_dir / "shared" / "evidence").mkdir(parents=True, exist_ok=True)
+    (case_dir / "shared" / "assumptions").mkdir(parents=True, exist_ok=True)
+    (case_dir / "shared" / "objections").mkdir(parents=True, exist_ok=True)
+    (case_dir / "shared" / "tasks").mkdir(parents=True, exist_ok=True)
+    (case_dir / "agents").mkdir(parents=True, exist_ok=True)
+    (case_dir / "analysis").mkdir(parents=True, exist_ok=True)
+    (case_dir / "outputs").mkdir(parents=True, exist_ok=True)
+    (case_dir / "shared" / "task_graph.yaml").write_text("nodes: []\n", encoding="utf-8")
+    (case_dir / "state.yaml").write_text(_make_state_yaml(case_id, stage))
+    (case_dir / "audit.jsonl").write_text("")
+
+
+def test_find_stuck_cases_detects_active_stages(tmp_path: Path) -> None:
+    from orchestrator.service.app import _find_stuck_cases
+
+    _make_case_dir(tmp_path, "case-001-stuck-investigation", "investigation")
+    _make_case_dir(tmp_path, "case-002-stuck-synthesis", "synthesis")
+    stuck = _find_stuck_cases(tmp_path)
+    stuck_ids = {cid for cid, _ in stuck}
+    assert "case-001-stuck-investigation" in stuck_ids
+    assert "case-002-stuck-synthesis" in stuck_ids
+
+
+def test_find_stuck_cases_ignores_halt_and_terminal(tmp_path: Path) -> None:
+    from orchestrator.service.app import _find_stuck_cases
+
+    _make_case_dir(tmp_path, "case-003-awaiting-framing", "awaiting_framing_approval")
+    _make_case_dir(tmp_path, "case-004-awaiting-final", "awaiting_final_approval")
+    _make_case_dir(tmp_path, "case-005-done", "done")
+    _make_case_dir(tmp_path, "case-006-failed", "failed")
+    stuck = _find_stuck_cases(tmp_path)
+    assert stuck == []
+
+
+def test_find_stuck_cases_empty_dir(tmp_path: Path) -> None:
+    from orchestrator.service.app import _find_stuck_cases
+
+    assert _find_stuck_cases(tmp_path) == []
