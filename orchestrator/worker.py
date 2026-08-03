@@ -18,7 +18,7 @@ from pathlib import Path
 import yaml  # type: ignore[import-untyped]
 
 from orchestrator.artifacts import IntakeRecord
-from orchestrator.backend import AgentBackend, CursorCLIBackend
+from orchestrator.backend import AgentBackend, make_backend
 from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, load_case
 from orchestrator.invoke_role import clear_cross_field_validation_hooks
@@ -39,7 +39,7 @@ def _build_backend(case: Case) -> AgentBackend:
     backend_env = os.getenv("AGENTADVISOR_BACKEND", "").lower()
     if backend_env == "stub":
         return PipelineStubBackend(case)
-    return CursorCLIBackend()
+    return make_backend(backend_env or None)
 
 
 def _load_meta(case_root: Path) -> dict[str, str]:

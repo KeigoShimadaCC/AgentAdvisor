@@ -21,6 +21,7 @@ import yaml  # type: ignore[import-untyped]
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+from orchestrator.backend import BackendName, make_backend  # noqa: E402
 from orchestrator.case_store import Case  # noqa: E402
 from orchestrator.pipeline import SMALL_BUDGET, run_scenario  # noqa: E402
 
@@ -277,15 +278,18 @@ def run_one_scenario(
     scenario_path: Path,
     *,
     cases_root: Path | None = None,
+    backend_name: str | None = None,
 ) -> dict[str, Any]:
     """Run a single scenario end-to-end and return results."""
     scenario = _load_scenario(scenario_path)
     prompt = str(scenario["prompt"]).strip()
     slug = str(scenario.get("slug", scenario_path.stem))
+    backend = make_backend(backend_name)
 
     print(f"\n{'=' * 60}")
     print(f"Scenario: {scenario.get('title', scenario_path.name)}")
     print(f"Prompt: {prompt[:100]}...")
+    print(f"Backend: {backend.name}")
     print(f"{'=' * 60}")
 
     budget = SMALL_BUDGET
@@ -296,6 +300,7 @@ def run_one_scenario(
             prompt,
             slug=slug,
             budget_config=budget,
+            backend=backend,
             cases_root=cases_root,
         )
         elapsed = time.time() - start_time
@@ -307,6 +312,7 @@ def run_one_scenario(
         result = {
             "scenario_id": scenario.get("id", scenario_path.stem),
             "scenario_title": scenario.get("title", scenario_path.name),
+            "backend": backend.name,
             "case_id": case.root.name,
             "final_stage": final_stage,
             "elapsed_seconds": round(elapsed, 1),
@@ -320,6 +326,7 @@ def run_one_scenario(
         result = {
             "scenario_id": scenario.get("id", scenario_path.stem),
             "scenario_title": scenario.get("title", scenario_path.name),
+            "backend": backend.name,
             "error": str(exc),
             "elapsed_seconds": round(elapsed, 1),
             "success": False,
@@ -368,6 +375,12 @@ def main() -> None:
         default=REPO_ROOT / "benchmarks" / "results",
         help="Output directory for results",
     )
+    parser.add_argument(
+        "--backend",
+        choices=sorted(name.value for name in BackendName),
+        default=None,
+        help="Agent CLI to run roles on (defaults to AGENTADVISOR_BACKEND, else cursor)",
+    )
     args = parser.parse_args()
 
     if not args.scenario and not args.all:
@@ -386,7 +399,9 @@ def main() -> None:
 
     results: list[dict[str, Any]] = []
     for scenario_path in scenarios:
-        result = run_one_scenario(scenario_path, cases_root=args.cases_root)
+        result = run_one_scenario(
+            scenario_path, cases_root=args.cases_root, backend_name=args.backend
+        )
         results.append(result)
 
     # Write summary

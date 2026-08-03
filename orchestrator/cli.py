@@ -28,7 +28,7 @@ from orchestrator.artifacts import (
     TaskRecord,
     TaskStatus,
 )
-from orchestrator.backend import AgentBackend
+from orchestrator.backend import AgentBackend, BackendName, make_backend
 from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, create_case, default_cases_root, load_case
 from orchestrator.pipeline import DEFAULT_BUDGET, SMALL_BUDGET
@@ -420,6 +420,12 @@ def build_parser() -> argparse.ArgumentParser:
             default="default",
             help="Resource caps for the run (default: default)",
         )
+        sub.add_argument(
+            "--backend",
+            choices=sorted(name.value for name in BackendName),
+            default=None,
+            help="Agent CLI to run roles on (defaults to AGENTADVISOR_BACKEND, else cursor)",
+        )
 
     new = subparsers.add_parser("new", help="Start a new decision case")
     new.add_argument("prompt", help="The decision, in your own words")
@@ -494,6 +500,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None, *, backend: AgentBackend | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if backend is None:
+        try:
+            backend = make_backend(getattr(args, "backend", None))
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USER_ERROR
     try:
         exit_code: int = args.func(args, backend)
     except UserError as exc:

@@ -1,4 +1,4 @@
-.PHONY: init lint type test check smoke schemas frontend-types frontend-check frontend-build frontend-install
+.PHONY: init lint type test check smoke smoke-droid schemas frontend-types frontend-check frontend-build frontend-install
 
 init:
 	uv sync --group dev
@@ -17,6 +17,9 @@ check: lint type test
 
 smoke:
 	python3 scripts/smoke_cursor_cli.py
+
+smoke-droid:
+	python3 scripts/smoke_droid_cli.py
 
 schemas:
 	uv run python3 -m orchestrator.artifacts.schema_export
