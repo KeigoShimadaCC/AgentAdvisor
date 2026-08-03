@@ -9,23 +9,27 @@ import {
 
 // Fixture-mode specs run only when E2E_MODE=fixture (the default).
 
+// Real fixture case titles (the library renders the title, not the case_id).
+const COMPLETED_TITLE = "Should I invest $50k in Nvidia vs semiconductor ETF?";
+const PARKED_TITLE = "I have $50k and want semiconductor exposure. Nvidia or ETF?";
+
 modeDescribe("fixture", "Fixture mode — case library", () => {
   test("shows both fixture cases with human-readable stages", async ({ page }) => {
     await page.goto("/");
 
-    // Both case titles should be visible
-    await expect(page.locator("text=case-001-fixture-001")).toBeVisible();
-    await expect(page.locator("text=case-002-fixture-002-parked")).toBeVisible();
+    // Both case titles should be visible (library renders title, not case_id)
+    await expect(page.locator(".case-list")).toContainText(COMPLETED_TITLE);
+    await expect(page.locator(".case-list")).toContainText(PARKED_TITLE);
 
     // Completed case shows "Complete" (stageLabel for done)
     const completedRow = page.locator(".case-list tbody tr").filter({
-      hasText: "case-001-fixture-001",
+      hasText: COMPLETED_TITLE,
     });
     await expect(completedRow).toContainText("Complete");
 
     // Parked case shows "Waiting for your review" (stageLabel for awaiting_framing_approval)
     const parkedRow = page.locator(".case-list tbody tr").filter({
-      hasText: "case-002-fixture-002-parked",
+      hasText: PARKED_TITLE,
     });
     await expect(parkedRow).toContainText("Waiting for your review");
   });
@@ -35,11 +39,12 @@ modeDescribe("fixture", "Fixture mode — case library", () => {
 
     const needsYou = page.locator(".needs-you-header");
     await expect(needsYou).toBeVisible();
-    await expect(needsYou).toContainText("case-002-fixture-002-parked");
+    // The needs-you section shows the case title, not the case_id
+    await expect(needsYou).toContainText(PARKED_TITLE);
     await expect(needsYou).toContainText("Needs your review");
 
     // Clicking the needs-you link navigates to the scope checkpoint
-    await needsYou.locator("a", { hasText: "case-002-fixture-002-parked" }).click();
+    await needsYou.locator("a", { hasText: PARKED_TITLE }).click();
     await expect(page).toHaveURL(/\/cases\/case-002-fixture-002-parked\/scope$/);
   });
 

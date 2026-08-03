@@ -5,6 +5,7 @@ import type { CaseView, ObjectionView } from "../../../generated/case_view";
 import {
   objectionStatusLabel,
   levelLabel,
+  targetSectionLabel,
   OBJECTION_STATUS_SORT,
   ROOMS,
 } from "../../../copy/terms";
@@ -172,7 +173,7 @@ function ObjectionRow({ objection }: { objection: ObjectionView }) {
         </span>
         <CitationLink id={objection.objection_id} />
         <span className="objection-target">
-          Targets: <CitationLink id={objection.target_section}>{objection.target_section}</CitationLink>
+          Targets: <CitationLink id={objection.target_section}>{targetSectionLabel(objection.target_section)}</CitationLink>
         </span>
         <span className="objection-materiality">{levelLabel(objection.materiality)} materiality</span>
       </div>

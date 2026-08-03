@@ -2,7 +2,7 @@
 id: SPEC-034
 title: Commissioning flow and scope checkpoint UI
 phase: 7
-status: implemented
+status: verified
 depends_on: [SPEC-028, SPEC-033]
 parallel_with: [SPEC-036]
 north_star_refs: ["8", "14", "15"]

@@ -2,7 +2,7 @@
 id: SPEC-036
 title: Rooms and record inspector
 phase: 7
-status: implemented
+status: verified
 depends_on: [SPEC-032, SPEC-033]
 parallel_with: [SPEC-034]
 north_star_refs: ["3", "10", "15"]

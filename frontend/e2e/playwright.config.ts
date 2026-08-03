@@ -27,22 +27,35 @@ const BACKEND_PORT = 8765;
 const frontendDir = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(frontendDir, "..");
 
+// Use the venv Python directly (uv run may not be in PATH in subprocess).
+const pyBin = path.join(repoRoot, ".venv", "bin", "python");
+const advisorUi = `${pyBin} -m orchestrator.cli ui`;
+
 // ── Backend command per mode ─────────────────────────────────────────────────
 
 let backendCommand: string;
 let backendEnv: Record<string, string> = {};
 
 if (E2E_MODE === "replay") {
+  // --cases-root must point at the fixture directory so the service can find
+  // the replay case (config.cases_root is used by _load_or_404; without this
+  // it defaults to <repo>/cases and the fixture is not found).
   backendCommand =
-    "uv run advisor ui --replay tests/fixtures/cases/case-001-fixture-001 --speed 1000";
+    `${advisorUi} --cases-root tests/fixtures/cases --replay tests/fixtures/cases/case-001-fixture-001 --speed 1000`;
 } else if (E2E_MODE === "stub") {
   // Stub mode needs a fresh temp cases directory so each run starts clean.
   const stubCasesRoot = path.join(frontendDir, "e2e", ".tmp", "cases-stub");
-  backendCommand = `rm -rf ${stubCasesRoot} && mkdir -p ${stubCasesRoot} && uv run advisor ui --cases-root ${stubCasesRoot}`;
+  // Bypass the CLI's main() which calls make_backend() and rejects
+  // AGENTADVISOR_BACKEND=stub (only "cursor"/"droid" are valid BackendName
+  // values).  The stub env var is still inherited by worker subprocesses
+  // via os.environ.copy() in control._spawn_worker, and the worker's
+  // _build_backend handles "stub" correctly.  We start uvicorn directly
+  // with the app factory so make_backend is never called in this process.
+  backendCommand = `rm -rf ${stubCasesRoot} && mkdir -p ${stubCasesRoot} && ${pyBin} -c "import pathlib, uvicorn; from orchestrator.service.app import create_app; app = create_app(cases_root=pathlib.Path('${stubCasesRoot}')); uvicorn.run(app, host='127.0.0.1', port=${BACKEND_PORT}, log_level='info')"`;
   backendEnv = { AGENTADVISOR_BACKEND: "stub" };
 } else {
   // fixture (default)
-  backendCommand = "uv run advisor ui --cases-root tests/fixtures/cases";
+  backendCommand = `${advisorUi} --cases-root tests/fixtures/cases`;
 }
 
 export default defineConfig({
@@ -99,7 +112,7 @@ export default defineConfig({
       } as Record<string, string>,
     },
     {
-      command: "npm run dev",
+      command: `${frontendDir}/node_modules/.bin/vite --host 127.0.0.1 --port ${FRONTEND_PORT} --strictPort`,
       cwd: frontendDir,
       port: FRONTEND_PORT,
       timeout: 30_000,

@@ -187,11 +187,11 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 | SPEC-030 | Safe resume and delivery-integrity persistence | verified |
 | SPEC-031 | Renderer and presentation-data fixes | verified |
 | SPEC-032 | CaseView projection, fixture case, generated frontend types | verified |
-| SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | implemented |
-| SPEC-034 | Commissioning flow and scope checkpoint UI | implemented |
-| SPEC-035 | Living brief, progress experience, delivery checkpoint UI | implemented |
-| SPEC-036 | Rooms and record inspector | implemented |
-| SPEC-037 | Frontend e2e suite in a real browser | implemented |
+| SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | verified |
+| SPEC-034 | Commissioning flow and scope checkpoint UI | verified |
+| SPEC-035 | Living brief, progress experience, delivery checkpoint UI | verified |
+| SPEC-036 | Rooms and record inspector | verified |
+| SPEC-037 | Frontend e2e suite in a real browser | verified |
 
 **Findings**
 

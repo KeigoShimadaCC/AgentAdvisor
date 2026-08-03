@@ -44,7 +44,12 @@ const FORBIDDEN_TERMS: string[] = [
   // TaskRole enum values (beyond what might legitimately appear in copy)
   "assumption_analyst",
   "director_b",
-  // Raw schema field names that should be translated
+  // Raw schema field names that should be translated.  NOTE: simple English
+  // words that are also field names ("reliability", "directness",
+  // "materiality", "provenance") are intentionally excluded because the app
+  // uses them as legitimate human labels (e.g. "High reliability", "High
+  // materiality", "Provenance chain").  Only compound snake_case identifiers
+  // that would only leak if a screen forgot to translate are forbidden.
   "risk_tolerance",
   "reversibility",
   "decision_question",
@@ -57,10 +62,6 @@ const FORBIDDEN_TERMS: string[] = [
   "objection_id",
   "evidence_id",
   "assumption_id",
-  "materiality",
-  "directness",
-  "reliability",
-  "provenance",
 ];
 
 /**

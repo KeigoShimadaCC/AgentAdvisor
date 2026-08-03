@@ -637,8 +637,36 @@ export const BRIEF_SECTION_TITLES: Record<string, string> = {
   evidence_and_citations: "Evidence and citations",
 };
 
-// ── Method phases (SPEC-035) ─────────────────────────────────────────────────
+/**
+ * Render an objection ``target_section`` field path (e.g.
+ * ``preliminary_recommendation.rationale[0]``) as a human-readable phrase.
+ * The raw path carries internal stage/section enum strings and a machine
+ * field index that must never surface in the DOM (SPEC-036).
+ */
+const TARGET_SECTION_LABELS: Record<string, string> = {
+  preliminary_recommendation: "the preliminary recommendation",
+  executive_recommendation: "the recommendation",
+  provisional_thesis: "the provisional view",
+  key_reasons: "the key reasons",
+  scenario_analysis: "the scenario analysis",
+  quantitative_findings: "the quantitative findings",
+  critical_assumptions: "the critical assumptions",
+  alternatives_considered: "the alternatives considered",
+  next_actions: "the next actions",
+  synthesis: "the synthesis",
+};
 
+export function targetSectionLabel(path: string | null | undefined): string {
+  if (!path) return "the recommendation";
+  const base = path.split(/[.[]/)[0];
+  return (
+    TARGET_SECTION_LABELS[base] ??
+    (BRIEF_SECTION_TITLES[base] ? BRIEF_SECTION_TITLES[base].toLowerCase() : null) ??
+    "the recommendation"
+  );
+}
+
+// ── Method phases (SPEC-035) ─────────────────────────────────────────────────
 export const PHASE_ORDER: string[] = [
   "intake",
   "framing",

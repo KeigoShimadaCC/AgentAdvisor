@@ -2,7 +2,7 @@
 id: SPEC-033
 title: Local web app shell — advisor ui service, SSE events, SPA scaffold, replay mode
 phase: 7
-status: implemented
+status: verified
 depends_on: [SPEC-027, SPEC-032]
 parallel_with: []
 north_star_refs: ["15"]

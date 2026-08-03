@@ -10,6 +10,10 @@ import { modeDescribe, apiPost, FIXTURE_COMPLETED } from "./helpers";
  */
 modeDescribe("replay", "Replay mode — SSE event ordering", () => {
   test("replays every audit event from since=0 in order", async ({ page }) => {
+    // Navigate to the app first so fetch() has a base URL to resolve the
+    // relative /api/... path against.
+    await page.goto("/");
+
     // Connect to the SSE endpoint and collect events.
     // We use page.evaluate to open a fetch-based SSE reader in the browser
     // context so the /api proxy is used.
