@@ -1,0 +1,104 @@
+# SPEC-033 — Presentation lexicon v1
+#
+# The single source for UI narration of audit events.  Each entry is keyed by
+# the audit ``event_type``.  Fields:
+#
+#   template:   a Python str.format template filled from the event payload.
+#               Slot names must match payload keys or built-in context vars:
+#                 {actor}      — the event actor (e.g. "researcher")
+#                 {event_type} — the raw event type (always available)
+#               Unavailable slots are replaced with "—" rather than raising.
+#   technical:  true for Method-only events (retry/coercion noise).  The UI
+#               hides these unless the Method room is open.
+#
+# Unknown event types are flagged ``technical: true`` and rendered with a
+# generic "raw event" message that does NOT leak the raw JSON — the raw
+# payload is sent separately under ``raw_payload`` for the Method room.
+
+budget_profile_selected:
+  template: "Budget profile selected: {profile}"
+  technical: true
+
+role_invocation_attempt:
+  template: "{actor} is running…"
+  technical: true
+
+stage_completed:
+  template: "Completed stage: {stage}"
+  technical: false
+
+task_started:
+  template: "Task {task_id} started"
+  technical: false
+
+task_completed:
+  template: "Task {task_id} completed"
+  technical: false
+
+stage_gate_evaluated:
+  template: "Gate {stage}: {outcome}"
+  technical: false
+
+thesis_revision_recorded:
+  template: "Thesis revision {revision}: {preferred_alternative}"
+  technical: false
+
+evidence_batch_unpacked:
+  template: "{record_count} evidence record(s) gathered for task {task_id}"
+  technical: false
+
+objection_batch_unpacked:
+  template: "Objections unpacked"
+  technical: false
+
+assumption_batch_unpacked:
+  template: "{record_count} assumption(s) added to the ledger"
+  technical: false
+
+review_evaluated:
+  template: "Review: {outcome}"
+  technical: false
+
+stop_decision_evaluated:
+  template: "Stop decision: {outcome}"
+  technical: false
+
+dual_track_compared:
+  template: "Dual-track divergence compared"
+  technical: false
+
+case_recorded_to_memory:
+  template: "Case recorded to institutional memory"
+  technical: true
+
+case_finalized:
+  template: "Case finalized"
+  technical: false
+
+control_case_created:
+  template: "Case created"
+  technical: true
+
+control_run_started:
+  template: "Run started"
+  technical: true
+
+control_run_stopped:
+  template: "Run stopped"
+  technical: true
+
+control_checkpoint_signed:
+  template: "Checkpoint signed: {gate}"
+  technical: false
+
+control_resume_reconciled:
+  template: "Resume reconciled orphaned tasks"
+  technical: true
+
+framing_revision_requested:
+  template: "Framing revision requested"
+  technical: false
+
+final_revision_requested:
+  template: "Final revision requested"
+  technical: false

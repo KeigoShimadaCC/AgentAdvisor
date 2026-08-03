@@ -373,6 +373,33 @@ def cmd_list(args: argparse.Namespace, backend: AgentBackend | None = None) -> i
     return EXIT_OK
 
 
+def cmd_ui(args: argparse.Namespace, backend: AgentBackend | None = None) -> int:
+    """Start the local web UI service (SPEC-033).
+
+    Binds to 127.0.0.1 only. In replay mode, serves a fixture case read-only
+    and re-emits its audit events on scaled timing.
+    """
+    del backend
+    import os
+
+    import uvicorn
+
+    if args.cases_root is not None:
+        os.environ["AGENTADVISOR_CASES_ROOT"] = str(args.cases_root)
+    if args.replay is not None:
+        os.environ["AGENTADVISOR_REPLAY_DIR"] = str(args.replay)
+    os.environ["AGENTADVISOR_REPLAY_SPEED"] = str(args.speed)
+
+    # Import after env vars are set so the module-level app picks them up.
+    from orchestrator.service.app import app
+
+    print(f"Advisor UI on http://127.0.0.1:{args.port}")
+    if args.replay:
+        print(f"  Replay mode: {args.replay} (speed={args.speed}x)")
+    uvicorn.run(app, host="127.0.0.1", port=args.port, log_level=args.log_level)
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="advisor",
@@ -437,6 +464,29 @@ def build_parser() -> argparse.ArgumentParser:
     listing.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     add_common(listing)
     listing.set_defaults(func=cmd_list)
+
+    ui = subparsers.add_parser("ui", help="Start the local web UI service")
+    ui.add_argument("--port", type=int, default=8765, help="Port to bind (default: 8765)")
+    ui.add_argument("--cases-root", type=Path, default=None, help="Directory holding cases")
+    ui.add_argument(
+        "--replay",
+        type=Path,
+        default=None,
+        help="Replay a fixture case read-only at scaled timing",
+    )
+    ui.add_argument(
+        "--speed",
+        type=float,
+        default=60.0,
+        help="Replay speed factor (inter-event delay / speed, default: 60)",
+    )
+    ui.add_argument(
+        "--log-level",
+        default="info",
+        choices=["debug", "info", "warning", "error"],
+        help="Uvicorn log level (default: info)",
+    )
+    ui.set_defaults(func=cmd_ui)
 
     return parser
 

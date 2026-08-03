@@ -26,12 +26,12 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures" / "cases"
 
 @pytest.fixture
 def fixture_001() -> Case:
-    return Case(root=FIXTURES / "case-fixture-001")
+    return Case(root=FIXTURES / "case-001-fixture-001")
 
 
 @pytest.fixture
 def fixture_002() -> Case:
-    return Case(root=FIXTURES / "case-fixture-002-parked")
+    return Case(root=FIXTURES / "case-002-fixture-002-parked")
 
 
 # ── Fixture-001: completed case ──────────────────────────────────────────────
@@ -42,7 +42,7 @@ class TestFixture001:
         view = build_case_view(fixture_001)
         assert isinstance(view, CaseView)
         assert view.view_version == 1
-        assert view.case_id == "case-fixture-001"
+        assert view.case_id == "case-001-fixture-001"
 
     def test_phase_and_stage(self, fixture_001: Case) -> None:
         view = build_case_view(fixture_001)

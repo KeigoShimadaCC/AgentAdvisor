@@ -18,7 +18,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | in_progress | 4, 6 |
 
-**Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). Carried-over engineering tasks completed: citation checking consolidated into `citations.py`, coercion-layer property test covering every artifact model, coercion-layer accounting instrumentation with audit-log extraction. `make check` is green: lint, mypy, 522 unit tests, plus 17 live tests that are deselected by default.
+**Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). Carried-over engineering tasks completed: citation checking consolidated into `citations.py`, coercion-layer property test covering every artifact model, coercion-layer accounting instrumentation with audit-log extraction. Phase 7 backend specs (027-033) implemented: case control service, revision loops, budget truth, safe resume, CaseView projection, and web app shell (FastAPI + SSE + React SPA scaffold). `make check` is green: lint, mypy, 674 unit tests, plus 17 live tests that are deselected by default. `make frontend-check` passes (tsc + type generation clean).
 
 ---
 
@@ -187,7 +187,7 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 | SPEC-030 | Safe resume and delivery-integrity persistence | verified |
 | SPEC-031 | Renderer and presentation-data fixes | verified |
 | SPEC-032 | CaseView projection, fixture case, generated frontend types | verified |
-| SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | draft |
+| SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | implemented |
 | SPEC-034 | Commissioning flow and scope checkpoint UI | draft |
 | SPEC-035 | Living brief, progress experience, delivery checkpoint UI | draft |
 | SPEC-036 | Rooms and record inspector | draft |

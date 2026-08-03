@@ -26,6 +26,8 @@ classifiers = [
 dependencies = [
   "pydantic>=2",
   "pyyaml",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
 ]
 
 [project.scripts]
@@ -36,6 +38,8 @@ dev = [
   "ruff",
   "mypy",
   "pytest",
+  "pytest-asyncio",
+  "httpx",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -62,3 +66,4 @@ markers = [
   "live: marks tests that call live external model/provider APIs",
   "live_slow: marks long-running live tests",
 ]
+asyncio_mode = "auto"

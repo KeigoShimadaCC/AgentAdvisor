@@ -2,8 +2,8 @@
 """Generate the two committed fixture cases for SPEC-032.
 
 Runs the PipelineStubBackend end-to-end to produce a completed case, then
-copies/sanitizes it into tests/fixtures/cases/case-fixture-001/.  A second
-case is parked at awaiting_framing_approval for case-fixture-002-parked/.
+copies/sanitizes it into tests/fixtures/cases/case-001-fixture-001/.  A second
+case is parked at awaiting_framing_approval for case-002-fixture-002-parked/.
 
 Usage:
     .venv/bin/python scripts/generate_fixtures.py
@@ -213,7 +213,7 @@ def _make_fixture_001() -> None:
         )
 
     # Copy to fixtures, excluding agent workspaces and memory.
-    dest = FIXTURE_ROOT / "case-fixture-001"
+    dest = FIXTURE_ROOT / "case-001-fixture-001"
     if dest.exists():
         shutil.rmtree(dest)
     dest.mkdir(parents=True)
@@ -309,7 +309,7 @@ def _make_fixture_002_parked() -> None:
     )
     case.write_artifact(intake_with_clarifications)
 
-    dest = FIXTURE_ROOT / "case-fixture-002-parked"
+    dest = FIXTURE_ROOT / "case-002-fixture-002-parked"
     if dest.exists():
         shutil.rmtree(dest)
     dest.mkdir(parents=True)
