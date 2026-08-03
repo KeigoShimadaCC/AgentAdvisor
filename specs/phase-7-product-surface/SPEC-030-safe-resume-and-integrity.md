@@ -69,28 +69,28 @@ chronology. `review_accepted` is deliberately tri-state — `None` distinguishes
 
 ## Deliverables
 
-- [ ] `reconcile_orphans` + wiring in `pipeline.run` / `control.resume`
-- [ ] collision-safe workspace archiving (`--rerun-<n>`)
-- [ ] unpack markers + duplicate guard; thesis duplicate guard
-- [ ] `CaseState.review_accepted` persisted from `handle_review`
-- [ ] `pipeline.prepare_resume`
-- [ ] `tests/test_safe_resume.py`
+- [x] `reconcile_orphans` + wiring in `pipeline.run` / `control.resume`
+- [x] collision-safe workspace archiving (`--rerun-<n>`)
+- [x] unpack markers + duplicate guard; thesis duplicate guard
+- [x] `CaseState.review_accepted` persisted from `handle_review`
+- [x] `pipeline.prepare_resume`
+- [x] `tests/test_safe_resume.py`
 
 ## Acceptance criteria
 
-- [ ] Simulated crash mid-investigation (two tasks `active`, no worker): `prepare_resume` resets
+- [x] Simulated crash mid-investigation (two tasks `active`, no worker): `prepare_resume` resets
       exactly those tasks; the resumed stub run completes; the audit log shows
       `task_reset_on_resume`.
-- [ ] Re-running a stage whose agent workspace is already archived succeeds and produces a
+- [x] Re-running a stage whose agent workspace is already archived succeeds and produces a
       `--rerun-1` archive; the case does not fail.
-- [ ] Re-executing a stage that already unpacked task `T-004`'s evidence batch mints zero new
+- [x] Re-executing a stage that already unpacked task `T-004`'s evidence batch mints zero new
       `E-` ids (counter file unchanged; `unpack_skipped_duplicate` audited).
-- [ ] A fixture case whose review fails after its retry reaches `done` with
+- [x] A fixture case whose review fails after its retry reaches `done` with
       `review_accepted: false` in `state.yaml`; a passing case records `true`; a case crashed
       before review reloads with `None`.
-- [ ] Interrupted → `resume` end-to-end on the stub backend reaches `done` with no duplicate
+- [x] Interrupted → `resume` end-to-end on the stub backend reaches `done` with no duplicate
       thesis revision and no duplicate blackboard ids.
-- [ ] `make check` passes.
+- [x] `make check` passes.
 
 ## Verification plan
 

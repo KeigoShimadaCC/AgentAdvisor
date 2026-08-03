@@ -84,18 +84,18 @@ honest without touching its math.
 
 ## Acceptance criteria
 
-- [ ] Rendering the reference final-recommendation fixture yields no bullet carrying the full
+- [x] Rendering the reference final-recommendation fixture yields no bullet carrying the full
       shared citation list (assert a known key-reason line contains exactly its own inline ids);
       the evidence table is unchanged.
-- [ ] A fixture with `runs_total: 1` renders "not assessed" and no "0.0%" anywhere in the
+- [x] A fixture with `runs_total: 1` renders "not assessed" and no "0.0%" anywhere in the
       stability line; a coercion-basis confidence renders without a percentage.
-- [ ] A case with a `premortem_report.yaml` renders a "## Pre-mortem" section containing every
+- [x] A case with a `premortem_report.yaml` renders a "## Pre-mortem" section containing every
       failure mode and the most-likely marker; absent report → absent section.
-- [ ] Two evidence records from the same publisher answering different questions normalize into
+- [x] Two evidence records from the same publisher answering different questions normalize into
       one `independence_group` (unit), and the rendered table shows the human label.
-- [ ] The new gate warns on the reference fixture (ledger populated, `critical_assumptions`
+- [x] The new gate warns on the reference fixture (ledger populated, `critical_assumptions`
       empty) and stays silent when ids are present.
-- [ ] `make check` passes.
+- [x] `make check` passes.
 
 ## Verification plan
 

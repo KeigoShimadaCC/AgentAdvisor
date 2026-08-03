@@ -73,28 +73,28 @@ consume and the stage-level consume the same code path.
 
 ## Deliverables
 
-- [ ] persistence fix + `started_at_run`/`elapsed_s` on `CaseState`
-- [ ] ledger hook in the invocation kit; task-graph consume unified
-- [ ] `research_tasks`, `high_tier_calls`, wall-clock consumption wired
-- [ ] `DEEP_BUDGET` preset + depth→profile mapping + `budget_profile_selected` audit event
-- [ ] stop-evaluator deadline/depth inputs wired
-- [ ] `tests/test_budget_truth.py` (persistence, double-count guard, exhaustion→disclosure e2e on
+- [x] persistence fix + `started_at_run`/`elapsed_s` on `CaseState`
+- [x] ledger hook in the invocation kit; task-graph consume unified
+- [x] `research_tasks`, `high_tier_calls`, wall-clock consumption wired
+- [x] `DEEP_BUDGET` preset + depth→profile mapping + `budget_profile_selected` audit event
+- [x] stop-evaluator deadline/depth inputs wired
+- [x] `tests/test_budget_truth.py` (persistence, double-count guard, exhaustion→disclosure e2e on
       stub backend, depth mapping, wall-clock stop with a monkeypatched clock)
 
 ## Acceptance criteria
 
-- [ ] After a stub run halts at the framing gate, `state.yaml` shows non-zero
+- [x] After a stub run halts at the framing gate, `state.yaml` shows non-zero
       `agent_invocations` equal to the count of `role_invocation_attempt` events with
       `attempt == 1` so far.
-- [ ] A stub case with `max_agent_invocations=3` produces `task_budget_refused`, a
+- [x] A stub case with `max_agent_invocations=3` produces `task_budget_refused`, a
       `shared/disclosure_record.yaml` containing `investigation_budget_exhausted`, and a rendered
       report containing the "Budget/depth stop disclosure" section.
-- [ ] `depth: deep` in the decision spec selects `DEEP_BUDGET` when no explicit budget is passed
+- [x] `depth: deep` in the decision spec selects `DEEP_BUDGET` when no explicit budget is passed
       (unit test per depth value).
-- [ ] With a monkeypatched clock past `max_wall_clock_s`, the stop decision fires with
+- [x] With a monkeypatched clock past `max_wall_clock_s`, the stop decision fires with
       `user_deadline_or_depth_limit_reached` and the disclosure names the exhausted dimension.
-- [ ] An escalation-model attempt on a high-tier role increments `high_tier_calls` exactly once.
-- [ ] `make check` passes.
+- [x] An escalation-model attempt on a high-tier role increments `high_tier_calls` exactly once.
+- [x] `make check` passes.
 
 ## Verification plan
 

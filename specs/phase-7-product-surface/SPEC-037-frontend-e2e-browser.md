@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-034, SPEC-035, SPEC-036]
 parallel_with: []
 north_star_refs: ["15", "18"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-037 — Frontend end-to-end suite in a real browser
@@ -118,28 +118,28 @@ identical to production.
 
 ## Deliverables
 
-- [ ] `frontend/e2e/` Playwright project (config, four mode suites, helpers)
-- [ ] service test-hook endpoints behind `AGENTADVISOR_TEST_HOOKS=1`
-- [ ] axe integration + terminology-guard helper
-- [ ] `make e2e-frontend`, `make e2e-frontend-live`; `frontend/README.md` E2E section with the
+- [x] `frontend/e2e/` Playwright project (config, four mode suites, helpers)
+- [x] service test-hook endpoints behind `AGENTADVISOR_TEST_HOOKS=1`
+- [x] axe integration + terminology-guard helper
+- [x] `make e2e-frontend`, `make e2e-frontend-live`; `frontend/README.md` E2E section with the
       live-mode cost note
-- [ ] artifacts dir gitignore entry
+- [x] artifacts dir gitignore entry
 
 ## Acceptance criteria
 
 - [ ] `make e2e-frontend` passes headless from a clean checkout (after `make frontend-build`)
       with no network beyond localhost and no `cursor-agent` present; total runtime ≤ 10 min on
-      the reference machine.
-- [ ] The stub lifecycle test asserts both DOM state and disk state at every gate as scoped
+      the reference machine. *(Chromium fixture/stub/replay passes are evidenced; webkit is not counted in current evidence.)*
+- [x] The stub lifecycle test asserts both DOM state and disk state at every gate as scoped
       above, and fails if either diverges.
-- [ ] The replay ordering, narration-purity, no-percent, sealed-card, and scroll assertions all
+- [x] The replay ordering, narration-purity, no-percent, sealed-card, and scroll assertions all
       hold against the reference fixture.
-- [ ] Axe passes (zero serious/critical) on the six covered screens in both themes.
-- [ ] The terminology-guard sweep passes on every visited screen.
+- [x] Axe passes (zero serious/critical) on the six covered screens in both themes.
+- [x] The terminology-guard sweep passes on every visited screen.
 - [ ] With `E2E_LIVE` unset, the live spec reports skipped and the suite passes; with both env
       acks and an authenticated CLI, the live smoke completes within its wall and leaves a
-      inspectable temp case directory (manual, recorded in verification results).
-- [ ] `make check` remains green and unaffected by e2e artifacts.
+      inspectable temp case directory (manual, recorded in verification results). *(Live mode was not exercised in current evidence because it spends real usage.)*
+- [x] `make check` remains green and unaffected by e2e artifacts.
 
 ## Verification plan
 

@@ -83,25 +83,25 @@ as SPEC-033 replay input and SPEC-037 dummy data — one asset, three consumers.
 
 ## Deliverables
 
-- [ ] `orchestrator/service/caseview.py` + models
-- [ ] schema export entries + regenerated `schemas/`
-- [ ] `tests/fixtures/cases/case-fixture-001/`, `case-fixture-002-parked/`
-- [ ] `frontend/src/generated/` types + `make frontend-types`
-- [ ] `tests/test_caseview.py`
+- [x] `orchestrator/service/caseview.py` + models
+- [x] schema export entries + regenerated `schemas/`
+- [x] `tests/fixtures/cases/case-fixture-001/`, `case-fixture-002-parked/`
+- [x] `frontend/src/generated/` types + `make frontend-types`
+- [x] `tests/test_caseview.py`
 
 ## Acceptance criteria
 
-- [ ] `build_case_view(case-fixture-001)` returns a validating `CaseView` where: model stability
+- [x] `build_case_view(case-fixture-001)` returns a validating `CaseView` where: model stability
       is the `NotAssessed` variant (reason names the single-run sentinel); integrity carries
       `review_accepted == false` with the review defects; challenges list every open objection
       first; effort invocation count equals the hand-counted `role_invocation_attempt` lines.
-- [ ] `build_case_view(case-fixture-002-parked)` yields `needs_you == scope_checkpoint` and the
+- [x] `build_case_view(case-fixture-002-parked)` yields `needs_you == scope_checkpoint` and the
       clarification questions with their materiality reasons.
-- [ ] Probability entries never carry both a point and an interval (property test over fixtures).
-- [ ] `make schemas` then `make frontend-types` is idempotent (`git diff --exit-code` on
+- [x] Probability entries never carry both a point and an interval (property test over fixtures).
+- [x] `make schemas` then `make frontend-types` is idempotent (`git diff --exit-code` on
       `schemas/` and `frontend/src/generated/`).
-- [ ] `npx tsc --noEmit` passes over the generated types.
-- [ ] `make check` passes.
+- [x] `npx tsc --noEmit` passes over the generated types.
+- [x] `make check` passes.
 
 ## Verification plan
 

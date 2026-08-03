@@ -77,25 +77,25 @@ against `IntakeField` names so a typo cannot silently vanish.
 
 ## Deliverables
 
-- [ ] state-machine transitions + revision counters + caps
-- [ ] `framing_feedback` projection key and handler wiring
-- [ ] `control.request_framing_revision` / `control.request_final_revision`
-- [ ] director-framing role md amendment
-- [ ] `tests/test_framing_revision.py`, `tests/test_final_sendback.py` (stub backend)
+- [x] state-machine transitions + revision counters + caps
+- [x] `framing_feedback` projection key and handler wiring
+- [x] `control.request_framing_revision` / `control.request_final_revision`
+- [x] director-framing role md amendment
+- [x] `tests/test_framing_revision.py`, `tests/test_final_sendback.py` (stub backend)
 
 ## Acceptance criteria
 
-- [ ] Submitting `decision: edit` with a non-empty `edits` dict re-runs framing exactly once; the
+- [x] Submitting `decision: edit` with a non-empty `edits` dict re-runs framing exactly once; the
       archived framing workspace's `inputs/` contains the edits and the previous spec; a new
       `decision_spec.yaml` is written; `framing_revisions == 1`.
-- [ ] Submitting `decision: answer_clarifications` projects the answers; an answer keyed to an
+- [x] Submitting `decision: answer_clarifications` projects the answers; an answer keyed to an
       unknown `IntakeField` is rejected at validation.
-- [ ] A third framing revision request is refused with the cap named in the error.
-- [ ] At `awaiting_final_approval`, `request_final_revision` routes to `synthesis` exactly once;
+- [x] A third framing revision request is refused with the cap named in the error.
+- [x] At `awaiting_final_approval`, `request_final_revision` routes to `synthesis` exactly once;
       the synthesizer workspace `task.yaml` contains the user note; a second request is refused;
       the case then re-parks at `awaiting_final_approval`.
-- [ ] Both control functions raise `WrongStage` at any other stage.
-- [ ] `make check` passes.
+- [x] Both control functions raise `WrongStage` at any other stage.
+- [x] `make check` passes.
 
 ## Verification plan
 

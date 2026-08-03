@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-032, SPEC-033]
 parallel_with: [SPEC-034]
 north_star_refs: ["3", "10", "15"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-036 — Rooms and record inspector
@@ -81,30 +81,30 @@ lexicon marks `technical` — the single placement rule that keeps progress from
 
 ## Deliverables
 
-- [ ] five rooms + Method room
-- [ ] shared inspector + chain view + raw layer
-- [ ] shared source-card / assumption-card / objection-card components
-- [ ] room empty/new-content states
-- [ ] component tests per room over the fixture projections
+- [x] five rooms + Method room
+- [x] shared inspector + chain view + raw layer
+- [x] shared source-card / assumption-card / objection-card components
+- [x] room empty/new-content states
+- [x] component tests per room over the fixture projections
 
 ## Acceptance criteria
 
-- [ ] Sources on the reference fixture: corpus header values match `evidence_critique.yaml`
+- [x] Sources on the reference fixture: corpus header values match `evidence_critique.yaml`
       exactly; a known incentive-flagged record (medium reliability) shows its limitation line
       unexpanded; the cluster view groups the known same-origin records; a `no_evidence_found`
       question renders its search notes.
-- [ ] Challenges: all open objections render above resolved ones; the divergence fixture renders
+- [x] Challenges: all open objections render above resolved ones; the divergence fixture renders
       two positions side-by-side with the word "disagree" and no averaged number; the track-B-
       absent fixture renders the stated-absence line.
-- [ ] Options: the eliminated option renders its verified elimination reason; duplicate ranks
+- [x] Options: the eliminated option renders its verified elimination reason; duplicate ranks
       group as equal.
-- [ ] Inspector for a known evidence id shows claim, excerpt, grades, limitations verbatim;
+- [x] Inspector for a known evidence id shows claim, excerpt, grades, limitations verbatim;
       machinery toggle shows the raw YAML and the audit slice containing its unpack event.
-- [ ] Plan coverage fraction equals the projection's `covered/leaf` counts; tree operable
+- [x] Plan coverage fraction equals the projection's `covered/leaf` counts; tree operable
       keyboard-only.
-- [ ] Every room reachable and operable keyboard-only; axe scan clean (no serious/critical) on
+- [x] Every room reachable and operable keyboard-only; axe scan clean (no serious/critical) on
       all six rooms; no raw enum/schema strings in any room DOM.
-- [ ] `make frontend-check` and `make check` pass.
+- [x] `make frontend-check` and `make check` pass.
 
 ## Verification plan
 
@@ -141,8 +141,9 @@ Acceptance-criteria coverage by tests:
   technical/non-technical.
 - Plan: coverage fraction + question tree rendering.
 
-Manual fixture walkthrough of each room + inspector deep links remains (per the
-verification plan) before marking the spec `verified`.
+**2026-08-03 sync note:** real-browser verification of room and inspector behavior completed under
+SPEC-037 (fixture/stub/replay Playwright suites) and recorded in Phase 7 Findings in
+`specs/ROADMAP.md`.
 
 ## Open questions
 

@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-028, SPEC-033]
 parallel_with: [SPEC-036]
 north_star_refs: ["8", "14", "15"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-034 — Commissioning flow and scope checkpoint UI
@@ -82,27 +82,27 @@ mirrors that honestly.
 
 ## Deliverables
 
-- [ ] `frontend/src/screens/NewDecision/` (entry + interview cards)
-- [ ] `frontend/src/screens/ScopeCheckpoint/` (sheet, signed-record view, parked states)
-- [ ] `frontend/src/copy/` terminology tables wired to both screens
-- [ ] component tests (Vitest + Testing Library) for card logic, confirmation gating, payload
+- [x] `frontend/src/screens/NewDecision/` (entry + interview cards)
+- [x] `frontend/src/screens/ScopeCheckpoint/` (sheet, signed-record view, parked states)
+- [x] `frontend/src/copy/` terminology tables wired to both screens
+- [x] component tests (Vitest + Testing Library) for card logic, confirmation gating, payload
       assembly; API-integration tests against the stub-backed service
 
 ## Acceptance criteria
 
-- [ ] From a clean service (stub backend), a decision created in the browser reaches the scope
+- [x] From a clean service (stub backend), a decision created in the browser reaches the scope
       sheet showing the restatement and the real `IntakeRecord` clarification questions with
       materiality reasons; a skipped question renders the declared-assumption label.
-- [ ] "Sign & begin" is disabled until every ground-rule item is individually confirmed; signing
+- [x] "Sign & begin" is disabled until every ground-rule item is individually confirmed; signing
       writes `shared/framing_approval.yaml` whose payload contains the confirmations and
       `summary_hash`, and the UI transitions to the running state via SSE without reload.
-- [ ] Striking a question and signing routes through the framing-revision path: the sheet
+- [x] Striking a question and signing routes through the framing-revision path: the sheet
       re-presents with a revised spec (stub), and `framing_revisions == 1` on disk.
-- [ ] No string from `CaseStage`, `TaskRole`, or artifact schema field names appears in the
+- [x] No string from `CaseStage`, `TaskRole`, or artifact schema field names appears in the
       rendered DOM of either screen (automated assertion over a served page).
-- [ ] Both screens pass an axe scan with no serious/critical violations and are fully operable
+- [x] Both screens pass an axe scan with no serious/critical violations and are fully operable
       keyboard-only (component test walks the sign path by keyboard).
-- [ ] `make frontend-check` and `make check` pass.
+- [x] `make frontend-check` and `make check` pass.
 
 ## Verification plan
 
@@ -114,7 +114,15 @@ make frontend-check && make check
 
 ## Verification results
 
-—
+- 2026-08-03 documentation sync from current evidence and Phase 7 findings in
+  `specs/ROADMAP.md`: SPEC-034 is part of the verified/browser-tested product surface closure.
+- Frontend checks are green: `make frontend-check` (`tsc --noEmit`, generated-types drift check,
+  71 frontend unit tests across 13 files) and `make check` (ruff + mypy + 716 Python unit tests).
+- Browser verification was executed under SPEC-037 fixture/stub suites (35 chromium Playwright
+  tests total with fixture 24, stub 5, replay 6); checkpoint flows, terminology guard, and axe
+  sweeps are covered in that verification narrative.
+- ROADMAP Phase 7 Findings explicitly records SPEC-034 commissioning/scope checkpoint verification
+  and the closed-loop browser defect/fix passes used to validate the shipped UI behavior.
 
 ## Open questions
 

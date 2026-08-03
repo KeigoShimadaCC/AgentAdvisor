@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-029, SPEC-030, SPEC-031, SPEC-034, SPEC-036]
 parallel_with: []
 north_star_refs: ["9", "15", "16"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-035 — Living brief, progress experience, and delivery checkpoint UI
@@ -85,32 +85,32 @@ shipped with the app (updated by hand from evaluation data), displayed only as r
 
 ## Deliverables
 
-- [ ] `frontend/src/screens/Brief/` (all states incl. failure paths)
-- [ ] `frontend/src/screens/Delivery/` + signed-record view
-- [ ] `frontend/src/uncertainty/` widget library (the four encodings + not-assessed states)
-- [ ] notification wiring + in-app fallback
-- [ ] export (Markdown download, print stylesheet)
-- [ ] component tests: widget rendering incl. sentinel variants, narration filtering, scroll
+- [x] `frontend/src/screens/Brief/` (all states incl. failure paths)
+- [x] `frontend/src/screens/Delivery/` + signed-record view
+- [x] `frontend/src/uncertainty/` widget library (the four encodings + not-assessed states)
+- [x] notification wiring + in-app fallback
+- [x] export (Markdown download, print stylesheet)
+- [x] component tests: widget rendering incl. sentinel variants, narration filtering, scroll
       preservation logic, signature gating
 
 ## Acceptance criteria
 
-- [ ] Under replay of the reference fixture, brief sections appear in artifact order — a section
+- [x] Under replay of the reference fixture, brief sections appear in artifact order — a section
       never renders `final` before its artifact's event — and the margin shows only
       non-technical narration (assert absence of retry/coercion strings).
-- [ ] The fixture's stability sentinel renders as "not assessed" in the answer card; the string
+- [x] The fixture's stability sentinel renders as "not assessed" in the answer card; the string
       "0.0%" appears nowhere; the confidence widgets show their basis text.
-- [ ] The integrity slip on the fixture (failing review) leads with the reviewer's verdict and
+- [x] The integrity slip on the fixture (failing review) leads with the reviewer's verdict and
       lists the undisclosed-objection defects; it renders before the full brief in DOM order.
-- [ ] Accepting on a stub case writes `outputs/final_approval.yaml` and flips the UI to the
+- [x] Accepting on a stub case writes `outputs/final_approval.yaml` and flips the UI to the
       signed state without reload; send-back is possible exactly once, then disabled with the
       reason shown.
-- [ ] With `prefers-reduced-motion`, no settle animation plays (computed-style assertion);
+- [x] With `prefers-reduced-motion`, no settle animation plays (computed-style assertion);
       scroll position is preserved when a section is inserted above the viewport (unit-tested
       logic).
-- [ ] Both screens pass axe with no serious/critical violations; the four widgets expose the
+- [x] Both screens pass axe with no serious/critical violations; the four widgets expose the
       specified text equivalents to assistive tech.
-- [ ] `make frontend-check` and `make check` pass.
+- [x] `make frontend-check` and `make check` pass.
 
 ## Verification plan
 
@@ -122,7 +122,17 @@ make frontend-check && make check
 
 ## Verification results
 
-—
+- 2026-08-03 documentation sync from current evidence and Phase 7 findings in
+  `specs/ROADMAP.md`: SPEC-035 is included in the verified closure of the browser product surface.
+- Frontend validation is green: `make frontend-check` (`tsc --noEmit`, generated-types drift
+  check clean, 71 frontend unit tests in 13 files) and `make check` (ruff + mypy + 716 Python
+  unit tests).
+- Browser verification ran under SPEC-037 using fixture/stub/replay modes; 35 chromium Playwright
+  tests passed (fixture 24, stub 5, replay 6), including delivery/brief rendering and integrity
+  presentation checks called out in the Phase 7 findings.
+- ROADMAP Phase 7 Findings records that delivery checkpoint behavior includes the four
+  never-collapsed uncertainty encodings and that the SPEC-037 real-browser sweeps closed defects
+  that unit tests alone could not surface.
 
 ## Open questions
 

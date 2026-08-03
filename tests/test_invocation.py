@@ -293,6 +293,7 @@ def test_agent_error_without_output_file_still_fails_and_retries(
     monkeypatch.setattr(
         "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
     )
+
     def _noop(_invocation: RoleInvocation) -> None:
         return None
 

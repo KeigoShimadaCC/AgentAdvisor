@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-027, SPEC-032]
 parallel_with: []
 north_star_refs: ["15"]
-last_updated: 2026-08-02
+last_updated: 2026-08-03
 ---
 
 # SPEC-033 — Local web app shell: advisor ui service, SSE events, SPA scaffold, replay mode
@@ -90,31 +90,31 @@ catch-up, replay).
 
 ## Deliverables
 
-- [ ] `orchestrator/service/app.py`, `events.py`, `lexicon.py`, `lexicon_data.yaml`
-- [ ] `orchestrator/cli.py` (`advisor ui`) + `pyproject.toml` script entry + new deps
-- [ ] `frontend/` scaffold (routes, typed client, SSE client, two proof screens, lint/tsc config)
-- [ ] `make frontend-build`, `make frontend-check`; `frontend/README.md`
-- [ ] `tests/test_service_api.py`, `tests/test_events.py` (httpx/ASGI, no browser)
+- [x] `orchestrator/service/app.py`, `events.py`, `lexicon.py`, `lexicon_data.yaml`
+- [x] `orchestrator/cli.py` (`advisor ui`) + `pyproject.toml` script entry + new deps
+- [x] `frontend/` scaffold (routes, typed client, SSE client, two proof screens, lint/tsc config)
+- [x] `make frontend-build`, `make frontend-check`; `frontend/README.md`
+- [x] `tests/test_service_api.py`, `tests/test_events.py` (httpx/ASGI, no browser)
 
 ## Acceptance criteria
 
-- [ ] `advisor ui --cases-root tests/fixtures/cases` serves the library; `/api/cases/{fixture}/
+- [x] `advisor ui --cases-root tests/fixtures/cases` serves the library; `/api/cases/{fixture}/
       view` returns the SPEC-032 projection; unknown case → 404 with the error model.
-- [ ] SSE with `since=0` on the fixture replays every audit event in order with monotonically
+- [x] SSE with `since=0` on the fixture replays every audit event in order with monotonically
       increasing cursors; appending a line to the fixture copy's `audit.jsonl` mid-stream
       delivers the translated event within 1 s (test-driven with a temp copy).
-- [ ] Every `event_type` present in the fixture's audit log has a lexicon entry that fills
+- [x] Every `event_type` present in the fixture's audit log has a lexicon entry that fills
       without error; an injected unknown type arrives flagged `technical`, with no raw-JSON
       narration string.
-- [ ] Full stub lifecycle through HTTP only: `POST /api/cases` → poll/SSE to scope checkpoint →
+- [x] Full stub lifecycle through HTTP only: `POST /api/cases` → poll/SSE to scope checkpoint →
       `POST checkpoints/scope` (approve) → SSE shows post-gate stages → `POST
       checkpoints/delivery` → case `done`; `framing_approval.yaml` and `final_approval.yaml`
       exist on disk.
-- [ ] Checkpoint POST at the wrong stage returns 409 naming the actual stage; replay mode
+- [x] Checkpoint POST at the wrong stage returns 409 naming the actual stage; replay mode
       returns 409 for all POSTs.
-- [ ] `--replay` emits the fixture's first events at recorded relative timing scaled by
+- [x] `--replay` emits the fixture's first events at recorded relative timing scaled by
       `--speed` (timing asserted with tolerance).
-- [ ] `make frontend-check` and `make check` pass.
+- [x] `make frontend-check` and `make check` pass.
 
 ## Verification plan
 
@@ -127,7 +127,16 @@ make check
 
 ## Verification results
 
-—
+- 2026-08-03 documentation sync from current evidence: `tests/test_service_api.py` (19) and
+  `tests/test_events.py` (16) pass; required service files (`app.py`, `events.py`, `lexicon.py`,
+  `lexicon_data.yaml`, `caseview.py`, `__init__.py`) and `advisor` entry point
+  (`orchestrator.cli:main`) are present.
+- `make frontend-check` is green (`tsc --noEmit`, generated-types drift check clean, 71 frontend
+  unit tests across 13 files), and `make check` is green (ruff + mypy + 716 Python unit tests).
+- Browser verification for the product surface was executed under SPEC-037 (fixture/stub/replay):
+  35 Playwright tests passed in chromium (fixture 24, stub 5, replay 6).
+- ROADMAP source of truth: see `specs/ROADMAP.md`, Phase 7 Findings ("Phase 7 closed" and the
+  SPEC-037 defect/fix verification notes).
 
 ## Open questions
 

@@ -81,28 +81,28 @@ two leaves an artifact without a flag — recoverable — never a flag without a
 
 ## Deliverables
 
-- [ ] `orchestrator/control.py`
-- [ ] `orchestrator/supervisor.py`
-- [ ] `orchestrator/worker.py`
-- [ ] `orchestrator/artifacts/approvals.py` (`FinalApproval`, `FinalDecision`) + schema export +
+- [x] `orchestrator/control.py`
+- [x] `orchestrator/supervisor.py`
+- [x] `orchestrator/worker.py`
+- [x] `orchestrator/artifacts/approvals.py` (`FinalApproval`, `FinalDecision`) + schema export +
       case-store path registration
-- [ ] `tests/test_control.py`, `tests/test_supervisor.py` (StubBackend end-to-end)
-- [ ] regenerated `schemas/final_approval.schema.json`
+- [x] `tests/test_control.py`, `tests/test_supervisor.py` (StubBackend end-to-end)
+- [x] regenerated `schemas/final_approval.schema.json`
 
 ## Acceptance criteria
 
-- [ ] `new_case` with the stub backend returns once the case parks at
+- [x] `new_case` with the stub backend returns once the case parks at
       `awaiting_framing_approval`; `state.yaml` on disk matches; `control_case_created` and
       `control_run_started` are in the audit log.
-- [ ] `approve_framing` writes `shared/framing_approval.yaml`, flips the flag, and the resumed
+- [x] `approve_framing` writes `shared/framing_approval.yaml`, flips the flag, and the resumed
       worker advances the case to `awaiting_final_approval` (stub run).
-- [ ] `approve_final` writes `outputs/final_approval.yaml` and the case reaches `done`; the gate-2
+- [x] `approve_final` writes `outputs/final_approval.yaml` and the case reaches `done`; the gate-2
       record exists for a non-auto-approved case for the first time.
-- [ ] A second control mutation while a worker holds the lock raises `CaseLocked`; a stale lock
+- [x] A second control mutation while a worker holds the lock raises `CaseLocked`; a stale lock
       (dead pid) is reclaimed and audited.
-- [ ] Killing the worker mid-run puts the case in `interrupted_cases()`; `pause` then `resume` on
+- [x] Killing the worker mid-run puts the case in `interrupted_cases()`; `pause` then `resume` on
       a gate-parked case restarts cleanly.
-- [ ] `make check` passes.
+- [x] `make check` passes.
 
 ## Verification plan
 
