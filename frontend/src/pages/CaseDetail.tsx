@@ -1,44 +1,29 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { api, type ErrorResponse } from "../api/client";
-import { SSEClient, type TranslatedEvent } from "../api/sse";
-import type { CaseView } from "../generated/case_view";
+import { useParams, Link } from "react-router-dom";
+import { useCaseView } from "../screens/shared/useCaseView";
+import { RoomTabs } from "../screens/shared/RoomTabs";
+import { stageLabel, NEEDS_YOU } from "../copy/terms";
 
 export function CaseDetail() {
   const { caseId } = useParams<{ caseId: string }>();
-  const [view, setView] = useState<CaseView | null>(null);
-  const [events, setEvents] = useState<TranslatedEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!caseId) return;
-    setLoading(true);
-    api.getCaseView(caseId)
-      .then(setView)
-      .catch((e: ErrorResponse) => setError(e.detail ?? e.error))
-      .finally(() => setLoading(false));
-
-    const sse = new SSEClient(caseId, {
-      onEvent: (event) => setEvents((prev) => [...prev, event]),
-    });
-    sse.connect();
-    return () => sse.disconnect();
-  }, [caseId]);
+  const { view, events, loading, error } = useCaseView(caseId);
 
   if (loading) return <p>Loading…</p>;
   if (error) return <p className="error">{error}</p>;
   if (!view) return <p>No data.</p>;
 
+  const needsYou = NEEDS_YOU[view.needs_you];
+
   return (
     <div className="case-detail">
       <h2>{view.case_id}</h2>
       <dl className="case-meta">
-        <dt>Phase</dt><dd>{view.phase}</dd>
+        <dt>Phase</dt><dd>{stageLabel(view.stage)}</dd>
         <dt>Stage</dt><dd>{view.stage}</dd>
-        <dt>Needs you</dt><dd>{view.needs_you}</dd>
+        <dt>Status</dt><dd>{needsYou.badge || "In progress"}</dd>
         <dt>Terminal</dt><dd>{view.is_terminal ? "yes" : "no"}</dd>
       </dl>
+
+      {caseId && <RoomTabs caseId={caseId} />}
 
       <section className="brief-sections">
         <h3>Brief</h3>
@@ -66,10 +51,9 @@ export function CaseDetail() {
         </ul>
       </section>
 
-      <section className="raw-view">
-        <h3>Raw CaseView (inspector)</h3>
-        <pre>{JSON.stringify(view, null, 2)}</pre>
-      </section>
+      <p className="back-link">
+        <Link to="/">← All cases</Link>
+      </p>
     </div>
   );
 }

@@ -190,7 +190,7 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 | SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | implemented |
 | SPEC-034 | Commissioning flow and scope checkpoint UI | implemented |
 | SPEC-035 | Living brief, progress experience, delivery checkpoint UI | draft |
-| SPEC-036 | Rooms and record inspector | draft |
+| SPEC-036 | Rooms and record inspector | implemented |
 | SPEC-037 | Frontend e2e suite in a real browser | draft |
 
 **Findings**

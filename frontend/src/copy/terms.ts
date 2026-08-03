@@ -290,3 +290,314 @@ export const SIGNED_COPY = {
   noChanges: "No changes — this was a clean sign.",
   backToCase: "Back to the case",
 } as const;
+
+// ── Rooms (SPEC-036) ─────────────────────────────────────────────────────────
+
+export type RoomKey =
+  | "sources"
+  | "assumptions"
+  | "options"
+  | "challenges"
+  | "plan"
+  | "method";
+
+export interface RoomDescriptor {
+  /** Tab label shown in the room navigation. */
+  label: string;
+  /** One-line description of what the room shows. */
+  blurb: string;
+}
+
+export const ROOMS: Record<RoomKey, RoomDescriptor> = {
+  sources: {
+    label: "Sources",
+    blurb: "Every evidence record, weighed by reliability, directness, and independence.",
+  },
+  assumptions: {
+    label: "Assumptions",
+    blurb: "The load-bearing assumptions, with what supports and what cuts against each.",
+  },
+  options: {
+    label: "Options",
+    blurb: "The ranked alternatives, with expected value where they were modeled.",
+  },
+  challenges: {
+    label: "Challenges",
+    blurb: "Objections, the pre-mortem, and the second-opinion pass — never averaged.",
+  },
+  plan: {
+    label: "Plan",
+    blurb: "The question tree that structured the investigation, with coverage.",
+  },
+  method: {
+    label: "Method",
+    blurb: "How this case ran: phases, gates, invocations, and the raw audit trail.",
+  },
+};
+
+export const ROOM_TAB_ORDER: RoomKey[] = [
+  "sources",
+  "assumptions",
+  "options",
+  "challenges",
+  "plan",
+  "method",
+];
+
+// ── Level (high / medium / low) ──────────────────────────────────────────────
+
+const LEVEL_LABELS: Record<string, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+export function levelLabel(value: string | null | undefined): string {
+  if (!value) return "Not set";
+  return LEVEL_LABELS[value] ?? value;
+}
+
+// ── Source tier ──────────────────────────────────────────────────────────────
+
+const SOURCE_TIER_LABELS: Record<string, string> = {
+  primary: "Primary source",
+  official: "Official source",
+  reputable: "Reputable secondary",
+  weak: "Weak source",
+};
+
+export function sourceTierLabel(value: string | null | undefined): string {
+  if (!value) return "Ungraded";
+  return SOURCE_TIER_LABELS[value] ?? value;
+}
+
+// ── Source type ──────────────────────────────────────────────────────────────
+
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  regulatory_filing: "Regulatory filing",
+  official_statistic: "Official statistic",
+  law_or_standard: "Law or standard",
+  original_research: "Original research",
+  reputable_secondary: "Reputable secondary source",
+  specialist_reporting: "Specialist reporting",
+  other: "Other source",
+};
+
+export function sourceTypeLabel(value: string | null | undefined): string {
+  if (!value) return "Unknown source type";
+  return SOURCE_TYPE_LABELS[value] ?? value;
+}
+
+// ── Evidence flags ───────────────────────────────────────────────────────────
+
+const EVIDENCE_FLAG_LABELS: Record<string, string> = {
+  single_source_cluster: "Single-source cluster",
+  stale: "Stale",
+  low_directness: "Low directness",
+  low_reliability: "Low reliability",
+  missing_limitations: "Limitations not stated",
+  weak_source_tier: "Weak source tier",
+  incentive_conflict: "Incentive conflict",
+};
+
+export function evidenceFlagLabel(value: string): string {
+  return EVIDENCE_FLAG_LABELS[value] ?? value;
+}
+
+// ── Assumption type ──────────────────────────────────────────────────────────
+
+const ASSUMPTION_TYPE_LABELS: Record<string, string> = {
+  forecast: "Forecast",
+  structural: "Structural",
+  operational: "Operational",
+  financial: "Financial",
+  regulatory: "Regulatory",
+  behavioral: "Behavioral",
+};
+
+export function assumptionTypeLabel(value: string | null | undefined): string {
+  if (!value) return "Unspecified";
+  return ASSUMPTION_TYPE_LABELS[value] ?? value;
+}
+
+// ── Assumption status ────────────────────────────────────────────────────────
+
+const ASSUMPTION_STATUS_LABELS: Record<string, string> = {
+  unresolved: "Unresolved",
+  supported: "Supported by evidence",
+  contradicted: "Contradicted by evidence",
+  retired: "Retired",
+};
+
+export function assumptionStatusLabel(value: string | null | undefined): string {
+  if (!value) return "Unknown status";
+  return ASSUMPTION_STATUS_LABELS[value] ?? value;
+}
+
+// ── Objection resolution status ──────────────────────────────────────────────
+
+const OBJECTION_STATUS_LABELS: Record<string, string> = {
+  open: "Open",
+  partially_resolved: "Partially resolved",
+  resolved: "Resolved",
+  dismissed: "Dismissed",
+};
+
+export function objectionStatusLabel(value: string | null | undefined): string {
+  if (!value) return "Unknown status";
+  return OBJECTION_STATUS_LABELS[value] ?? value;
+}
+
+// Objection status sort order: open first (mirrors the orchestrator rule).
+export const OBJECTION_STATUS_SORT: Record<string, number> = {
+  open: 0,
+  partially_resolved: 1,
+  resolved: 2,
+  dismissed: 3,
+};
+
+// ── Issue node type ──────────────────────────────────────────────────────────
+
+const NODE_TYPE_LABELS: Record<string, string> = {
+  root: "Decision question",
+  driver: "Driver",
+  sub_question: "Sub-question",
+};
+
+export function nodeTypeLabel(value: string | null | undefined): string {
+  if (!value) return "Node";
+  return NODE_TYPE_LABELS[value] ?? value;
+}
+
+// ── Authority score → words ──────────────────────────────────────────────────
+
+/** Render the corpus authority mean (0–1) as a short phrase. */
+export function authorityWords(score: number | null | undefined): string {
+  if (score == null || Number.isNaN(score)) return "Not yet assessed";
+  if (score >= 0.75) return "Strong, mostly primary sources";
+  if (score >= 0.55) return "Solid, a mix of primary and reputable sources";
+  if (score >= 0.35) return "Mixed, leaning on secondary sources";
+  return "Weak, mostly thin or indirect sources";
+}
+
+// ── Probability phrase ───────────────────────────────────────────────────────
+
+/** Render a point probability (0–1) as a qualitative phrase. */
+export function probabilityPhrase(point: number | null | undefined): string {
+  if (point == null || Number.isNaN(point)) return "Not estimated";
+  if (point >= 0.9) return "Very likely";
+  if (point >= 0.7) return "Likely";
+  if (point >= 0.55) return "More likely than not";
+  if (point >= 0.45) return "Roughly even odds";
+  if (point >= 0.3) return "Unlikely";
+  if (point > 0.1) return "Quite unlikely";
+  return "Very unlikely";
+}
+
+/** Render a probability interval as a bracketed range, or empty string. */
+export function probabilityRange(
+  low: number | null | undefined,
+  high: number | null | undefined,
+): string {
+  if (low == null && high == null) return "";
+  const lo = low != null ? `${Math.round(low * 100)}%` : "—";
+  const hi = high != null ? `${Math.round(high * 100)}%` : "—";
+  return `[${lo}–${hi}]`;
+}
+
+// ── Three-truths empty-state vocabulary (report §12.3) ───────────────────────
+
+export type EmptyTruth = "not_yet" | "nothing_found" | "cut_at_limit";
+
+export const EMPTY_TRUTHS: Record<EmptyTruth, string> = {
+  not_yet: "Not yet — this part of the case has not run.",
+  nothing_found: "Nothing found — the search ran and returned no usable evidence.",
+  cut_at_limit: "Cut at limit — this was stopped early to stay within the case budget.",
+};
+
+// ── Method room ──────────────────────────────────────────────────────────────
+
+/** Human label for an audit event type, for the Method room event log. */
+export function eventTypeLabel(eventType: string): string {
+  return EVENT_TYPE_LABELS[eventType] ?? eventType;
+}
+
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  control_case_created: "Case created",
+  control_run_started: "Run started",
+  control_run_stopped: "Run stopped",
+  control_checkpoint_signed: "Checkpoint signed",
+  control_resume_reconciled: "Resume reconciled",
+  budget_profile_selected: "Budget profile selected",
+  role_invocation_attempt: "Agent invocation",
+  stage_completed: "Stage completed",
+  stage_gate_evaluated: "Gate evaluated",
+  task_started: "Task started",
+  task_completed: "Task completed",
+  thesis_revision_recorded: "Thesis revised",
+  evidence_batch_unpacked: "Evidence gathered",
+  objection_batch_unpacked: "Objections unpacked",
+  assumption_batch_unpacked: "Assumptions recorded",
+  review_evaluated: "Review evaluated",
+  stop_decision_evaluated: "Stop decision evaluated",
+  dual_track_compared: "Dual-track compared",
+  case_recorded_to_memory: "Case recorded to memory",
+  case_finalized: "Case finalized",
+  framing_revision_requested: "Framing revision requested",
+  final_revision_requested: "Final revision requested",
+};
+
+/** Human label for a TaskRole, for the Method invocation table. */
+const ROLE_LABELS: Record<string, string> = {
+  intake: "Intake",
+  planner: "Planner",
+  director: "Director",
+  structurer: "Structurer",
+  challenger: "Challenger",
+  premortem: "Pre-mortem",
+  auditor: "Auditor",
+  researcher: "Researcher",
+  analyst: "Analyst",
+  assumption_analyst: "Assumption analyst",
+  synthesizer: "Synthesizer",
+  reviewer: "Reviewer",
+  specialist: "Specialist",
+};
+
+export function roleLabel(value: string | null | undefined): string {
+  if (!value) return "Unknown role";
+  return ROLE_LABELS[value] ?? value;
+}
+
+// ── Inspector copy ───────────────────────────────────────────────────────────
+
+export const INSPECTOR_COPY = {
+  title: "Record",
+  closeLabel: "Close inspector",
+  machineryToggle: "Show the machinery",
+  machineryHide: "Hide the machinery",
+  rawYaml: "Raw artifact (YAML)",
+  auditSlice: "Audit trail for this record",
+  chainHeading: "Provenance chain",
+  chainClaim: "Claim",
+  chainExcerpt: "Excerpt",
+  chainGrades: "Grades",
+  chainLimitations: "Limitations",
+  notFound: "This record could not be found.",
+  loading: "Loading record…",
+} as const;
+
+/** Human label for an artifact id prefix (E-, A-, O-, T-, Q-, VC-). */
+export function artifactKindLabel(artifactId: string): string {
+  const m = /^([A-Z]+)-/.exec(artifactId);
+  if (!m) return "Record";
+  const map: Record<string, string> = {
+    E: "Evidence record",
+    A: "Assumption",
+    O: "Objection",
+    T: "Task",
+    Q: "Question",
+    VC: "Versioned checkpoint",
+  };
+  return map[m[1]] ?? "Record";
+}

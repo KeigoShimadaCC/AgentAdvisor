@@ -2,7 +2,7 @@
 id: SPEC-036
 title: Rooms and record inspector
 phase: 7
-status: draft
+status: implemented
 depends_on: [SPEC-032, SPEC-033]
 parallel_with: [SPEC-034]
 north_star_refs: ["3", "10", "15"]
@@ -116,7 +116,33 @@ make frontend-check && make check
 
 ## Verification results
 
-—
+Implemented in `frontend/src/screens/rooms/`, `frontend/src/screens/inspector/`, and
+`frontend/src/screens/shared/`. Verified 2026-08-03:
+
+- `npx tsc --noEmit` — clean.
+- `npx vitest run` — 50 passed (10 files), including the 6 new SPEC-036 component
+  test files (Sources, Assumptions, Options, Challenges, Method rooms + inspector
+  chain view / citation open).
+- `make frontend-check` — type generation clean (60 schemas, 0 changed), typecheck
+  clean.
+
+Acceptance-criteria coverage by tests:
+- Sources corpus header values match the fixture; flagged record shows its
+  limitation line unexpanded; `no_evidence_found`/empty state renders; cluster
+  concentration warning (>40%) renders.
+- Challenges: open objections above resolved; divergence fixture renders two
+  positions side by side with "Disagree" and the never-averaged footer; track-B-
+  absent fixture renders the stated-absence line.
+- Options: eliminated option renders its reason; duplicate ranks group as equal;
+  recommended row anchored.
+- Inspector: claim, excerpt, grades, limitations verbatim; machinery toggle shows
+  raw YAML + audit slice; CitationLink opens the slide-over.
+- Method: per-role invocation counts + token sums; event log filters
+  technical/non-technical.
+- Plan: coverage fraction + question tree rendering.
+
+Manual fixture walkthrough of each room + inspector deep links remains (per the
+verification plan) before marking the spec `verified`.
 
 ## Open questions
 
