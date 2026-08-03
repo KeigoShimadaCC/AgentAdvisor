@@ -13,7 +13,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 1 | Agent backend | done | 0 (parallel with 2) |
 | 2 | Orchestrator core | done | 0 (parallel with 1) |
 | 3 | Roles | done | 1, 0.3 (role specs mutually parallel) |
-| 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
+| 4 | End-to-end workflow and CLI | done | 2, 3 |
 | 5 | Evaluation and hardening | in_progress | 4 |
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | done | 4, 6 |
@@ -25,12 +25,13 @@ end in a real browser via the SPEC-037 Playwright suite (fixture 24, stub 5, rep
 across chromium). Phase 6 is done: all four specs (023-026) verified, the before/after comparison
 report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89
 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%,
-token cost down 40%. Phases 4 and 5 remain open: Phase 4 needs SPEC-020 (a real, non-benchmark
-decision run through the CLI — in progress now via the Droid CLI backend), and Phase 5 needs the
-live SPEC-021 baseline+workflow runs and the SPEC-022 comparative audit. `make check` is green:
-lint, mypy, 714 unit tests, plus 18 live tests deselected by default. `make frontend-check` passes
-(tsc, the type-generation drift check, and 71 frontend unit tests — it now runs the tests, which
-no target previously invoked).
+token cost down 40%. Phase 4 is now done: SPEC-020 verified with a real career-vs-startup case run
+end to end on the Droid CLI backend (`case-014`, 1.58M tokens / 191 min / 45 invocations, all
+twelve Section 3 elements present; report at `report-and-findings/2026-08-03-first-real-case.md`).
+Only Phase 5 remains open: the live SPEC-021 baseline+workflow runs and the SPEC-022 comparative
+audit. `make check` is green: lint, mypy, 716 unit tests, plus 18 live tests deselected by
+default. `make frontend-check` passes (tsc, the type-generation drift check, and 71 frontend unit
+tests).
 
 ---
 
@@ -118,7 +119,7 @@ no target previously invoked).
 |---|---|---|
 | SPEC-018 | Stage wiring (end-to-end pipeline) | verified |
 | SPEC-019 | User CLI | verified |
-| SPEC-020 | First real decision case | approved |
+| SPEC-020 | First real decision case | verified |
 
 **Findings**
 
@@ -133,6 +134,7 @@ no target previously invoked).
 - (2026-08-02) **SPEC-019 implemented.** `advisor new | status | approve | resume | report | list`, exit codes 0/2/3, `--json` for tooling, `--budget-profile`, auditable `FramingApproval` artifacts for both gates, and `AGENTADVISOR_CASES_ROOT` so cases can live outside the repo. 17 CLI tests; suite now 313. `--depth` was specced but dropped: nothing downstream reads `DecisionSpec.depth`, so the flag would have been decoration. Phase 4's remaining item is SPEC-020.
 - (2026-08-02) `scripts/case_metrics.py` (a SPEC-020 deliverable) written early and run against the Phase 6 scenario 01 log. First output already answers north star 13 for one case: 4.0M tokens and 85 minutes for 56 attempts at a 46% success rate, with analyst (21 attempts, 33% ok) and researcher (13 attempts, 23% ok) consuming 73% of all tokens. Building it is also what exposed the budget-counter persistence bug, since the case reported no consumption at all.
 - (2026-08-03) **Carried-over engineering tasks completed.** (a) Final-recommendation citation checking consolidated from `render.py` into `citations.py` with a cross-field validation hook (`557569b`). (b) Coercion-layer property test covering every artifact model's every field (`128231f`, 178 tests). (c) Coercion-layer accounting instrumentation: `CoercionReport` records what the coercion layer changed, logged to audit trail, extracted by `case_metrics.py` (`5af2fce`). Also fixed a `_base_type` bug where `dict[str, int]` was misidentified as `str`. Suite now 522 unit tests.
+- (2026-08-03) **SPEC-020 verified — first real case run end to end on the Droid CLI backend.** `case-014-career-startup-pivot` (a career-vs-startup capital-allocation decision) completed the full Section 8 workflow and reached `done` with no manual state surgery: 1.58M tokens, 191 min, 45 invocations (71% first-pass), 19 evidence / 4 assumptions / 7 objections, 2 repair cycles that did not change the preferred alternative. All twelve Section 3 elements present with the four uncertainty measures kept distinct. The calibration review failed both attempts (uncited claims + undisclosed open objection) and the recommendation surfaced via the disclosed "done ≠ review-passed" path. Two defects fixed within the spec's allowance: the spurious droid `agent_error` post-completion crash that caused 9 of 13 failures and lost the dual track (`5a3531a` — the orchestrator now accepts a schema-valid artifact regardless of the CLI error flag), and heavy-role timeouts sitting at the ceiling on droid (`ff91968`, 2x scaling). Root cause of the review failures is a synthesis-stage projection truncation (below). Full report: `../report-and-findings/2026-08-03-first-real-case.md`. **Phase 4 is done.**
 
 ## Phase 5 — Evaluation and hardening [not_started]
 
@@ -340,6 +342,7 @@ Work discovered mid-project lands here first as a candidate. With user approval 
   reading the file caught it. `frontend/README.md` had also advertised a lint script for some time that
   was never configured. Adds a dev dependency, so it needs user sign-off per AGENTS.md.
 - (2026-08-03) Droid CLI (`droid exec`) as a second agent backend behind the existing `AgentBackend` protocol. Implemented on `feat/droid-cli-backend`: `DroidCLIBackend`, per-backend model tables (`backends/<backend>/models.yaml`), `--backend {cursor,droid}` CLI flag, `AGENTADVISOR_BACKEND` env var, `scripts/smoke_droid_cli.py`, and 18 new unit tests. The workspace `AGENTS.md` delivery mechanism works unchanged. One Droid-specific fix: the backend now parses the JSON envelope before checking the exit code, because Droid can crash during post-completion cleanup after printing a valid result. Details: `../report-and-findings/2026-08-03-droid-cli-research.md`. **Not yet promoted to a spec** (implemented directly at user request); needs a SPEC for the Phase 1 backend table and a Phase 5 benchmark re-run under Droid before the two backends' scores are comparable.
+- (2026-08-03) **Synthesis-stage projection truncation (found in SPEC-020).** The SPEC-020 real case's synthesizer stated in its own output that the preliminary recommendation, objection resolutions, and pre-mortem leading indicators "were truncated out of the inputs available to this synthesis," and the reviewer then blocked twice on `verification.undisclosed_open_objection` and `verification.uncited_claim` with all verdicts unsupported. The synthesizer cannot cite or resolve inputs it never received, so the review gate fails structurally rather than for model reasons. Needs a spec: the synthesis projection must guarantee the preliminary recommendation, objection resolutions, and pre-mortem indicators are present (raise the context budget or prioritise these artifacts), with a `test_role_synthesis` case that fails if any is missing. Highest-value fix for decision quality found so far.
 
 **Promoted**
 
