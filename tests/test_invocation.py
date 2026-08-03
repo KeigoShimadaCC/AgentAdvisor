@@ -62,6 +62,20 @@ def _ok_result(result_text: str = "ok") -> RoleResult:
     )
 
 
+def _agent_error_result() -> RoleResult:
+    return RoleResult(
+        status=ResultStatus.AGENT_ERROR,
+        result_text=None,
+        session_id="sess-err",
+        request_id="req-err",
+        duration_ms=25,
+        usage=_usage(),
+        raw_stdout='{"is_error": true}',
+        raw_stderr="",
+        cli_version="droid test",
+    )
+
+
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
@@ -236,6 +250,66 @@ def test_escalation_fail_raises_and_archives_all_attempts(
     assert len(events) == 3
     assert all(event.model is not None for event in events)
     assert all(event.usage is not None for event in events)
+
+
+def test_agent_error_with_valid_output_file_is_recovered(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Droid can write a valid artifact, then set is_error=true on
+    # post-completion cleanup. The file, not the CLI flag, is the truth: the
+    # first attempt must be accepted without escalating.
+    case, runtime_root = _build_case(tmp_path, monkeypatch)
+    config = _role_config(tmp_path)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
+    backend = StubBackend(
+        [_agent_error_result()],
+        side_effects=[_write_output(_evidence())],
+    )
+
+    artifact = invoke(case, "researcher", _task("T-901"), backend=backend)
+
+    assert isinstance(artifact, EvidenceRecord)
+    assert len(backend.invocations) == 1
+    assert not (case.root / "agents" / "researcher--T-901--attempt-1").exists()
+    assert (case.root / "agents" / "researcher--T-901").exists()
+    events = _audit_lines(case.root)
+    assert len(events) == 1
+    assert events[0].payload["status"] == "ok"
+    assert events[0].payload["backend_status"] == ResultStatus.AGENT_ERROR.value
+    assert "recovered" in (events[0].payload["detail"] or "")
+
+
+def test_agent_error_without_output_file_still_fails_and_retries(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # An agent_error with no artifact left behind is a real failure and must
+    # still walk the escalation ladder.
+    case, _ = _build_case(tmp_path, monkeypatch)
+    config = _role_config(tmp_path)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
+    def _noop(_invocation: RoleInvocation) -> None:
+        return None
+
+    backend = StubBackend(
+        [_agent_error_result(), _ok_result(), _ok_result()],
+        side_effects=[_noop, _write_invalid_output, _write_output(_evidence())],
+    )
+
+    artifact = invoke(case, "researcher", _task("T-902"), backend=backend)
+
+    assert isinstance(artifact, EvidenceRecord)
+    assert [inv.model for inv in backend.invocations] == [
+        "composer-2.5",
+        "composer-2.5",
+        "gpt-5.2",
+    ]
+    assert (case.root / "agents" / "researcher--T-902--attempt-1").exists()
 
 
 def test_workspace_shape_and_permissions_and_outside_repo(

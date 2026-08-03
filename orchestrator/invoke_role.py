@@ -316,7 +316,21 @@ def _invoke_internal(
                     allow_shell=config.permission_profile.allow_shell,
                 )
             )
-            if backend_result.status is not ResultStatus.OK:
+            # A CLI can report an agent error after the agent has already
+            # written a valid output file — droid (claude-sonnet-5) in
+            # particular runs to completion, writes the artifact, then trips
+            # on post-completion cleanup and sets is_error=true. The real
+            # gate on an artifact is schema validation below, not the CLI's
+            # error flag, so when a file-write role left its required output
+            # in place we fall through and let validation decide. A genuine
+            # error leaves no file (or an invalid one, which validation
+            # rejects into a retry).
+            recovered_from_agent_error = (
+                backend_result.status is ResultStatus.AGENT_ERROR
+                and not read_only_stdout
+                and layout.output_path.exists()
+            )
+            if backend_result.status is not ResultStatus.OK and not recovered_from_agent_error:
                 failure_detail = (
                     f"backend status={backend_result.status.value} "
                     f"stderr={backend_result.raw_stderr}"
@@ -365,7 +379,11 @@ def _invoke_internal(
                 model=model,
                 backend_result=backend_result,
                 status="ok",
-                detail=None,
+                detail=(
+                    "recovered valid output despite backend agent_error"
+                    if recovered_from_agent_error
+                    else None
+                ),
                 coercion_report=coercion_report if coercion_report.has_coercions else None,
             )
             archive_final(case, role, normalized_task.task_id, layout.path)
