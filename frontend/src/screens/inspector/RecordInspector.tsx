@@ -192,6 +192,14 @@ function EvidenceChain({ record }: { record: Record<string, unknown> }) {
           {sourceUrl && (
             <>
               {" · "}
+              <a
+                className="inspector-source-link"
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {sourceUrl}
+              </a>
             </>
           )}
         </p>

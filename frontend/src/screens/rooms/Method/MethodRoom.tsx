@@ -38,25 +38,41 @@ function MethodBody({ view, events }: { view: CaseView; events: TranslatedEvent[
   }, [events, eventFilter]);
 
   // Phase timeline from gates + audit events (stage_completed).
+  //
+  // Ordered by when each stage actually happened. Collecting gates first and then
+  // appending events put a stage that ran first — framing — last in the list, which
+  // an <ol> presents as the order of the run.
   const timeline = useMemo(() => {
-    const seen = new Set<string>();
-    const items: { stage: string; label: string; source: string }[] = [];
-    for (const g of view.integrity?.gates ?? []) {
-      if (!seen.has(g.stage)) {
-        seen.add(g.stage);
-        items.push({ stage: g.stage, label: `${stageLabel(g.stage)} — gate ${g.outcome}`, source: "gate" });
-      }
-    }
+    const cursorByStage = new Map<string, number>();
     for (const e of events) {
-      if (e.event_type === "stage_completed") {
-        const stage = String(e.raw_payload["stage"] ?? "");
-        if (stage && !seen.has(stage)) {
-          seen.add(stage);
-          items.push({ stage, label: stageLabel(stage), source: "event" });
-        }
+      if (e.event_type !== "stage_completed") continue;
+      const stage = String(e.raw_payload["stage"] ?? "");
+      if (stage && !cursorByStage.has(stage)) {
+        cursorByStage.set(stage, e.line_cursor);
       }
     }
-    return items;
+
+    const seen = new Set<string>();
+    const items: { stage: string; label: string; source: string; order: number }[] = [];
+    for (const g of view.integrity?.gates ?? []) {
+      if (seen.has(g.stage)) continue;
+      seen.add(g.stage);
+      items.push({
+        stage: g.stage,
+        label: `${stageLabel(g.stage)} — gate ${g.outcome}`,
+        source: "gate",
+        // A gate with no stage_completed event yet has not been reached in the
+        // log; keep it after everything the log can place.
+        order: cursorByStage.get(g.stage) ?? Number.MAX_SAFE_INTEGER,
+      });
+    }
+    for (const [stage, cursor] of cursorByStage) {
+      if (seen.has(stage)) continue;
+      seen.add(stage);
+      items.push({ stage, label: stageLabel(stage), source: "event", order: cursor });
+    }
+
+    return items.sort((a, b) => a.order - b.order);
   }, [view, events]);
 
   function loadRaw(path: string) {

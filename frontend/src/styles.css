@@ -26,6 +26,14 @@ body {
   margin-bottom: var(--spacing);
 }
 
+/* The site heading is an <h1> so every page has one; it must not inherit the
+   browser's h1 sizing, which would dwarf the page title below it. */
+.app-title-heading {
+  font-size: inherit;
+  font-weight: inherit;
+  margin: 0;
+}
+
 .app-title {
   font-size: 1.25rem;
   font-weight: 600;
@@ -1241,6 +1249,9 @@ table.case-list th { font-weight: 600; color: var(--color-muted); font-size: 0.8
 .inspector-chain-step { border-left: 2px solid var(--color-border); padding-left: 0.75rem; }
 .inspector-chain-label { display: block; font-size: 0.75rem; color: var(--color-muted); font-weight: 600; }
 .inspector-publisher { font-size: 0.8125rem; color: var(--color-muted); margin-top: 0.25rem; }
+.inspector-source-link { color: var(--color-accent); overflow-wrap: anywhere; }
+
+.not-found { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
 .inspector-flags { list-style: none; display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0; margin-top: 0.25rem; }
 .inspector-flag { font-size: 0.6875rem; background: #fff8e1; border: 1px solid #ffe082; border-radius: 3px; padding: 0.0625rem 0.375rem; color: #8a6400; }
 .inspector-excerpt { border-left: 3px solid var(--color-accent); padding-left: 0.75rem; font-style: italic; }

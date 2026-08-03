@@ -685,6 +685,11 @@ export const PHASE_LABELS: Record<string, string> = {
   complete: "Complete",
 };
 
+/** The coarse phase a case is in — the CaseView's own `phase`, not its stage. */
+export function phaseLabel(phase: string): string {
+  return PHASE_LABELS[phase] ?? phase;
+}
+
 export const PHASE_TIME_RANGES: Record<string, string> = {
   intake: "under 1 minute",
   framing: "1–3 minutes",

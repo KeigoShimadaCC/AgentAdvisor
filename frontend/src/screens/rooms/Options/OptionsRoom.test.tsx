@@ -66,4 +66,45 @@ describe("Options room", () => {
     // The modeled badge appears for options with an expected value.
     expect(screen.getAllByText("modeled").length).toBeGreaterThan(0);
   });
+
+  it("keeps an eliminated option out of the ranked list", async () => {
+    renderRoom(makeOptionsFixture());
+    expect(await screen.findByText("Buy the ETF")).toBeInTheDocument();
+
+    const ranked = screen.getByLabelText("Ranked options");
+    expect(within(ranked).queryByText("Do nothing")).not.toBeInTheDocument();
+    // It is still reported, once, in the coda.
+    expect(screen.getAllByText("Do nothing")).toHaveLength(1);
+  });
+
+  it("trusts the projection flag rather than the wording of the rationale", async () => {
+    // A rationale that never says "eliminated" but is flagged must still be
+    // treated as eliminated, and one that merely mentions the word must not.
+    const fixture = makeOptionsFixture();
+    const options = fixture.rooms!.options!.options!;
+    options[3].rationale = "Ruled out: the capital is committed elsewhere.";
+    options[1].rationale = "We did not eliminate this; it stays under consideration.";
+
+    renderRoom(fixture);
+    expect(await screen.findByText("Buy the ETF")).toBeInTheDocument();
+
+    const coda = screen.getByText("Eliminated options").closest(".eliminated-coda") as HTMLElement;
+    expect(within(coda).getByText(/capital is committed elsewhere/)).toBeInTheDocument();
+
+    const ranked = screen.getByLabelText("Ranked options");
+    expect(within(ranked).getByText("Buy the single stock")).toBeInTheDocument();
+  });
+
+  it("renders the empty state without evaluating ranking data", async () => {
+    // A live run opens this room before any ranking exists. Every hook is
+    // declared above this return so the later populated render keeps the same
+    // hook count; see the comment in OptionsBody.
+    const empty = makeOptionsFixture();
+    empty.rooms!.options = { options: [], ev_table: {} };
+
+    renderRoom(empty);
+    expect(await screen.findByText(/not yet/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Ranked options")).not.toBeInTheDocument();
+    expect(screen.queryByText("Eliminated options")).not.toBeInTheDocument();
+  });
 });

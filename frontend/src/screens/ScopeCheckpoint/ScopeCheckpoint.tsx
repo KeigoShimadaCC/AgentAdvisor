@@ -35,12 +35,55 @@ function effortKeyFromDepth(depth: string | null | undefined): EffortKey {
   return "standard";
 }
 
-/** Determine the origin of an option relative to the intake record. */
+/** Words too common to carry any signal about which option a phrase refers to. */
+const OPTION_STOPWORDS = new Set([
+  "a", "an", "and", "at", "be", "buy", "for", "from", "get", "go", "in", "into",
+  "it", "keep", "my", "now", "of", "on", "or", "own", "stay", "than", "the",
+  "then", "to", "up", "with",
+]);
+
+function optionTokens(value: string): Set<string> {
+  return new Set(
+    value
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length > 2 && !OPTION_STOPWORDS.has(t)),
+  );
+}
+
+/**
+ * Decide whether the user proposed an option or the analysis added it.
+ *
+ * Exact string equality is wrong here: framing is *specified* to restate and
+ * broaden what intake captured, so "Buy a condo" becoming "Buy a condo now"
+ * would credit the system with the user's own option — a false provenance claim
+ * on the sheet they sign. We compare significant tokens instead, and require a
+ * clear majority overlap so a genuinely new alternative is still marked as ours.
+ */
 function optionOrigin(option: string, intakeOptions: string[] | null | undefined): OptionOrigin {
-  if (!intakeOptions) return "added-by-analysis";
-  return intakeOptions.some((o) => o.trim().toLowerCase() === option.trim().toLowerCase())
-    ? "yours"
-    : "added-by-analysis";
+  if (!intakeOptions || intakeOptions.length === 0) return "added-by-analysis";
+
+  const optionTerms = optionTokens(option);
+  if (optionTerms.size === 0) {
+    return intakeOptions.some((o) => o.trim().toLowerCase() === option.trim().toLowerCase())
+      ? "yours"
+      : "added-by-analysis";
+  }
+
+  for (const candidate of intakeOptions) {
+    const candidateTerms = optionTokens(candidate);
+    if (candidateTerms.size === 0) continue;
+    let shared = 0;
+    for (const term of optionTerms) {
+      if (candidateTerms.has(term)) shared += 1;
+    }
+    // Overlap is measured against the smaller phrase so that a restatement which
+    // only adds words ("… now", "… instead") still resolves to the user's option.
+    if (shared / Math.min(optionTerms.size, candidateTerms.size) >= 0.6) {
+      return "yours";
+    }
+  }
+  return "added-by-analysis";
 }
 
 export function ScopeCheckpoint() {

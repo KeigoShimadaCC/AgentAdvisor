@@ -60,6 +60,52 @@ describe("Method room", () => {
     expect(screen.getByText("20000")).toBeInTheDocument();
   });
 
+  it("orders the phase timeline by when each stage actually completed", async () => {
+    // The gates in this fixture completed after framing. Listing gates first and
+    // then appending event-derived stages put framing — the first thing that
+    // happened — at the bottom of an <ol> that reads as the order of the run.
+    const events: TranslatedEvent[] = [
+      {
+        event_type: "stage_completed",
+        message: "Completed stage: framing",
+        technical: false,
+        raw_payload: { stage: "framing" },
+        line_cursor: 1,
+        ts: "2025-01-01T00:00:00Z",
+        actor: "director",
+      },
+      {
+        event_type: "stage_completed",
+        message: "Completed stage: evidence_critique",
+        technical: false,
+        raw_payload: { stage: "evidence_critique" },
+        line_cursor: 5,
+        ts: "2025-01-01T00:05:00Z",
+        actor: "auditor",
+      },
+      {
+        event_type: "stage_completed",
+        message: "Completed stage: assumption_ledger",
+        technical: false,
+        raw_payload: { stage: "assumption_ledger" },
+        line_cursor: 9,
+        ts: "2025-01-01T00:09:00Z",
+        actor: "assumption_analyst",
+      },
+    ];
+
+    renderRoom(makeMethodFixture(), events);
+
+    const timeline = await screen.findByLabelText("Phase timeline");
+    const labels = within(timeline)
+      .getAllByRole("listitem")
+      .map((li) => li.textContent ?? "");
+
+    expect(labels[0]).toMatch(/Framing/i);
+    expect(labels[1]).toMatch(/evidence/i);
+    expect(labels[2]).toMatch(/assumption/i);
+  });
+
   it("filters the audit event log to progress-only (non-technical)", async () => {
     renderRoom(makeMethodFixture());
     // Initially all events show: a technical one ("researcher is running…") and a user one.

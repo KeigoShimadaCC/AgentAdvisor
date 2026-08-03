@@ -17,6 +17,13 @@ function OptionsBody({ view }: { view: CaseView }) {
   const room = view.rooms?.options;
   const options = room?.options ?? [];
 
+  // Every hook runs before the empty-state return: a live case goes from zero
+  // options to ranked ones mid-run, and a conditional hook would change the hook
+  // count between those two renders.
+  const eliminated = useMemo(() => options.filter((o) => o.eliminated), [options]);
+  const ranked = useMemo(() => options.filter((o) => !o.eliminated), [options]);
+  const grouped = useMemo(() => groupByRank(ranked), [ranked]);
+
   if (!room || options.length === 0) {
     return (
       <HonestEmpty
@@ -26,20 +33,13 @@ function OptionsBody({ view }: { view: CaseView }) {
     );
   }
 
-  const evValues = options.map((o) => o.expected_value).filter((v): v is number => v != null);
+  const evValues = ranked.map((o) => o.expected_value).filter((v): v is number => v != null);
   const evMin = evValues.length ? Math.min(...evValues, 0) : 0;
   const evMax = evValues.length ? Math.max(...evValues, 0) : 1;
   const hasEV = evValues.length > 0;
 
-  // Group equal ranks together, preserving rank order.
-  const grouped = useMemo(() => groupByRank(options), [options]);
-  const minRank = Math.min(...options.map((o) => o.rank));
-  const recommended = options.find((o) => o.rank === minRank);
-
-  // Eliminated options: rank sentinel high value; we treat rank 999 / very high
-  // as eliminated. There is no explicit eliminated flag in the projection, so
-  // we surface options whose rationale mentions elimination.
-  const eliminated = options.filter((o) => /eliminat/i.test(o.rationale));
+  const minRank = ranked.length ? Math.min(...ranked.map((o) => o.rank)) : null;
+  const recommended = ranked.find((o) => o.rank === minRank);
 
   return (
     <div className="options-room">
