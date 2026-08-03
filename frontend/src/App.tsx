@@ -12,11 +12,23 @@ import { PlanRoom } from "./screens/rooms/Plan/PlanRoom";
 import { MethodRoom } from "./screens/rooms/Method/MethodRoom";
 import { InspectorPage } from "./screens/inspector/InspectorPage";
 
+function NotFound() {
+  return (
+    <div className="not-found">
+      <h2>That page does not exist</h2>
+      <p>The link may be stale, or the case may have been removed.</p>
+      <Link to="/" className="primary-action">Back to your cases</Link>
+    </div>
+  );
+}
+
 export function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <Link to="/" className="app-title">AgentAdvisor</Link>
+        <h1 className="app-title-heading">
+          <Link to="/" className="app-title">AgentAdvisor</Link>
+        </h1>
         <nav className="app-nav">
           <Link to="/" className="app-nav-link">Cases</Link>
           <Link to="/new" className="app-nav-link">New decision</Link>
@@ -36,6 +48,7 @@ export function App() {
           <Route path="/cases/:caseId/rooms/plan" element={<PlanRoom />} />
           <Route path="/cases/:caseId/rooms/method" element={<MethodRoom />} />
           <Route path="/cases/:caseId/inspector/:artifactId" element={<InspectorPage />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
     </div>

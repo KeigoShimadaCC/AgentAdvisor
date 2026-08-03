@@ -1,7 +1,21 @@
 import { useParams, Link } from "react-router-dom";
 import { useCaseView } from "../screens/shared/useCaseView";
 import { RoomTabs } from "../screens/shared/RoomTabs";
-import { stageLabel, NEEDS_YOU } from "../copy/terms";
+import { stageLabel, phaseLabel, NEEDS_YOU } from "../copy/terms";
+import type { CaseView } from "../generated/case_view";
+
+/**
+ * The status line, which is not the same question as "what does this case need
+ * from you". A finished case needs nothing and used to fall through to the
+ * "In progress" default, so a delivered recommendation read as still running.
+ */
+function statusLabel(view: CaseView): string {
+  const badge = NEEDS_YOU[view.needs_you].badge;
+  if (badge) return badge;
+  if (!view.is_terminal) return "In progress";
+  if (view.integrity?.review_accepted === false) return "Finished — review did not pass";
+  return "Complete";
+}
 
 export function CaseDetail() {
   const { caseId } = useParams<{ caseId: string }>();
@@ -11,15 +25,13 @@ export function CaseDetail() {
   if (error) return <p className="error">{error}</p>;
   if (!view) return <p>No data.</p>;
 
-  const needsYou = NEEDS_YOU[view.needs_you];
-
   return (
     <div className="case-detail">
       <h2>{view.case_id}</h2>
       <dl className="case-meta">
-        <dt>Phase</dt><dd>{stageLabel(view.stage)}</dd>
-        <dt>Stage</dt><dd>{view.stage}</dd>
-        <dt>Status</dt><dd>{needsYou.badge || "In progress"}</dd>
+        <dt>Phase</dt><dd>{phaseLabel(view.phase)}</dd>
+        <dt>Stage</dt><dd>{stageLabel(view.stage)}</dd>
+        <dt>Status</dt><dd>{statusLabel(view)}</dd>
         <dt>Terminal</dt><dd>{view.is_terminal ? "yes" : "no"}</dd>
       </dl>
 

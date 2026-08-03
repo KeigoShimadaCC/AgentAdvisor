@@ -232,3 +232,50 @@ class TestSchemaValidation:
         """The case_view schema file should exist in schemas/."""
         schema_path = Path(__file__).resolve().parents[1] / "schemas" / "case_view.schema.json"
         assert schema_path.exists(), "case_view.schema.json not found in schemas/"
+
+
+# ── Eliminated options ───────────────────────────────────────────────────────
+
+
+class TestEliminatedOptions:
+    """`OptionView.eliminated` is derived here so the room does not parse prose.
+
+    The Options room used to run `/eliminat/i` over the rationale itself, which put
+    an undeclared rule in the presentation layer and missed every synonym.
+    """
+
+    @pytest.mark.parametrize(
+        "rationale",
+        [
+            "Eliminated: does not meet the exposure objective.",
+            "Ruled out because the capital is not available.",
+            "Discarded after the cost model came back negative.",
+            "Not viable within the stated deadline.",
+            "Excluded — fails the reversibility constraint.",
+            "Infeasible given the hiring freeze.",
+        ],
+    )
+    def test_elimination_wording_is_recognised(self, rationale: str) -> None:
+        from orchestrator.service.caseview import _is_eliminated
+
+        assert _is_eliminated(rationale)
+
+    @pytest.mark.parametrize(
+        "rationale",
+        [
+            "Lowest risk for the desired exposure.",
+            "Higher upside but concentrated risk.",
+            "Defers the decision without reducing upside materially.",
+        ],
+    )
+    def test_ranked_rationales_are_not_eliminated(self, rationale: str) -> None:
+        from orchestrator.service.caseview import _is_eliminated
+
+        assert not _is_eliminated(rationale)
+
+    def test_projection_sets_the_flag(self, fixture_001: Case) -> None:
+        """Whatever the fixture holds, every option carries an explicit boolean."""
+        view = build_case_view(fixture_001)
+        options = view.rooms.options.options if view.rooms and view.rooms.options else []
+        for option in options:
+            assert isinstance(option.eliminated, bool)

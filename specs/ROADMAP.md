@@ -18,7 +18,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | in_progress | 4, 6 |
 
-**Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). Carried-over engineering tasks completed: citation checking consolidated into `citations.py`, coercion-layer property test covering every artifact model, coercion-layer accounting instrumentation with audit-log extraction. Phase 7 backend specs (027-033) implemented: case control service, revision loops, budget truth, safe resume, CaseView projection, and web app shell (FastAPI + SSE + React SPA scaffold). `make check` is green: lint, mypy, 674 unit tests, plus 17 live tests that are deselected by default. `make frontend-check` passes (tsc + type generation clean).
+**Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). Carried-over engineering tasks completed: citation checking consolidated into `citations.py`, coercion-layer property test covering every artifact model, coercion-layer accounting instrumentation with audit-log extraction. Phase 7 backend specs (027-033) implemented: case control service, revision loops, budget truth, safe resume, CaseView projection, and web app shell (FastAPI + SSE + React SPA scaffold). `make check` is green: lint, mypy, 714 unit tests, plus 18 live tests that are deselected by default. `make frontend-check` passes (tsc, type-generation drift check, and 63 frontend tests).
 
 ---
 
@@ -195,6 +195,42 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 **Findings**
 
+- **(2026-08-03) An independent test of the frontend found the audit lexicon silently
+  swallowing every failure event.** The frontend was exercised on its own — production build
+  served against a mock `/api`, no orchestrator — which is the first time the built product was
+  driven end to end rather than unit-tested. Nine event types the orchestrator emits had no
+  `lexicon_data.yaml` entry, so `translate_event` fell through to `_UNKNOWN_ENTRY`, which renders
+  "Event recorded (`<type>`)" *and* sets `technical: true`. Four of the nine were
+  `task_failed`, `task_budget_refused`, `task_marginal_value_refused` and `tasks_cancelled`:
+  precisely the events that say the run investigated less than it planned to, hidden behind the
+  Method-room filter. A case could refuse half its tasks and the progress feed would look
+  identical to a clean run, which defeats the Section 13 disclosure rule at the only moment the
+  user is watching. `tests/test_lexicon_coverage.py` now walks the orchestrator AST for emitted
+  `event_type=` literals and fails on any without an entry, and pins the four disclosure events
+  to `technical: false`. Same defect class as the role-md/schema drift guarded by
+  `test_role_contracts.py`: two vocabularies that must agree, with nothing checking that they do.
+- **(2026-08-03) The same test found the Options room inferring a decision from prose.**
+  The room classified an alternative as eliminated with `/eliminat/i` over the model-written
+  rationale — an undeclared rule, in the presentation layer, that missed "ruled out" and every
+  other synonym, and rendered matches twice (ranked list *and* coda). `OptionView.eliminated` is
+  now a projection field; the room consumes it. The inference itself still lives in
+  `caseview.py::_is_eliminated` because `AlternativeAssessment` carries no such flag — promoting
+  it to something the synthesizer states outright is an agent-contract change and needs a spec.
+  Also fixed alongside: `OptionsRoom` called `useMemo` *after* its empty-state return, so a case
+  that gained options mid-run changed its hook count between renders (React would have thrown);
+  the record inspector extracted `source_url` and rendered only a bare `·` separator, so the
+  provenance panel never showed the source link; a finished case's status read "In progress"
+  because `needs_you: "none"` has an empty badge; the Method-room phase timeline listed gates
+  before events, putting framing last in an `<ol>`; the scope sheet decided "Your option" vs
+  "Added by analysis" by exact string match, so framing's own rewording credited the system with
+  the user's option on the sheet they sign; and unknown routes rendered a blank page.
+- **(2026-08-03) The frontend test suite was in no build target.** `make frontend-check` ran
+  `typecheck` and `check:clean` only, `make check` is Python-only, and `frontend/README.md`
+  documented an `npm run lint` that does not exist. 63 frontend tests ran only when someone
+  remembered the command. `frontend-check` now runs them; the README no longer advertises a
+  linter that was never set up. **Worth adding:** ESLint with `react-hooks` rules would have
+  caught the conditional-hook bug above statically — it is the one defect here that no amount of
+  browser testing reliably surfaces.
 - **(2026-08-03) SPEC-027 to SPEC-032 verified; 639 unit tests green.** Each spec's own
   verification plan was executed rather than inferred from a passing suite: 027 (30 tests plus a
   clean `make schemas`), 028 (64), 029 (33), 030 (27), 031 (31), 032 (21 plus regenerating 60
@@ -250,6 +286,15 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 - ~~(2026-08-02) Coercion-layer accounting: the Phase 4 runs depended on coercion to complete, so how often it fires, and for which role and field, should be measured rather than assumed benign. Sharpened by the optional-list bug below: the layer was silently not firing on a whole category of fields and nothing noticed until a benchmark scenario died.~~ **Implemented 2026-08-03** in `5af2fce`: `CoercionReport` records every field change, logged to audit trail, extracted by `case_metrics.py` with per-role/per-field/per-type counts. Also fixed a `_base_type` bug where `dict[str, int]` was misidentified as `str`.
 - ~~(2026-08-02) A property test over every artifact model asserting the coercion layer reaches every field, rather than testing hand-picked fields. The `list[...] | None` gap existed because coverage was chosen by example.~~ **Implemented 2026-08-03** in `128231f`: 178 parametrized tests walk every `ArtifactModel` subclass and every field, verifying coercion coverage. Found one known exception (`SensitivityRow.parameter_value: float | NonEmptyStr`).
 - ~~(2026-08-02) Researcher and analyst produce most of the token spend at the worst success rates.~~ **Fixed the same day** in `a2ef43d`; see the Phase 6 findings.
+- (2026-08-03) **`AlternativeAssessment.eliminated` as an agent-declared field.** `OptionView.eliminated`
+  currently derives elimination from the rationale prose in `caseview.py::_is_eliminated`. That is one
+  tested place rather than a regex in a component, but it is still an inference where the north star
+  wants a typed assertion. Needs a spec: schema change, `cursor/roles/synthesizer.md` contract and worked
+  example, and a `test_role_contracts.py` pass.
+- (2026-08-03) **ESLint with `react-hooks` and `jsx-a11y` for `frontend/`.** A conditional `useMemo` in
+  `OptionsRoom` shipped and survived 50 passing tests, a clean `tsc`, and a browser walkthrough; only
+  reading the file caught it. `frontend/README.md` had also advertised a lint script for some time that
+  was never configured. Adds a dev dependency, so it needs user sign-off per AGENTS.md.
 - (2026-08-03) Droid CLI (`droid exec`) as a second agent backend behind the existing `AgentBackend` protocol. Implemented on `feat/droid-cli-backend`: `DroidCLIBackend`, per-backend model tables (`backends/<backend>/models.yaml`), `--backend {cursor,droid}` CLI flag, `AGENTADVISOR_BACKEND` env var, `scripts/smoke_droid_cli.py`, and 18 new unit tests. The workspace `AGENTS.md` delivery mechanism works unchanged. One Droid-specific fix: the backend now parses the JSON envelope before checking the exit code, because Droid can crash during post-completion cleanup after printing a valid result. Details: `../report-and-findings/2026-08-03-droid-cli-research.md`. **Not yet promoted to a spec** (implemented directly at user request); needs a SPEC for the Phase 1 backend table and a Phase 5 benchmark re-run under Droid before the two backends' scores are comparable.
 
 **Promoted**

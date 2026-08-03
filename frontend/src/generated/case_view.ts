@@ -77,6 +77,7 @@ export type Positions = {
 export type ReconciledAlternative = string | null;
 export type Stage1 = string;
 export type Alternative = string;
+export type Eliminated = boolean;
 export type ExpectedValue = number | null;
 export type Rank = number;
 export type Rationale = string;
@@ -277,6 +278,7 @@ export interface EvTable {
 }
 export interface OptionView {
   alternative: Alternative;
+  eliminated?: Eliminated;
   expected_value?: ExpectedValue;
   rank: Rank;
   rationale: Rationale;

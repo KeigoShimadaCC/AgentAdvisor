@@ -90,6 +90,40 @@ describe("ScopeCheckpoint confirmation gating", () => {
     expect(screen.getByText("Negotiate")).toBeInTheDocument();
   });
 
+  it("credits the user with an option that framing only reworded", async () => {
+    // Framing is specified to restate and broaden intake's alternatives, so an
+    // exact-match origin check would tell the user the system invented the
+    // option they themselves proposed — on the sheet they are about to sign.
+    mocks.getIntakeRecord.mockResolvedValue({
+      artifact_id: "intake_record",
+      schema: "intake_record",
+      data: { ...fixtures.intake, alternatives_mentioned: ["Switch jobs", "Stay put"] },
+    });
+    mocks.getDecisionSpec.mockResolvedValue({
+      artifact_id: "decision_spec",
+      schema: "decision_spec",
+      data: {
+        ...fixtures.decisionSpec,
+        alternatives: ["Switch jobs now", "Stay put another year", "Negotiate a raise"],
+      },
+    });
+
+    renderScope();
+    await screen.findByText(SCOPE_COPY.restatementTitle);
+
+    const originOf = (text: string) =>
+      screen
+        .getByText(text)
+        .closest(".option-row")
+        ?.querySelector(".option-origin")
+        ?.getAttribute("aria-label");
+
+    expect(originOf("Switch jobs now")).toBe("Your option");
+    expect(originOf("Stay put another year")).toBe("Your option");
+    // Genuinely new alternatives are still attributed to the analysis.
+    expect(originOf("Negotiate a raise")).toBe("Added by analysis");
+  });
+
   it("disables Sign & begin until all ground rules are confirmed", async () => {
     renderScope();
     await screen.findByText(SCOPE_COPY.restatementTitle);

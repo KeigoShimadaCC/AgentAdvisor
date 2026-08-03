@@ -164,6 +164,20 @@ export function stageLabel(stage: string): string {
   return STAGE_LABELS[stage] ?? "In progress";
 }
 
+/** The coarse phase a case is in — the CaseView's own `phase`, not its stage. */
+const PHASE_LABELS: Record<string, string> = {
+  intake: "Understanding the question",
+  framing: "Framing the decision",
+  investigation: "Investigating",
+  challenge: "Challenging the reasoning",
+  synthesis: "Synthesizing",
+  complete: "Complete",
+};
+
+export function phaseLabel(phase: string): string {
+  return PHASE_LABELS[phase] ?? phase;
+}
+
 // ── Intake field → human label (clarification cards, ground rules) ──────────
 
 const INTAKE_FIELD_LABELS: Record<string, string> = {

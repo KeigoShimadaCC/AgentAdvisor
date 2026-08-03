@@ -575,6 +575,11 @@
           "title": "Alternative",
           "type": "string"
         },
+        "eliminated": {
+          "default": false,
+          "title": "Eliminated",
+          "type": "boolean"
+        },
         "expected_value": {
           "anyOf": [
             {

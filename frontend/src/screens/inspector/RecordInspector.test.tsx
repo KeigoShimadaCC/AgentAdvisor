@@ -79,6 +79,27 @@ describe("RecordInspector chain view", () => {
     expect(screen.getByText("Single-quarter figure; not annualized.")).toBeInTheDocument();
   });
 
+  it("links the source URL, which is the point of a provenance chain", async () => {
+    renderInspector();
+    await screen.findByText("Revenue grew 12% YoY in Q2.");
+
+    const link = screen.getByRole("link", { name: "https://example.com/filing" });
+    expect(link).toHaveAttribute("href", "https://example.com/filing");
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+  });
+
+  it("omits the separator when there is no source URL", async () => {
+    mocks.getArtifact.mockResolvedValue({
+      ...EVIDENCE_DATA,
+      data: { ...EVIDENCE_DATA.data, source_url: undefined },
+    });
+    renderInspector();
+    await screen.findByText("Revenue grew 12% YoY in Q2.");
+
+    expect(screen.queryByRole("link", { name: /example\.com/ })).not.toBeInTheDocument();
+    expect(screen.getByText("SEC filing").textContent?.trim()).toBe("SEC filing");
+  });
+
   it("shows the raw YAML and audit slice when the machinery toggle is opened", async () => {
     renderInspector();
     await screen.findByText("Revenue grew 12% YoY in Q2.");

@@ -252,6 +252,10 @@ class OptionView(BaseModel):
     rank: int
     rationale: str
     expected_value: float | None = None
+    #: Whether this alternative was ruled out rather than ranked against the others.
+    #: Derived here (see :func:`_is_eliminated`) so the presentation layer consumes a
+    #: field instead of re-deriving it from prose.
+    eliminated: bool = False
 
 
 class ObjectionView(BaseModel):
@@ -850,6 +854,33 @@ def _build_assumptions_room(case: Case) -> AssumptionsRoom:
     return AssumptionsRoom(assumptions=views)
 
 
+#: Words a synthesizer uses when an alternative was ruled out rather than ranked.
+#: `AlternativeAssessment` carries no elimination flag, so this is inferred. Keeping
+#: the inference here — one place, tested — is the point: the room used to run its own
+#: regex over the same prose, which put an undeclared rule in the presentation layer.
+#: Promoting this to a field the synthesizer states outright needs a spec; until then
+#: `eliminated` is a derived hint, not an agent assertion.
+_ELIMINATION_MARKERS = (
+    "eliminat",
+    "ruled out",
+    "rule out",
+    "discarded",
+    "not viable",
+    "non-viable",
+    "nonviable",
+    "dropped",
+    "excluded",
+    "infeasible",
+    "not feasible",
+)
+
+
+def _is_eliminated(rationale: str) -> bool:
+    """True when the rationale says this alternative was ruled out, not ranked."""
+    lowered = rationale.lower()
+    return any(marker in lowered for marker in _ELIMINATION_MARKERS)
+
+
 def _build_options_room(
     final: FinalRecommendation | None,
     analysis_results: list[AnalysisResult],
@@ -862,6 +893,7 @@ def _build_options_room(
                     alternative=alt.alternative,
                     rank=alt.rank,
                     rationale=alt.rationale,
+                    eliminated=_is_eliminated(alt.rationale),
                 )
             )
 

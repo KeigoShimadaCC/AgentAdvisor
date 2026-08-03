@@ -29,8 +29,12 @@ uv run advisor ui --replay tests/fixtures/cases/case-001-fixture-001 --speed 60
 | `npm run dev` | Vite dev server with proxy to backend |
 | `npm run build` | Production build to `dist/` |
 | `npm run typecheck` | TypeScript type check (`tsc --noEmit`) |
-| `npm run lint` | ESLint |
+| `npm test` | Vitest unit tests |
 | `npm run generate:types` | Regenerate TS types from JSON schemas |
+| `npm run check:clean` | Fail if generated types have drifted from `schemas/` |
+
+`make frontend-check` runs the typecheck, the drift check, and the tests together.
+There is no ESLint setup yet; this table used to list one that did not exist.
 
 ## Architecture
 
