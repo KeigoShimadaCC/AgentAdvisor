@@ -70,7 +70,13 @@ from orchestrator.artifacts.yaml_io import (
     dump_model_to_yaml_text,
     load_model_from_yaml_text,
 )
-from orchestrator.backend import ResultStatus, RoleInvocation, RoleResult, TokenUsage
+from orchestrator.backend import (
+    BackendName,
+    ResultStatus,
+    RoleInvocation,
+    RoleResult,
+    TokenUsage,
+)
 from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, create_case
 from orchestrator.invoke_role import clear_cross_field_validation_hooks
@@ -661,6 +667,8 @@ def _read_worksheet(workspace: Path) -> VerificationWorksheet | None:
 
 class PipelineStubBackend:
     """Backend that returns scripted artifacts based on the workspace's task.yaml."""
+
+    name = BackendName.CURSOR
 
     def __init__(self, case: Case) -> None:
         self._case = case

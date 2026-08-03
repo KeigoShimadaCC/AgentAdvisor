@@ -20,7 +20,7 @@ from orchestrator.artifacts import (
     IntakeRecord,
 )
 from orchestrator.artifacts.common import Depth
-from orchestrator.backend import AgentBackend, CursorCLIBackend
+from orchestrator.backend import AgentBackend, make_backend
 from orchestrator.budget import BudgetConfig, BudgetLedger
 from orchestrator.case_store import Case, create_case
 from orchestrator.citations import register_citation_hooks
@@ -37,7 +37,9 @@ from orchestrator.state_machine import (
 )
 from orchestrator.task_graph import TaskGraph
 
-# Model tier map for budget accounting (from role configs).
+# Model tier map for budget accounting (from role configs). Model ids are unique
+# across backends, so one map serves both. Only the genuinely expensive models
+# are "high": that counter caps the frontier calls, not every capable model.
 _DEFAULT_MODEL_TIER_MAP: dict[str, str] = {
     "claude-opus-5-thinking-high": "high",
     "gpt-5.6-sol-high": "high",
@@ -46,6 +48,12 @@ _DEFAULT_MODEL_TIER_MAP: dict[str, str] = {
     "gpt-5.2": "medium",
     "composer-2.5": "low",
     "cursor-grok-4.5-low": "low",
+    # droid backend
+    "claude-opus-4-8": "high",
+    "gpt-5.5-pro": "high",
+    "claude-sonnet-5": "medium",
+    "gpt-5.4": "medium",
+    "claude-haiku-4-5-20251001": "low",
 }
 
 SMALL_BUDGET = BudgetConfig(
@@ -141,7 +149,7 @@ def run(
     raw_prompt:
         The user's raw decision prompt.
     backend:
-        Agent backend (defaults to ``CursorCLIBackend``).
+        Agent backend (defaults to the one named by ``AGENTADVISOR_BACKEND``).
     budget_config:
         Budget configuration.  If ``None``, the budget is selected from
         ``depth`` (light → SMALL, standard → DEFAULT, deep → DEEP).
@@ -161,7 +169,7 @@ def run(
     -------
     Final case state.
     """
-    backend_impl = backend or CursorCLIBackend()
+    backend_impl = backend or make_backend()
     clock_fn = clock or (lambda: datetime.now(UTC))
     tier_map = model_tier_map or _DEFAULT_MODEL_TIER_MAP
 

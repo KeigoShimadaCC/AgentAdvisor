@@ -51,7 +51,7 @@ from orchestrator.normalize import normalize_evidence_batch
 from orchestrator.planning import apply_planner_acceptance_filter
 from orchestrator.render import write_final_recommendation_markdown
 from orchestrator.reproduce import reproduce_analysis_result
-from orchestrator.roles_config import load_role_config
+from orchestrator.roles_config import load_role_config, models_for
 from orchestrator.stability import compute_model_stability
 from orchestrator.state_machine import CaseState, StepHandler, StepPlan, StepResult, save_case_state
 from orchestrator.task_graph import TaskExecutionResult, TaskGraph
@@ -616,16 +616,17 @@ class StageHandlers:
         if not isinstance(artifact, PreliminaryRecommendation):
             return
 
+        backend_name = self._backend.name
         try:
             positions = [
                 build_position(
                     track_id="track-a",
-                    model=load_role_config("director").default_model,
+                    model=models_for(load_role_config("director"), backend_name).default_model,
                     recommendation=primary,
                 ),
                 build_position(
                     track_id="track-b",
-                    model=load_role_config("director", "b").default_model,
+                    model=models_for(load_role_config("director", "b"), backend_name).default_model,
                     recommendation=artifact,
                 ),
             ]

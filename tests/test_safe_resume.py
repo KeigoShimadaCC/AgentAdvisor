@@ -27,7 +27,7 @@ from orchestrator.artifacts import (
     ThesisRevision,
 )
 from orchestrator.artifacts.yaml_io import dump_model_to_yaml_text, load_model_from_yaml_text
-from orchestrator.backend import ResultStatus, RoleInvocation, RoleResult, TokenUsage
+from orchestrator.backend import BackendName, ResultStatus, RoleInvocation, RoleResult, TokenUsage
 from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, create_case
 from orchestrator.invoke_role import clear_cross_field_validation_hooks
@@ -252,6 +252,8 @@ class _PassingReviewBackend:
     passes and ``review_accepted`` is recorded as ``True``.
     """
 
+    name = BackendName.CURSOR
+
     def __init__(self, case: Case) -> None:
         self._inner = PipelineStubBackend(case)
 
@@ -282,6 +284,8 @@ class _PassingReviewBackend:
 
 class _FailingReviewBackend:
     """Wraps PipelineStubBackend but returns a FAIL review report."""
+
+    name = BackendName.CURSOR
 
     def __init__(self, case: Case) -> None:
         self._inner = PipelineStubBackend(case)

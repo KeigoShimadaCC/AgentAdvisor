@@ -223,6 +223,28 @@ def test_an_empty_prompt_is_rejected_before_a_case_is_created(
     assert not env.exists() or not list(env.iterdir())
 
 
+def test_backend_flag_chooses_the_harness(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    requested: list[str | None] = []
+
+    def spy(name: str | None = None) -> object:
+        requested.append(name)
+        return _backend_for(env)
+
+    monkeypatch.setattr("orchestrator.cli.make_backend", spy)
+
+    assert _run("list", "--backend", "droid") == EXIT_OK
+    assert _run("list") == EXIT_OK
+    assert requested == ["droid", None]
+
+
+def test_an_unknown_backend_is_a_user_error(
+    env: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("AGENTADVISOR_BACKEND", "gemini-cli")
+    assert _run("list") == EXIT_USER_ERROR
+    assert "AGENTADVISOR_BACKEND" in capsys.readouterr().err
+
+
 def test_the_installed_entry_point_runs(env: Path) -> None:
     """The console script must actually be wired, not merely importable."""
     result = subprocess.run(

@@ -7,8 +7,10 @@ from typing import Any, Literal, cast
 import yaml  # type: ignore[import-untyped]
 
 from orchestrator.artifacts import TaskRole
+from orchestrator.backend_models import ModelPair, resolve_models
 
 ModelTier = Literal["low", "medium", "high"]
+CURSOR_BACKEND = "cursor"
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,9 +31,27 @@ class RoleConfig:
     model_tier: ModelTier
     variant: str | None = None
 
+    @property
+    def stem(self) -> str:
+        return self.role.value if self.variant is None else f"{self.role.value}-{self.variant}"
+
 
 class RoleConfigError(RuntimeError):
     pass
+
+
+def models_for(config: RoleConfig, backend: str = CURSOR_BACKEND) -> ModelPair:
+    """The default/escalation pair this role uses on the given backend."""
+
+    return resolve_models(
+        backend=backend,
+        role_stem=config.stem,
+        tier=config.model_tier,
+        fallback=ModelPair(
+            default_model=config.default_model,
+            escalation_model=config.escalation_model,
+        ),
+    )
 
 
 _VALID_TIERS: frozenset[str] = frozenset({"low", "medium", "high"})
@@ -42,6 +62,8 @@ _KNOWN_FAMILY_PREFIXES: tuple[tuple[str, str], ...] = (
     ("grok-", "xai"),
     ("composer-", "cursor-composer"),
     ("kimi-", "moonshot"),
+    ("gemini-", "google"),
+    ("glm-", "zhipu"),
 )
 
 
@@ -121,19 +143,24 @@ def validate_director_challenger_family_diversity(
     *,
     director_variant: str | None = None,
     challenger_variant: str | None = None,
+    backend: str = CURSOR_BACKEND,
 ) -> None:
     """Startup guard: Director and Challenger must use different model families."""
 
-    director = load_role_config(TaskRole.DIRECTOR, director_variant)
-    challenger = load_role_config(TaskRole.CHALLENGER, challenger_variant)
-    director_family = family(director.default_model, canonical=True)
-    challenger_family = family(challenger.default_model, canonical=True)
+    director_model = models_for(
+        load_role_config(TaskRole.DIRECTOR, director_variant), backend
+    ).default_model
+    challenger_model = models_for(
+        load_role_config(TaskRole.CHALLENGER, challenger_variant), backend
+    ).default_model
+    director_family = family(director_model, canonical=True)
+    challenger_family = family(challenger_model, canonical=True)
 
     if director_family == challenger_family:
         raise RoleConfigError(
             "Director/Challenger family diversity guard failed: "
-            f"director={director.default_model} ({director_family}), "
-            f"challenger={challenger.default_model} ({challenger_family}). "
+            f"director={director_model} ({director_family}), "
+            f"challenger={challenger_model} ({challenger_family}). "
             "Configure different model families."
         )
 

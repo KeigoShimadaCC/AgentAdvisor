@@ -1,0 +1,42 @@
+# Model assignment for the `droid` backend (Factory CLI).
+#
+# Tier defaults cover every role. The `roles` overrides exist where the choice
+# carries meaning beyond cost: the Director tracks and the Challenger must sit
+# in different model families, and the roles Cursor points at a non-Composer
+# model are the ones whose judgement or web work justified the difference.
+
+tiers:
+  low:
+    default_model: claude-haiku-4-5-20251001
+    escalation_model: claude-sonnet-5
+  medium:
+    default_model: claude-sonnet-5
+    escalation_model: gpt-5.4
+  high:
+    default_model: claude-sonnet-5
+    escalation_model: gpt-5.4
+
+roles:
+  # No role defaults to a frontier model: the Director alone runs five times a
+  # case, which would exhaust `max_high_tier_calls` before synthesis.
+  director:
+    default_model: gpt-5.4
+    escalation_model: claude-sonnet-5
+  director-framing:
+    default_model: gpt-5.4
+    escalation_model: claude-sonnet-5
+  director-b:
+    default_model: claude-sonnet-5
+    escalation_model: gpt-5.4
+  challenger:
+    default_model: claude-sonnet-5
+    escalation_model: gpt-5.4
+  premortem:
+    default_model: gpt-5.4
+    escalation_model: claude-sonnet-5
+  researcher:
+    default_model: gpt-5.4
+    escalation_model: claude-sonnet-5
+  reviewer:
+    default_model: gpt-5.4
+    escalation_model: claude-sonnet-5

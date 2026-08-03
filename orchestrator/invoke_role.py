@@ -21,16 +21,16 @@ from orchestrator.artifacts.yaml_io import (
 )
 from orchestrator.backend import (
     AgentBackend,
-    CursorCLIBackend,
     ResultStatus,
     RoleInvocation,
     RoleResult,
+    make_backend,
 )
 from orchestrator.budget import BudgetKind
 from orchestrator.case_store import Case
 from orchestrator.isolation import WorkspaceNotIsolated, assert_isolated
 from orchestrator.projection import project
-from orchestrator.roles_config import RoleConfig, load_role_config
+from orchestrator.roles_config import RoleConfig, load_role_config, models_for
 from orchestrator.skills import SkillPack, select_packs
 from orchestrator.task_graph import BudgetLedgerLike
 from orchestrator.workspace import (
@@ -107,8 +107,9 @@ def _coerce_task(task: TaskRecord | InvokeTask) -> InvokeTask:
     )
 
 
-def _build_attempt_plan(config: RoleConfig) -> list[str]:
-    return [config.default_model, config.default_model, config.escalation_model]
+def _build_attempt_plan(config: RoleConfig, backend_name: str) -> list[str]:
+    models = models_for(config, backend_name)
+    return [models.default_model, models.default_model, models.escalation_model]
 
 
 def _case_decision_text(case: Case) -> str:
@@ -263,9 +264,9 @@ def _invoke_internal(
         include=config.projection_include,
         budget_chars=normalized_task.projection_budget_chars,
     )
-    backend_impl = backend or CursorCLIBackend()
+    backend_impl = backend or make_backend()
     skill_packs = _case_skill_packs(case)
-    attempts = _build_attempt_plan(config)
+    attempts = _build_attempt_plan(config, backend_impl.name)
     errors: list[str] = []
     workspace_path: Path | None = None
 
@@ -312,6 +313,7 @@ def _invoke_internal(
                     workspace=layout.path,
                     timeout_s=normalized_task.timeout_s,
                     read_only=read_only_stdout or config.read_only,
+                    allow_shell=config.permission_profile.allow_shell,
                 )
             )
             if backend_result.status is not ResultStatus.OK:

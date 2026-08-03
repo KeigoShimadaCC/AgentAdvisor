@@ -18,7 +18,7 @@ import yaml  # type: ignore[import-untyped]
 from orchestrator.artifacts import (
     Depth,
 )
-from orchestrator.backend import ResultStatus, RoleInvocation, RoleResult, TokenUsage
+from orchestrator.backend import BackendName, ResultStatus, RoleInvocation, RoleResult, TokenUsage
 from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, create_case
 from orchestrator.invoke_role import clear_cross_field_validation_hooks
@@ -296,6 +296,8 @@ def test_wall_clock_stop_fires_with_monkeypatched_clock(stub_env: Case, tmp_path
 class _FailingThenSucceedingBackend:
     """Backend that fails the first *fail_count* calls, then delegates to the
     wrapped backend.  This forces the escalation ladder to attempt 3."""
+
+    name = BackendName.CURSOR
 
     def __init__(self, inner: PipelineStubBackend, fail_count: int = 2) -> None:
         self._inner = inner
