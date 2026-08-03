@@ -1,4 +1,4 @@
-.PHONY: init lint type test check smoke smoke-droid schemas frontend-types frontend-check frontend-build frontend-install
+.PHONY: init lint type test check smoke smoke-droid schemas frontend-types frontend-check frontend-build frontend-install e2e-frontend e2e-frontend-install
 
 init:
 	uv sync --group dev
@@ -35,3 +35,12 @@ frontend-check:
 
 frontend-build:
 	cd frontend && npm install && npm run build
+
+e2e-frontend-install:
+	cd frontend && npm install && npx playwright install --with-deps chromium webkit
+
+e2e-frontend:
+	cd frontend && npm install
+	E2E_MODE=fixture npx playwright test --config=e2e/playwright.config.ts
+	E2E_MODE=stub npx playwright test --config=e2e/playwright.config.ts
+	E2E_MODE=replay npx playwright test --config=e2e/playwright.config.ts

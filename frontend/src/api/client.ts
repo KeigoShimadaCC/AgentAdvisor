@@ -2,6 +2,7 @@ import type { CaseView } from "../generated/case_view";
 import type { IntakeRecord } from "../generated/intake_record";
 import type { DecisionSpec } from "../generated/decision_spec";
 import type { FramingApproval } from "../generated/framing_approval";
+import type { FinalRecommendation } from "../generated/final_recommendation";
 
 export interface CaseSummary {
   case_id: string;
@@ -117,11 +118,23 @@ export const api = {
     });
   },
 
-  approveDelivery: (caseId: string) =>
+  /** Approve the final recommendation and write a FinalApproval artifact. */
+  approveDelivery: (caseId: string, approvedBy: string = "user") =>
     fetchJSON<{ case_id: string; stage: string | null }>(
       `/cases/${encodeURIComponent(caseId)}/checkpoints/delivery`,
-      { method: "POST", body: JSON.stringify({ decision: "accept" }) },
+      { method: "POST", body: JSON.stringify({ decision: "accept", approved_by: approvedBy }) },
     ),
+
+  /** Request a final delivery revision with a note (SPEC-035). */
+  requestFinalRevision: (caseId: string, note: string) =>
+    fetchJSON<{ case_id: string; stage: string | null }>(
+      `/cases/${encodeURIComponent(caseId)}/checkpoints/delivery`,
+      { method: "POST", body: JSON.stringify({ decision: "revise", note, approved_by: "user" }) },
+    ),
+
+  /** Convenience: load the FinalRecommendation for a case. */
+  getFinalRecommendation: (caseId: string) =>
+    api.getTypedArtifact<FinalRecommendation>(caseId, "final_recommendation"),
 
   pauseCase: (caseId: string) =>
     fetchJSON<{ case_id: string; paused: boolean }>(

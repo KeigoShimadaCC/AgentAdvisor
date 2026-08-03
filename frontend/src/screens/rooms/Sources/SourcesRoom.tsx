@@ -7,6 +7,7 @@ import type { CaseView, SourceView } from "../../../generated/case_view";
 import {
   authorityWords,
   sourceTypeLabel,
+  sourceTierLabel,
   evidenceFlagLabel,
   levelLabel,
   ROOMS,
@@ -194,8 +195,12 @@ function SourceMixBar({ sources }: { sources: SourceView[] }) {
   }
   const total = sources.length || 1;
   const order = ["primary", "official", "reputable", "weak", "ungraded"];
+  const summary = order
+    .filter((tier) => byTier.get(tier))
+    .map((tier) => `${sourceTierLabel(tier)}: ${byTier.get(tier)}`)
+    .join(", ");
   return (
-    <div className="source-mix-bar" role="img" aria-label="Source mix by tier">
+    <div className="source-mix-bar" role="img" aria-label={`Source mix by tier — ${summary}`}>
       {order.map((tier) => {
         const count = byTier.get(tier);
         if (!count) return null;
@@ -205,7 +210,7 @@ function SourceMixBar({ sources }: { sources: SourceView[] }) {
             key={tier}
             className={`source-mix-seg source-mix-${tier}`}
             style={{ width: `${pct}%` }}
-            aria-label={`${tier}: ${count}`}
+            title={`${sourceTierLabel(tier)}: ${count}`}
           />
         );
       })}

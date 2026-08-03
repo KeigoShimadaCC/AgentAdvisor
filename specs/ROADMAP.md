@@ -16,9 +16,21 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 4 | End-to-end workflow and CLI | in_progress | 2, 3 |
 | 5 | Evaluation and hardening | in_progress | 4 |
 | 6 | Think-tank architecture | done | 4 |
-| 7 | Product surface | in_progress | 4, 6 |
+| 7 | Product surface | done | 4, 6 |
 
-**Current position (2026-08-03).** Phase 6 is done: all four specs (023-026) verified, the before/after comparison report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89 to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%, token cost down 40%. Phase 4 still needs SPEC-020 (a real, non-benchmark decision run through the CLI). Carried-over engineering tasks completed: citation checking consolidated into `citations.py`, coercion-layer property test covering every artifact model, coercion-layer accounting instrumentation with audit-log extraction. Phase 7 backend specs (027-033) implemented: case control service, revision loops, budget truth, safe resume, CaseView projection, and web app shell (FastAPI + SSE + React SPA scaffold). `make check` is green: lint, mypy, 714 unit tests, plus 18 live tests that are deselected by default. `make frontend-check` passes (tsc, type-generation drift check, and 63 frontend tests).
+**Current position (2026-08-03).** Phase 7 is done: all eleven specs (027-037) verified. The web
+product (FastAPI + SSE service, React SPA with commissioning, scope checkpoint, living brief,
+delivery checkpoint, five rooms, record inspector, four uncertainty encodings) is verified end to
+end in a real browser via the SPEC-037 Playwright suite (fixture 24, stub 5, replay 6 = 35 tests
+across chromium). Phase 6 is done: all four specs (023-026) verified, the before/after comparison
+report is at `report-and-findings/2026-08-03-phase-6-before-after.md`. Average score improved 1.89
+to 1.96, evidence quality 1.53 to 1.80, assumptions 0 to 7.8/case, invocation success 52% to 92%,
+token cost down 40%. Phases 4 and 5 remain open: Phase 4 needs SPEC-020 (a real, non-benchmark
+decision run through the CLI — in progress now via the Droid CLI backend), and Phase 5 needs the
+live SPEC-021 baseline+workflow runs and the SPEC-022 comparative audit. `make check` is green:
+lint, mypy, 714 unit tests, plus 18 live tests deselected by default. `make frontend-check` passes
+(tsc, the type-generation drift check, and 71 frontend unit tests — it now runs the tests, which
+no target previously invoked).
 
 ---
 
@@ -187,14 +199,31 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 | SPEC-030 | Safe resume and delivery-integrity persistence | verified |
 | SPEC-031 | Renderer and presentation-data fixes | verified |
 | SPEC-032 | CaseView projection, fixture case, generated frontend types | verified |
-| SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | implemented |
-| SPEC-034 | Commissioning flow and scope checkpoint UI | implemented |
-| SPEC-035 | Living brief, progress experience, delivery checkpoint UI | draft |
-| SPEC-036 | Rooms and record inspector | implemented |
-| SPEC-037 | Frontend e2e suite in a real browser | draft |
+| SPEC-033 | Local web app shell: advisor ui, SSE, SPA scaffold, replay | verified |
+| SPEC-034 | Commissioning flow and scope checkpoint UI | verified |
+| SPEC-035 | Living brief, progress experience, delivery checkpoint UI | verified |
+| SPEC-036 | Rooms and record inspector | verified |
+| SPEC-037 | Frontend e2e suite in a real browser | verified |
 
 **Findings**
 
+- **(2026-08-03) Phase 7 closed: SPEC-033 to SPEC-037 verified, the product runs end to end in a
+  browser.** SPEC-033 (app shell: `advisor ui`, SSE audit stream, replay mode, SPA scaffold, 18
+  service + 25 event tests), SPEC-034 (commissioning + scope checkpoint, 30 frontend tests),
+  SPEC-035 (living brief, progress experience, delivery checkpoint with the four never-collapsed
+  uncertainty encodings, 58 frontend tests total), SPEC-036 (five rooms + record inspector), and
+  SPEC-037 (Playwright e2e). The 58 frontend unit tests and 35 Playwright e2e tests (fixture 24,
+  stub 5, replay 6) all pass; `make check` stays at 697 Python tests.
+- **(2026-08-03) SPEC-037 verification found and fixed a class of honest-UI defects the earlier
+  unit tests could not see, because they only surface in a real browser.** (a) Vite bound IPv6
+  `::1` only, so Playwright on `127.0.0.1` got connection-refused for every test; fixed with
+  `--host 127.0.0.1`. (b) The Challenges room rendered the raw `target_section` field path (e.g.
+  `preliminary_recommendation.rationale[0]`), leaking an internal stage enum into the DOM in
+  violation of SPEC-036's terminology rule; added `targetSectionLabel()` so only a human phrase
+  shows. (c) `SourceMixBar` put `aria-label` on plain `<div>`s (aria-prohibited-attr); moved to
+  `title` + a summarised parent `role="img"`. (d) Several status colours (`#ffa000`, `#b8860b`,
+  `#2e7d32`) were below WCAG AA contrast; darkened. The axe and terminology sweeps that caught
+  these now run with no rules disabled, so a regression fails a test rather than shipping.
 - **(2026-08-03) An independent test of the frontend found the audit lexicon silently
   swallowing every failure event.** The frontend was exercised on its own — production build
   served against a mock `/api`, no orchestrator — which is the first time the built product was
@@ -226,11 +255,19 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
   the user's option on the sheet they sign; and unknown routes rendered a blank page.
 - **(2026-08-03) The frontend test suite was in no build target.** `make frontend-check` ran
   `typecheck` and `check:clean` only, `make check` is Python-only, and `frontend/README.md`
-  documented an `npm run lint` that does not exist. 63 frontend tests ran only when someone
+  documented an `npm run lint` that does not exist. The frontend tests ran only when someone
   remembered the command. `frontend-check` now runs them; the README no longer advertises a
   linter that was never set up. **Worth adding:** ESLint with `react-hooks` rules would have
-  caught the conditional-hook bug above statically — it is the one defect here that no amount of
-  browser testing reliably surfaces.
+  caught the conditional-hook bug above statically — it is the one defect here that neither the
+  SPEC-037 Playwright suite nor a manual browser walkthrough reliably surfaces.
+- **(2026-08-03) The mock-API and Playwright passes found disjoint defect sets, which is the
+  useful part.** SPEC-037 drives archived fixture cases, so it sees what a finished, well-formed
+  case renders: it caught the terminology leak, the aria misuse and the contrast failures. Serving
+  a hand-written `/api` instead let the run assert on states the fixtures do not contain — a case
+  with no evidence yet, a terminal case, an unknown route, an unmapped audit event — which is
+  where the lexicon gap, the "In progress" status on a finished case and the blank 404 were
+  hiding. Neither approach subsumes the other; fixtures test fidelity, synthesized states test
+  coverage.
 - **(2026-08-03) SPEC-027 to SPEC-032 verified; 639 unit tests green.** Each spec's own
   verification plan was executed rather than inferred from a passing suite: 027 (30 tests plus a
   clean `make schemas`), 028 (64), 029 (33), 030 (27), 031 (31), 032 (21 plus regenerating 60
@@ -286,6 +323,13 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 - ~~(2026-08-02) Coercion-layer accounting: the Phase 4 runs depended on coercion to complete, so how often it fires, and for which role and field, should be measured rather than assumed benign. Sharpened by the optional-list bug below: the layer was silently not firing on a whole category of fields and nothing noticed until a benchmark scenario died.~~ **Implemented 2026-08-03** in `5af2fce`: `CoercionReport` records every field change, logged to audit trail, extracted by `case_metrics.py` with per-role/per-field/per-type counts. Also fixed a `_base_type` bug where `dict[str, int]` was misidentified as `str`.
 - ~~(2026-08-02) A property test over every artifact model asserting the coercion layer reaches every field, rather than testing hand-picked fields. The `list[...] | None` gap existed because coverage was chosen by example.~~ **Implemented 2026-08-03** in `128231f`: 178 parametrized tests walk every `ArtifactModel` subclass and every field, verifying coercion coverage. Found one known exception (`SensitivityRow.parameter_value: float | NonEmptyStr`).
 - ~~(2026-08-02) Researcher and analyst produce most of the token spend at the worst success rates.~~ **Fixed the same day** in `a2ef43d`; see the Phase 6 findings.
+- (2026-08-03) **The SPEC-037 suite defines a webkit project that has never been run.** The Phase 7
+  results record 35 tests "across chromium", but `e2e/playwright.config.ts` also declares webkit, and
+  running it surfaces `method room shows audit events` as flaky there — it fails, then passes on retry,
+  identically on `origin/main` and on this branch, so it is not a regression. The likely cause is
+  webkit's handling of the SSE fetch stream, which is exactly the kind of browser difference a
+  second engine exists to catch. Either run webkit in the suite and fix the flake, or drop the project
+  from the config so the coverage claim matches what actually executes.
 - (2026-08-03) **`AlternativeAssessment.eliminated` as an agent-declared field.** `OptionView.eliminated`
   currently derives elimination from the rationale prose in `caseview.py::_is_eliminated`. That is one
   tested place rather than a regex in a component, but it is still an inference where the north star

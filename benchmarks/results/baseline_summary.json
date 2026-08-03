@@ -1,0 +1,67 @@
+[
+  {
+    "scenario_id": "scenario-01",
+    "scenario_title": "Public Equity Timing: Nvidia vs Semiconductor ETF",
+    "type": "baseline",
+    "model": "gpt-5.4",
+    "status": "exit_error",
+    "elapsed_seconds": 6.9,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "output_length": 0,
+    "has_recommendation": false
+  },
+  {
+    "scenario_id": "scenario-02",
+    "scenario_title": "Staged Angel Check for Friend's AI Startup",
+    "type": "baseline",
+    "model": "gpt-5.4",
+    "status": "exit_error",
+    "elapsed_seconds": 6.3,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "output_length": 0,
+    "has_recommendation": false
+  },
+  {
+    "scenario_id": "scenario-03",
+    "scenario_title": "Build vs Buy Analytics Stack",
+    "type": "baseline",
+    "model": "gpt-5.4",
+    "status": "exit_error",
+    "elapsed_seconds": 6.4,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "output_length": 0,
+    "has_recommendation": false
+  },
+  {
+    "scenario_id": "scenario-04",
+    "scenario_title": "Big Tech Salary vs Series B Equity Upside",
+    "type": "baseline",
+    "model": "gpt-5.4",
+    "status": "exit_error",
+    "elapsed_seconds": 6.5,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "output_length": 0,
+    "has_recommendation": false
+  },
+  {
+    "scenario_id": "scenario-05",
+    "scenario_title": "Buy Condo Now vs Rent and Invest",
+    "type": "baseline",
+    "model": "gpt-5.4",
+    "status": "exit_error",
+    "elapsed_seconds": 6.6,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "output_length": 0,
+    "has_recommendation": false
+  }
+]

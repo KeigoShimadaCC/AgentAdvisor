@@ -35,6 +35,23 @@ export function CaseDetail() {
         <dt>Terminal</dt><dd>{view.is_terminal ? "yes" : "no"}</dd>
       </dl>
 
+      {caseId && (
+        <p>
+          <Link
+            to={
+              view.stage === "done" || view.stage === "awaiting_final_approval"
+                ? `/cases/${caseId}/delivery`
+                : `/cases/${caseId}/brief`
+            }
+            className="primary-action"
+          >
+            {view.stage === "done" || view.stage === "awaiting_final_approval"
+              ? "Review delivery"
+              : "Open living brief"}
+          </Link>
+        </p>
+      )}
+
       {caseId && <RoomTabs caseId={caseId} />}
 
       <section className="brief-sections">

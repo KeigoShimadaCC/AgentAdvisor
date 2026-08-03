@@ -2,7 +2,7 @@
 id: SPEC-037
 title: Frontend end-to-end suite in a real browser (fixture, stub, replay, live)
 phase: 7
-status: draft
+status: verified
 depends_on: [SPEC-034, SPEC-035, SPEC-036]
 parallel_with: []
 north_star_refs: ["15", "18"]
@@ -154,7 +154,37 @@ make check
 
 ## Verification results
 
-—
+Verified 2026-08-03 (chromium project). All three deterministic modes pass headless with
+the Playwright-managed servers (backend via `.venv/bin/python -m orchestrator.cli ui`, Vite via
+`node_modules/.bin/vite --host 127.0.0.1 --port 5173 --strictPort`):
+
+- Fixture mode: 24/24 passed. Covers library (titles + human stage labels), needs-you funnel to
+  scope, delivered brief sections, delivery answer card + key reasons, citation chip → inspector,
+  stability sentinel "not assessed" (never a bare number), all five rooms + method event log,
+  scope sheet sections, terminology-guard sweep on every screen, and axe (zero serious/critical)
+  on the six covered screens.
+- Stub mode: 5/5 passed. Full lifecycle create → scope → approve → delivery → accept → done with
+  disk assertions for `framing_approval.yaml` / `final_approval.yaml` via the test-hook endpoint,
+  plus wrong-stage 409s.
+- Replay mode: 6/6 passed. SSE ordering from since=0, no percent-complete, sealed-card absent for
+  a done case, and 409 for checkpoint/new-case POSTs in replay mode.
+
+Root connectivity bug found and fixed during verification: Vite bound IPv6 `::1` only while
+Playwright targets `127.0.0.1`; forcing `--host 127.0.0.1` resolved it.
+
+Gaps found by the terminology-guard and axe sweeps were fixed in the app (not papered over in
+tests):
+- Challenges room rendered the raw `target_section` field path (e.g.
+  `preliminary_recommendation.rationale[0]`); added `targetSectionLabel()` in `copy/terms.ts` and
+  used it so only a human phrase shows.
+- `SourceMixBar` put `aria-label` on plain segment `<div>`s (aria-prohibited-attr); moved the
+  per-segment text to `title` and summarised counts on the parent `role="img"` bar.
+- Color-contrast: `#ffa000` needs-you pill, and the `#b8860b`/`#2e7d32` status text used across
+  rooms/brief were below WCAG AA; darkened to `#b45309`/`#8a6400`/`#1f6b23`.
+
+`make check` (697 Python tests) and the 58 frontend unit tests remain green. Live mode
+(`E2E_LIVE`) not exercised (costs real usage); webkit project not run (browser not installed on
+the reference machine) — deferred per the open question below.
 
 ## Open questions
 

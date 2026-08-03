@@ -28,7 +28,7 @@ import yaml  # type: ignore[import-untyped]
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from orchestrator.backend import CursorCLIBackend, RoleInvocation  # noqa: E402
+from orchestrator.backend import RoleInvocation, make_backend  # noqa: E402
 
 # The Section 16 output template the baseline must follow, so format differences
 # do not contaminate quality comparison (only substance differs).
@@ -79,8 +79,11 @@ Decision to analyze:
 
 """
 
-# Strongest available model for the baseline.
-_BASELINE_MODEL = "cursor-grok-4.5-low"
+# Strongest available model for the baseline (per backend).
+_BASELINE_MODELS: dict[str, str] = {
+    "cursor": "cursor-grok-4.5-low",
+    "droid": "gpt-5.4",
+}
 _BASELINE_TIMEOUT_S = 600.0
 
 
@@ -95,6 +98,7 @@ def run_one_baseline(
     scenario_path: Path,
     *,
     output_dir: Path,
+    backend_name: str | None = None,
 ) -> dict[str, Any]:
     """Run a single baseline invocation and save results."""
     scenario = _load_scenario(scenario_path)
@@ -113,10 +117,11 @@ def run_one_baseline(
     workspace = output_dir / scenario_id / "baseline" / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
 
-    backend = CursorCLIBackend()
+    backend = make_backend(backend_name)
+    model = _BASELINE_MODELS.get(backend.name, _BASELINE_MODELS["cursor"])
     invocation = RoleInvocation(
         role="baseline",
-        model=_BASELINE_MODEL,
+        model=model,
         prompt=full_prompt,
         workspace=workspace,
         timeout_s=_BASELINE_TIMEOUT_S,
@@ -139,7 +144,7 @@ def run_one_baseline(
         "scenario_id": scenario_id,
         "scenario_title": title,
         "type": "baseline",
-        "model": _BASELINE_MODEL,
+        "model": model,
         "status": result.status.value,
         "elapsed_seconds": round(elapsed, 1),
         "input_tokens": usage.input_tokens if usage else 0,
@@ -182,18 +187,15 @@ def main() -> None:
         help="Output directory for results",
     )
     parser.add_argument(
-        "--model",
+        "--backend",
         type=str,
-        default=_BASELINE_MODEL,
-        help="Model to use for the baseline",
+        default=None,
+        help="Backend to use (cursor or droid, defaults to AGENTADVISOR_BACKEND env)",
     )
     args = parser.parse_args()
 
     if not args.scenario and not args.all:
         parser.error("Specify --scenario or --all")
-
-    global _BASELINE_MODEL  # noqa: PLW0603
-    _BASELINE_MODEL = args.model
 
     if args.all:
         scenarios = sorted((REPO_ROOT / "benchmarks" / "cases").glob("scenario-*.yaml"))
@@ -204,11 +206,13 @@ def main() -> None:
         print("No scenarios found!")
         return
 
-    print(f"Running {len(scenarios)} baseline(s) with model {_BASELINE_MODEL}...")
+    backend = make_backend(args.backend)
+    model = _BASELINE_MODELS.get(backend.name, _BASELINE_MODELS["cursor"])
+    print(f"Running {len(scenarios)} baseline(s) with backend={backend.name}, model={model}...")
 
     results: list[dict[str, Any]] = []
     for scenario_path in scenarios:
-        result = run_one_baseline(scenario_path, output_dir=args.output)
+        result = run_one_baseline(scenario_path, output_dir=args.output, backend_name=args.backend)
         results.append(result)
 
     # Write combined summary

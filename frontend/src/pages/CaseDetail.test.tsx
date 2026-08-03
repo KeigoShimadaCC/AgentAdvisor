@@ -85,7 +85,10 @@ describe("CaseDetail status line", () => {
   it("shows the phase and the stage as distinct, humanized values", async () => {
     renderDetail(makeView({ phase: "investigation", stage: "evidence_critique", is_terminal: false }));
     await screen.findByText("case-1");
-    expect(metaValue("Phase")).toBe("Investigating");
+    // Phase comes from PHASE_LABELS (SPEC-035's progress vocabulary), stage from
+    // STAGE_LABELS; the point is that the row shows the phase rather than the
+    // stage a second time.
+    expect(metaValue("Phase")).toBe("Investigation");
     expect(metaValue("Stage")).toBe("Critiquing the evidence");
   });
 

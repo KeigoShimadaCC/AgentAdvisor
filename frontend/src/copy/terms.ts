@@ -164,20 +164,6 @@ export function stageLabel(stage: string): string {
   return STAGE_LABELS[stage] ?? "In progress";
 }
 
-/** The coarse phase a case is in — the CaseView's own `phase`, not its stage. */
-const PHASE_LABELS: Record<string, string> = {
-  intake: "Understanding the question",
-  framing: "Framing the decision",
-  investigation: "Investigating",
-  challenge: "Challenging the reasoning",
-  synthesis: "Synthesizing",
-  complete: "Complete",
-};
-
-export function phaseLabel(phase: string): string {
-  return PHASE_LABELS[phase] ?? phase;
-}
-
 // ── Intake field → human label (clarification cards, ground rules) ──────────
 
 const INTAKE_FIELD_LABELS: Record<string, string> = {
@@ -615,3 +601,172 @@ export function artifactKindLabel(artifactId: string): string {
   };
   return map[m[1]] ?? "Record";
 }
+
+// ── Provenance labels (SPEC-035) ───────────────────────────────────────────
+
+export const PROVENANCE_LABELS: Record<string, string> = {
+  sourced_fact: "Sourced fact",
+  interpretation: "Interpretation",
+  user_input: "Your input",
+  assumption: "Assumption",
+  calculation: "Calculation",
+  recommendation: "Recommendation",
+};
+
+export function provenanceLabel(value: string | null | undefined): string {
+  if (!value) return "Unattributed";
+  return PROVENANCE_LABELS[value] ?? value;
+}
+
+// ── Brief section titles (SPEC-035) ─────────────────────────────────────────
+
+export const BRIEF_SECTION_TITLES: Record<string, string> = {
+  executive_recommendation: "Executive recommendation",
+  decision_confidence: "Decision confidence",
+  alternatives_considered: "Alternatives considered",
+  key_reasons: "Key reasons",
+  scenario_analysis: "Scenario analysis",
+  quantitative_findings: "Quantitative findings",
+  strongest_counterarguments: "Strongest counterarguments",
+  premortem: "Pre-mortem",
+  critical_assumptions: "Critical assumptions",
+  recommendation_change_triggers: "Recommendation change triggers",
+  next_actions: "Next actions",
+  user_supplied_inputs: "Your inputs",
+  budget_depth_stop_disclosure: "Budget, depth, and stop disclosure",
+  evidence_and_citations: "Evidence and citations",
+};
+
+/**
+ * Render an objection ``target_section`` field path (e.g.
+ * ``preliminary_recommendation.rationale[0]``) as a human-readable phrase.
+ * The raw path carries internal stage/section enum strings and a machine
+ * field index that must never surface in the DOM (SPEC-036).
+ */
+const TARGET_SECTION_LABELS: Record<string, string> = {
+  preliminary_recommendation: "the preliminary recommendation",
+  executive_recommendation: "the recommendation",
+  provisional_thesis: "the provisional view",
+  key_reasons: "the key reasons",
+  scenario_analysis: "the scenario analysis",
+  quantitative_findings: "the quantitative findings",
+  critical_assumptions: "the critical assumptions",
+  alternatives_considered: "the alternatives considered",
+  next_actions: "the next actions",
+  synthesis: "the synthesis",
+};
+
+export function targetSectionLabel(path: string | null | undefined): string {
+  if (!path) return "the recommendation";
+  const base = path.split(/[.[]/)[0];
+  return (
+    TARGET_SECTION_LABELS[base] ??
+    (BRIEF_SECTION_TITLES[base] ? BRIEF_SECTION_TITLES[base].toLowerCase() : null) ??
+    "the recommendation"
+  );
+}
+
+// ── Method phases (SPEC-035) ─────────────────────────────────────────────────
+export const PHASE_ORDER: string[] = [
+  "intake",
+  "framing",
+  "investigation",
+  "challenge",
+  "synthesis",
+  "complete",
+];
+
+export const PHASE_LABELS: Record<string, string> = {
+  intake: "Intake",
+  framing: "Framing",
+  investigation: "Investigation",
+  challenge: "Challenge",
+  synthesis: "Synthesis",
+  complete: "Complete",
+};
+
+/** The coarse phase a case is in — the CaseView's own `phase`, not its stage. */
+export function phaseLabel(phase: string): string {
+  return PHASE_LABELS[phase] ?? phase;
+}
+
+export const PHASE_TIME_RANGES: Record<string, string> = {
+  intake: "under 1 minute",
+  framing: "1–3 minutes",
+  investigation: "3–15 minutes",
+  challenge: "2–8 minutes",
+  synthesis: "1–5 minutes",
+  complete: "done",
+};
+
+// ── Method strip copy (SPEC-035) ───────────────────────────────────────────
+
+export const METHOD_STRIP_COPY = {
+  nothingNeedsYou: "Nothing needs you right now.",
+  needsYou: "This case needs you.",
+  leaveSafely:
+    "You can leave the page. Work continues in the background and the brief will update when something happens.",
+  sealed: "The answer is being drafted and independently checked before it is shown to you.",
+} as const;
+
+// ── Non-final stamp (SPEC-035) ─────────────────────────────────────────────
+
+export const NON_FINAL_STAMP = "NON-FINAL — may change as the case runs";
+
+// ── Tripwire copy (SPEC-035) ───────────────────────────────────────────────
+
+export const TRIPWIRE_COPY = {
+  title: "This advice expires if…",
+  empty: "No explicit tripwires were recorded.",
+} as const;
+
+// ── Confidence bands (5-step) (SPEC-035) ───────────────────────────────────
+
+export const CONFIDENCE_BANDS = [
+  { threshold: 0.85, label: "Very high", key: "very_high" },
+  { threshold: 0.65, label: "High", key: "high" },
+  { threshold: 0.45, label: "Moderate", key: "moderate" },
+  { threshold: 0.25, label: "Low", key: "low" },
+  { threshold: 0, label: "Very low", key: "very_low" },
+] as const;
+
+export function confidenceBand(
+  point: number | null | undefined,
+): { label: string; index: number } {
+  if (point == null || Number.isNaN(point)) return { label: "Not assessed", index: -1 };
+  for (let i = 0; i < CONFIDENCE_BANDS.length; i++) {
+    if (point >= CONFIDENCE_BANDS[i].threshold) {
+      return { label: CONFIDENCE_BANDS[i].label, index: i };
+    }
+  }
+  return {
+    label: CONFIDENCE_BANDS[CONFIDENCE_BANDS.length - 1].label,
+    index: CONFIDENCE_BANDS.length - 1,
+  };
+}
+
+// ── Source-strength grade (SPEC-035) ────────────────────────────────────────
+
+export function sourceStrengthGrade(score: number | null | undefined): string {
+  if (score == null || Number.isNaN(score)) return "—";
+  if (score >= 0.9) return "A";
+  if (score >= 0.75) return "B";
+  if (score >= 0.55) return "C";
+  if (score >= 0.35) return "D";
+  return "F";
+}
+
+// ── Failure-path copy (SPEC-035) ─────────────────────────────────────────────
+
+export const FAILURE_COPY = {
+  failedTitle: "This case stopped before finishing",
+  failedDetail: "The run failed. You can resume from the last checkpoint to continue the investigation.",
+  interruptedTitle: "This case was interrupted",
+  interruptedDetail: "It stopped before the recommendation was ready. Resume to continue.",
+  earlyStopTitle: "This case stopped early",
+  earlyStopDetail: "It ran into a budget or depth limit before the full investigation completed.",
+  acceptAsIs: "Accept this result as-is",
+  extendFraming: "Extend the framing",
+  resume: "Resume",
+  backToCase: "Back to the case",
+} as const;

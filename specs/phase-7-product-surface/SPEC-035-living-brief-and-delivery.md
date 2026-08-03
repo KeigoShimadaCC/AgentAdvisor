@@ -2,7 +2,7 @@
 id: SPEC-035
 title: Living brief, progress experience, and delivery checkpoint UI
 phase: 7
-status: draft
+status: verified
 depends_on: [SPEC-029, SPEC-030, SPEC-031, SPEC-034, SPEC-036]
 parallel_with: []
 north_star_refs: ["9", "15", "16"]
