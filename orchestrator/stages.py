@@ -62,8 +62,21 @@ from orchestrator.verification import build_verification_worksheet, review_is_ac
 
 DEFAULT_TIMEOUT_S = 300.0
 ANALYST_TIMEOUT_S = 600.0
+# The droid CLI (claude-sonnet-5) runs heavy roles (analyst, synthesizer) right
+# at the timeout ceiling — a real case saw an analyst task time out at exactly
+# 600s and burn a retry. Scale timeouts up on that backend so genuinely slow
+# but healthy invocations complete instead of failing spuriously.
+_DROID_TIMEOUT_SCALE = 2.0
 STALE_AFTER_DAYS = 365
 MIN_ISSUE_COVERAGE_TO_STOP = 0.5
+
+
+def _role_timeout(backend: AgentBackend, role: str) -> float:
+    """Per-role invocation timeout, scaled up for the slower droid backend."""
+    base = ANALYST_TIMEOUT_S if role == "analyst" else DEFAULT_TIMEOUT_S
+    if getattr(backend, "name", "") == "droid":
+        return base * _DROID_TIMEOUT_SCALE
+    return base
 
 
 def _audit(case: Case, event_type: str, payload: dict[str, Any]) -> None:
@@ -105,7 +118,7 @@ def _build_task_runner(
         if role == "researcher":
             budget_ledger.try_consume(BudgetKind.RESEARCH_TASKS.value)
 
-        timeout = ANALYST_TIMEOUT_S if role == "analyst" else DEFAULT_TIMEOUT_S
+        timeout = _role_timeout(backend, role)
         invoke_task = InvokeTask(
             task_id=task.task_id,
             assignment=(
@@ -997,7 +1010,7 @@ class StageHandlers:
                 f"{retry_note}"
             ),
             output_artifact_type="final_recommendation",
-            timeout_s=ANALYST_TIMEOUT_S,
+            timeout_s=_role_timeout(self._backend, "analyst"),
         )
         try:
             artifact = invoke(
