@@ -194,6 +194,13 @@ export function riskToleranceLabel(value: string | null | undefined): string {
   return RISK_TOLERANCE_LABELS[value] ?? value;
 }
 
+/** Selectable risk-tolerance values, in escalating order, with lexicon labels. */
+export const RISK_TOLERANCE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  "low",
+  "moderate",
+  "high",
+].map((value) => ({ value, label: RISK_TOLERANCE_LABELS[value] }));
+
 // ── Reversibility ───────────────────────────────────────────────────────────
 
 const REVERSIBILITY_LABELS: Record<string, string> = {
@@ -206,6 +213,13 @@ export function reversibilityLabel(value: string | null | undefined): string {
   if (!value) return "Not set";
   return REVERSIBILITY_LABELS[value] ?? value;
 }
+
+/** Selectable reversibility values, easiest-to-reverse first, with lexicon labels. */
+export const REVERSIBILITY_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  "fully_reversible",
+  "partially_reversible",
+  "irreversible",
+].map((value) => ({ value, label: REVERSIBILITY_LABELS[value] }));
 
 // ── Option origin marks ─────────────────────────────────────────────────────
 
@@ -243,6 +257,8 @@ export const SCOPE_COPY = {
     "Parks the decision here. Nothing runs until you come back and sign.",
   declaredAssumptionLabel: "Assumed because you skipped it",
   assumedEditableNote: "You can edit this before signing.",
+  annotateLabel: "Note on this option",
+  annotatePlaceholder: "Why it matters, or a constraint on it (optional)",
 } as const;
 
 // ── Ground-rule item keys ───────────────────────────────────────────────────
@@ -570,6 +586,13 @@ export function roleLabel(value: string | null | undefined): string {
 }
 
 // ── Inspector copy ───────────────────────────────────────────────────────────
+
+// ── Sources room copy ───────────────────────────────────────────────────────
+
+export const SOURCES_COPY = {
+  limitationsLabel: "Limitations:",
+  noLimitationsStated: "None stated by the source record.",
+} as const;
 
 export const INSPECTOR_COPY = {
   title: "Record",

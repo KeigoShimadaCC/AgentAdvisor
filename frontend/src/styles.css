@@ -106,6 +106,10 @@ table.case-list th { font-weight: 600; color: var(--color-muted); font-size: 0.8
   border-radius: 4px;
   padding: 0.5rem 1rem;
   cursor: pointer;
+  /* Both classes are used on <a> as well as <button>.  An inline <a> does not
+     grow its line box for vertical padding, so the painted background bleeds
+     over whatever precedes it; inline-block makes the padding occupy layout. */
+  display: inline-block;
 }
 .primary-action {
   background: var(--color-accent);
@@ -281,12 +285,13 @@ table.case-list th { font-weight: 600; color: var(--color-muted); font-size: 0.8
 .options-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .option-row {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 0.5rem;
   border: 1px solid var(--color-border);
   border-radius: 4px;
 }
+.option-row-main { display: flex; align-items: center; gap: 0.75rem; }
 .option-origin {
   font-size: 0.75rem;
   padding: 0.125rem 0.5rem;
@@ -297,6 +302,14 @@ table.case-list th { font-weight: 600; color: var(--color-muted); font-size: 0.8
 .origin-added-by-analysis { background: #e3f2fd; color: #1565c0; }
 .option-text { flex: 1; }
 .option-annotation { color: var(--color-muted); font-size: 0.8125rem; font-style: italic; }
+.option-annotation-input {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+.option-annotation-input:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 .add-option { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
 .add-option-input {
   flex: 1;
@@ -319,10 +332,26 @@ table.case-list th { font-weight: 600; color: var(--color-muted); font-size: 0.8
   border: 1px solid var(--color-border);
   border-radius: 4px;
 }
-.ground-rule-item label { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.ground-rule-confirm { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .ground-rule-item input[type="checkbox"] { margin: 0; }
 .ground-rule-label { font-weight: 600; }
 .ground-rule-value { color: var(--color-fg); }
+.ground-rule-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.375rem;
+  padding-left: 1.5rem;
+}
+.ground-rule-input {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+.ground-rule-input:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 .assumed-mark { color: var(--color-muted); font-size: 0.8125rem; }
 
 .effort-summary { font-weight: 500; margin-bottom: 0.5rem; }

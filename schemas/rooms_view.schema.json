@@ -383,6 +383,13 @@
           "title": "Independence Group",
           "type": "string"
         },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
         "publication_date": {
           "title": "Publication Date",
           "type": "string"

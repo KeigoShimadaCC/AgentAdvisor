@@ -10,6 +10,9 @@ export type Outcome = string;
 export type Stage = string;
 export type Gates = GateSummaryView[];
 export type ReviewAccepted = boolean | null;
+export type ReviewBlockingFindings = {
+  [k: string]: unknown;
+}[];
 export type ReviewDefects = {
   [k: string]: unknown;
 }[];
@@ -19,6 +22,7 @@ export interface IntegrityView {
   disclosure?: Disclosure;
   gates?: Gates;
   review_accepted?: ReviewAccepted;
+  review_blocking_findings?: ReviewBlockingFindings;
   review_defects?: ReviewDefects;
   review_outcome?: ReviewOutcome;
 }

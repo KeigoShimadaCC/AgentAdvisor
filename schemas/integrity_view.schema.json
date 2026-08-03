@@ -62,6 +62,14 @@
       "default": null,
       "title": "Review Accepted"
     },
+    "review_blocking_findings": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Review Blocking Findings",
+      "type": "array"
+    },
     "review_defects": {
       "items": {
         "additionalProperties": true,

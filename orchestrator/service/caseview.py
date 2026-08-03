@@ -29,6 +29,7 @@ from orchestrator.artifacts import (
     FinalRecommendation,
     FramingApproval,
     GateReport,
+    GateSeverity,
     IntakeRecord,
     IssueTree,
     ObjectionRecord,
@@ -38,6 +39,7 @@ from orchestrator.artifacts import (
     TaskRecord,
     ThesisRevision,
     TrackDivergence,
+    VerificationWorksheet,
 )
 from orchestrator.artifacts.confidence import ConfidenceAssessment
 from orchestrator.artifacts.evidence_critique import EvidenceAuthorityScore
@@ -225,6 +227,10 @@ class SourceView(BaseModel):
     independence_group: str
     reliability: str
     directness: str
+    # The record's own stated limitations.  Carried verbatim (SPEC-036): the
+    # room previously showed only a grade-derived line, which read as a
+    # limitation while actually restating the record's strengths.
+    limitations: list[str] = Field(default_factory=list)
     source_tier: str | None = None
     authority_score: float | None = None
     flags: list[str] = Field(default_factory=list)
@@ -368,6 +374,11 @@ class IntegrityView(BaseModel):
     review_accepted: bool | None = None
     review_outcome: str | None = None
     review_defects: list[dict[str, object]] = Field(default_factory=list)
+    # Deterministic block-severity findings from the verification worksheet.
+    # A review can be rejected purely on these while the reviewer's own
+    # ``outcome`` is "pass", so without them the UI can only say "Rejected"
+    # with no reason attached.
+    review_blocking_findings: list[dict[str, object]] = Field(default_factory=list)
     disclosure: dict[str, object] | None = None
 
 
@@ -818,6 +829,7 @@ def _build_sources_room(
                 independence_group=record.independence_group,
                 reliability=record.reliability.value,
                 directness=record.directness.value,
+                limitations=list(record.limitations),
                 source_tier=str(source_tier.value) if source_tier is not None else None,
                 authority_score=float(authority_score) if authority_score is not None else None,
                 flags=flags,
@@ -1047,6 +1059,22 @@ def _build_integrity(
             for d in review.defects
         ]
 
+    # The worksheet's block-severity findings are the other way a review can be
+    # rejected (see ``review_is_acceptable``), so surface them alongside the
+    # reviewer-reported defects.
+    worksheets = case.list_artifacts(VerificationWorksheet)
+    review_blocking_findings: list[dict[str, object]] = [
+        {
+            "check_id": f.check_id,
+            "severity": f.severity.value,
+            "message": f.message,
+            "target_ids": list(f.target_ids),
+        }
+        for worksheet in worksheets
+        for f in worksheet.deterministic_findings
+        if f.severity is GateSeverity.BLOCK
+    ]
+
     disclosure_dict: dict[str, object] | None = None
     if disclosure is not None:
         disclosure_dict = {
@@ -1059,6 +1087,7 @@ def _build_integrity(
         review_accepted=state.review_accepted,
         review_outcome=review_outcome,
         review_defects=review_defects,
+        review_blocking_findings=review_blocking_findings,
         disclosure=disclosure_dict,
     )
 

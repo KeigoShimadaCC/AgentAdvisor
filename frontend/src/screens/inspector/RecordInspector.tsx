@@ -168,7 +168,18 @@ function EvidenceChain({ record }: { record: Record<string, unknown> }) {
   const sourceTier = field(record, "source_tier");
   const publisher = field(record, "publisher") ?? "—";
   const sourceUrl = field(record, "source_url") ?? null;
-  const limitations = record["limitations"];
+  // Accept both the schema's string[] and a bare string, and drop blanks so an
+  // empty entry cannot render as a stray bullet.
+  const rawLimitations = record["limitations"];
+  const limitationList = (
+    Array.isArray(rawLimitations)
+      ? rawLimitations.map((item) => String(item))
+      : typeof rawLimitations === "string"
+        ? [rawLimitations]
+        : []
+  )
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
   const flags = Array.isArray(record["flags"]) ? (record["flags"] as string[]) : [];
 
   return (
@@ -214,8 +225,18 @@ function EvidenceChain({ record }: { record: Record<string, unknown> }) {
 
       <div className="inspector-chain-step">
         <span className="inspector-chain-label">{INSPECTOR_COPY.chainLimitations}</span>
-        {limitations ? (
-          <p>{typeof limitations === "string" ? limitations : JSON.stringify(limitations)}</p>
+        {/* The schema types limitations as string[], so stringifying it leaked
+            JSON brackets and quotes into the chain; SPEC-036 wants it verbatim. */}
+        {limitationList.length > 0 ? (
+          limitationList.length === 1 ? (
+            <p>{limitationList[0]}</p>
+          ) : (
+            <ul className="inspector-limitations">
+              {limitationList.map((item, i) => (
+                <li key={`${item}-${i}`}>{item}</li>
+              ))}
+            </ul>
+          )
         ) : (
           <p className="screen-help">No limitations stated.</p>
         )}
