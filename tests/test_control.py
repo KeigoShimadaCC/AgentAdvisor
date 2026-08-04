@@ -27,6 +27,7 @@ from orchestrator.control import (
     new_case,
     pause,
     resume,
+    spawn_worker_background,
 )
 from orchestrator.state_machine import CaseStage, CaseState, save_case_state
 from orchestrator.supervisor import CaseLocked, RunLock
@@ -121,6 +122,42 @@ class TestApproveFraming:
         written = case.read_artifact(FramingApproval)
         assert written.decision is FramingDecision.APPROVE
         assert written.approved_by == "test-user"
+
+    def test_worker_runner_is_injectable(self, control_env: Path) -> None:
+        # The HTTP service injects a background runner so a control POST returns
+        # without blocking until the worker halts. Verify the hook is used and
+        # the synchronous approval write still happens inline.
+        case_id = new_case(
+            _RAW_PROMPT,
+            slug="ctrl-inject",
+            budget_profile="small",
+            cases_root=control_env,
+        )
+        calls: list[tuple[str, Path]] = []
+
+        approval = FramingApproval(
+            decision=FramingDecision.APPROVE,
+            approved_by="test-user",
+            approved_at=datetime.now(UTC),
+        )
+        approve_framing(
+            case_id,
+            approval,
+            cases_root=control_env,
+            worker_runner=lambda cid, root: calls.append((cid, root)),
+        )
+
+        # The injected runner ran instead of the blocking default...
+        assert calls == [(case_id, control_env)]
+        # ...the synchronous approval write still landed...
+        case = load_case(case_id, cases_root=control_env)
+        assert case.read_artifact(FramingApproval).decision is FramingDecision.APPROVE
+        # ...and, because the fake runner never advanced a worker, the case
+        # stays parked at the framing gate (framing_approved flag set).
+        assert (
+            case_status(case_id, cases_root=control_env).stage
+            is CaseStage.AWAITING_FRAMING_APPROVAL
+        )
 
     def test_wrong_stage_raises(self, control_env: Path) -> None:
         case_id = new_case(
@@ -414,3 +451,47 @@ class TestInterruptedDetection:
 
         result = interrupted_cases(control_env)
         assert case_id in result
+
+
+def test_spawn_worker_background_runs_worker_in_thread(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """The service's background runner drives a worker off the request thread."""
+    import threading
+
+    from orchestrator import control
+
+    started = threading.Event()
+    recorded: list[tuple[str, Path]] = []
+
+    def _fake(case_id: str, cases_root: Path) -> None:
+        recorded.append((case_id, cases_root))
+        started.set()
+
+    monkeypatch.setattr(control, "_run_worker_to_halt", _fake)
+    spawn_worker_background("case-bg", tmp_path)
+
+    assert started.wait(timeout=5), "background worker never started"
+    assert recorded == [("case-bg", tmp_path)]
+
+
+def test_spawn_worker_background_swallows_worker_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A background worker failure is logged, not raised into the caller."""
+    import threading
+
+    from orchestrator import control
+
+    done = threading.Event()
+
+    def _boom(case_id: str, cases_root: Path) -> None:
+        try:
+            raise RuntimeError("worker exploded")
+        finally:
+            done.set()
+
+    monkeypatch.setattr(control, "_run_worker_to_halt", _boom)
+    # Must not raise even though the worker fails.
+    spawn_worker_background("case-boom", tmp_path)
+    assert done.wait(timeout=5)

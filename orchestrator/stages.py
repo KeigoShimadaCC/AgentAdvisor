@@ -1112,6 +1112,19 @@ class StageHandlers:
             )
         except FileNotFoundError as exc:
             return StepResult.error(f"Render failed: {exc}")
+        except ValueError as exc:
+            # A failed review typically leaves a FinalRecommendation that cites
+            # unsupported or dangling evidence IDs; rendering validates citations
+            # and raises ValueError.  That must not crash the worker — the review
+            # verdict below routes to resynthesis (or, once the retry budget is
+            # spent, to the approval gate with review_accepted=False recorded).
+            # Skip the unrenderable draft and let the state machine proceed so the
+            # case stays inspectable instead of crashing on every resume.
+            _audit(
+                case,
+                "render_skipped",
+                {"stage": "review", "accepted": accepted, "reason": str(exc)},
+            )
 
         _audit(case, "stage_completed", {"stage": "review", "accepted": accepted})
         if not accepted:

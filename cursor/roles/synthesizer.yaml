@@ -5,6 +5,11 @@ read_only: false
 allow_shell: false
 projection_include:
   - decision_spec
+  # artifact_index is a compact, authoritative list of every real E-/A-/O- ID
+  # with a one-line summary. It is placed early so it survives the projection
+  # char budget even when full evidence records are truncated, giving the
+  # synthesizer the true ID set to cite instead of inventing IDs (e.g. E-801).
+  - artifact_index
   - evidence_records
   - assumptions
   - objections

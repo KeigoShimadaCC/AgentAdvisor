@@ -36,6 +36,7 @@ from orchestrator.invoke_role import (
     invoke,
     register_cross_field_validation_hook,
 )
+from orchestrator.pipeline import SMALL_BUDGET
 from orchestrator.roles_config import PermissionProfile, RoleConfig, family, load_role_config
 
 
@@ -439,3 +440,59 @@ def test_live_mini_run_reviewer_schema_valid_within_two_attempts(
     assert isinstance(artifact, ReviewReport)
     assert artifact.outcome is ReviewOutcome.PASS
     assert _attempt_count(case, "reviewer", "T-REV-LIVE") <= 2
+
+
+def test_handle_review_does_not_crash_on_dangling_citations(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failed review whose recommendation cites missing evidence IDs must not
+    crash the worker.
+
+    Rendering validates citations and raises ValueError on a dangling draft.
+    ``handle_review`` must catch it, record a ``render_skipped`` event, and
+    return NEEDS_RESYNTHESIS so the case degrades gracefully instead of crashing
+    on every resume (the case-015 defect).
+    """
+    from orchestrator import stages
+    from orchestrator.backend import StubBackend
+    from orchestrator.stages import StageHandlers
+    from orchestrator.state_machine import (
+        CaseStage,
+        StepOutcome,
+        StepPlan,
+        load_case_state,
+    )
+
+    fixture_root = _fixture_root()
+    case = _build_case(tmp_path, monkeypatch, "review-dangling")
+    _seed_case_inputs(case, fixture_root)
+    # A schema-valid FinalRecommendation whose citations are dangling.
+    dangling = load_model_from_yaml_path(
+        FinalRecommendation, fixture_root / "final_recommendation.dangling.yaml"
+    )
+    case.write_artifact(dangling)
+
+    fail_report = load_model_from_yaml_path(ReviewReport, fixture_root / "review_report.fail.yaml")
+    monkeypatch.setattr(stages, "invoke", lambda *a, **k: fail_report)
+    monkeypatch.setattr(stages, "review_is_acceptable", lambda *a, **k: False)
+
+    handlers = StageHandlers(
+        backend=StubBackend([]),
+        budget_config=SMALL_BUDGET,
+        raw_prompt="Should I take the offer?",
+    )
+    handlers._budget_ledger = object()  # invoke is stubbed; ledger is unused
+
+    state = load_case_state(case)
+    state.stage = CaseStage.REVIEW
+    plan = StepPlan(CaseStage.REVIEW, "review", (TaskRole.REVIEWER,))
+
+    # Previously raised ValueError and crashed the worker.
+    result = handlers.handle_review(case, state, plan)
+
+    assert result.outcome is StepOutcome.NEEDS_RESYNTHESIS
+    audit_events = [
+        AuditEvent.model_validate_json(line)
+        for line in (case.root / "audit.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert any(event.event_type == "render_skipped" for event in audit_events)

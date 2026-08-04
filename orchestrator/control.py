@@ -9,9 +9,12 @@ without a record.
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 import sys
+import threading
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -50,6 +53,13 @@ _BUDGET_PROFILES: dict[str, BudgetConfig] = {
 }
 
 _META_FILENAME = "control_meta.yaml"
+
+_logger = logging.getLogger("orchestrator.control")
+
+# A worker runner starts a worker and drives it to its next halt.  Control
+# functions accept one so callers choose blocking (CLI) or detached (HTTP
+# service) execution without changing the control logic itself.
+WorkerRunner = Callable[[str, Path], None]
 
 
 class ControlStatus(BaseModel):
@@ -161,6 +171,26 @@ def _run_worker_to_halt(case_id: str, cases_root: Path) -> None:
         raise WorkerFailed(case_id, process.returncode, stderr)
 
 
+def spawn_worker_background(case_id: str, cases_root: Path) -> None:
+    """Drive a worker to its next halt in a daemon thread, returning at once.
+
+    Used by the HTTP service so a control-plane POST returns promptly instead
+    of blocking until the worker halts (seconds to minutes).  The UI observes
+    progress by polling the case view and audit stream, so the response body
+    need not wait for completion.  A failure is logged rather than raised — the
+    caller has already returned — and remains visible in the case audit log and
+    state file.
+    """
+
+    def _run() -> None:
+        try:
+            _run_worker_to_halt(case_id, cases_root)
+        except Exception as exc:  # noqa: BLE001
+            _logger.warning("Background worker for %s failed: %s", case_id, exc)
+
+    threading.Thread(target=_run, daemon=True, name=f"worker-{case_id}").start()
+
+
 def _awaiting(state: CaseState) -> str | None:
     if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
         return "framing"
@@ -188,6 +218,7 @@ def new_case(
     budget_profile: str = "default",
     depth: str | None = None,
     cases_root: Path | None = None,
+    worker_runner: WorkerRunner = _run_worker_to_halt,
 ) -> str:
     """Create a case, start a worker, and block until the first halt.
 
@@ -201,7 +232,7 @@ def new_case(
     _write_meta(case, raw_prompt, budget_profile, depth)
     _audit(case, "control_case_created", {"case_id": case_id, "slug": slug})
     _audit(case, "control_run_started", {"case_id": case_id, "pid": None})
-    _run_worker_to_halt(case_id, root)
+    worker_runner(case_id, root)
 
     return case_id
 
@@ -231,6 +262,7 @@ def approve_framing(
     approval: FramingApproval,
     *,
     cases_root: Path | None = None,
+    worker_runner: WorkerRunner = _run_worker_to_halt,
 ) -> None:
     """Write the framing approval, set the flag, and restart the worker.
 
@@ -264,7 +296,7 @@ def approve_framing(
         lock.release()
 
     _audit(case, "control_run_started", {"case_id": case_id})
-    _run_worker_to_halt(case_id, root)
+    worker_runner(case_id, root)
 
 
 def approve_final(
@@ -272,6 +304,7 @@ def approve_final(
     approval: FinalApproval,
     *,
     cases_root: Path | None = None,
+    worker_runner: WorkerRunner = _run_worker_to_halt,
 ) -> None:
     """Write the final approval, set the flag, and restart the worker to completion."""
     root = _resolve_root(cases_root)
@@ -302,7 +335,7 @@ def approve_final(
         lock.release()
 
     _audit(case, "control_run_started", {"case_id": case_id})
-    _run_worker_to_halt(case_id, root)
+    worker_runner(case_id, root)
 
 
 def request_framing_revision(
@@ -311,6 +344,7 @@ def request_framing_revision(
     edits: dict[str, object],
     clarification_answers: dict[str, str],
     cases_root: Path | None = None,
+    worker_runner: WorkerRunner = _run_worker_to_halt,
 ) -> None:
     """Request a framing revision: re-run framing with user edits and answers.
 
@@ -385,7 +419,7 @@ def request_framing_revision(
         lock.release()
 
     _audit(case, "control_run_started", {"case_id": case_id})
-    _run_worker_to_halt(case_id, root)
+    worker_runner(case_id, root)
 
 
 def request_final_revision(
@@ -393,6 +427,7 @@ def request_final_revision(
     *,
     note: str,
     cases_root: Path | None = None,
+    worker_runner: WorkerRunner = _run_worker_to_halt,
 ) -> None:
     """Request a final revision: re-run synthesis with the user's note.
 
@@ -445,7 +480,7 @@ def request_final_revision(
         lock.release()
 
     _audit(case, "control_run_started", {"case_id": case_id})
-    _run_worker_to_halt(case_id, root)
+    worker_runner(case_id, root)
 
 
 def pause(
@@ -464,6 +499,7 @@ def resume(
     case_id: str,
     *,
     cases_root: Path | None = None,
+    worker_runner: WorkerRunner = _run_worker_to_halt,
 ) -> None:
     """Restart a worker for a parked or interrupted case.
 
@@ -495,4 +531,4 @@ def resume(
         )
 
     _audit(case, "control_run_started", {"case_id": case_id})
-    _run_worker_to_halt(case_id, root)
+    worker_runner(case_id, root)

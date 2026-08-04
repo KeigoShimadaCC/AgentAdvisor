@@ -43,6 +43,7 @@ from orchestrator.control import (
     request_final_revision,
     request_framing_revision,
     resume,
+    spawn_worker_background,
 )
 from orchestrator.memory import MemoryStore, memory_root
 from orchestrator.service.caseview import build_case_view
@@ -88,6 +89,33 @@ _ACTIVE_STAGES: frozenset[CaseStage] = frozenset(
 _logger = logging.getLogger("orchestrator.service.auto_resume")
 
 
+def _is_resumable(case: Case) -> bool:
+    """Whether a worker could recover this case's raw prompt to resume it.
+
+    Mirrors ``worker._resolve_raw_prompt``: the prompt comes from
+    ``control_meta.yaml`` or, failing that, an ``IntakeRecord``.  Legacy or
+    corrupt cases with neither cannot be resumed — spawning a worker for them
+    just crashes on every server startup — so auto-resume must skip them.
+    """
+    meta_path = case.root / "shared" / "control_meta.yaml"
+    if meta_path.exists():
+        try:
+            data = yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and str(data.get("raw_prompt", "") or "").strip():
+                return True
+        except (OSError, yaml.YAMLError):
+            pass
+    try:
+        from orchestrator.artifacts import IntakeRecord
+
+        records = case.list_artifacts(IntakeRecord)
+        if records and records[0].raw_prompt:
+            return True
+    except Exception:  # noqa: BLE001
+        pass
+    return False
+
+
 def _find_stuck_cases(cases_root: Path) -> list[tuple[str, CaseStage]]:
     """Return ``(case_id, stage)`` for every case stranded in an active stage."""
     stuck: list[tuple[str, CaseStage]] = []
@@ -101,8 +129,15 @@ def _find_stuck_cases(cases_root: Path) -> list[tuple[str, CaseStage]]:
             state = load_case_state(case)
         except Exception:  # noqa: BLE001
             continue
-        if state.stage in _ACTIVE_STAGES:
-            stuck.append((entry.name, state.stage))
+        if state.stage not in _ACTIVE_STAGES:
+            continue
+        if not _is_resumable(case):
+            _logger.info(
+                "Skipping un-resumable stuck case %s (no raw_prompt or IntakeRecord)",
+                entry.name,
+            )
+            continue
+        stuck.append((entry.name, state.stage))
     return stuck
 
 
@@ -472,7 +507,12 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
                     approved_by=body.approved_by,
                     approved_at=datetime.now(UTC),
                 )
-                approve_framing(case_id, approval, cases_root=config.cases_root)
+                approve_framing(
+                    case_id,
+                    approval,
+                    cases_root=config.cases_root,
+                    worker_runner=spawn_worker_background,
+                )
             elif body.decision in ("edit", "answer_clarifications"):
                 request_framing_revision(
                     case_id,
@@ -503,14 +543,24 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
                     approved_by=body.approved_by,
                     approved_at=datetime.now(UTC),
                 )
-                approve_final(case_id, approval, cases_root=config.cases_root)
+                approve_final(
+                    case_id,
+                    approval,
+                    cases_root=config.cases_root,
+                    worker_runner=spawn_worker_background,
+                )
             elif body.decision == "revise":
                 if not body.note:
                     raise HTTPException(
                         status_code=422,
                         detail="note is required for a delivery revision.",
                     )
-                request_final_revision(case_id, note=body.note, cases_root=config.cases_root)
+                request_final_revision(
+                    case_id,
+                    note=body.note,
+                    cases_root=config.cases_root,
+                    worker_runner=spawn_worker_background,
+                )
             else:
                 raise HTTPException(
                     status_code=422,
@@ -538,7 +588,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
     def post_resume(case_id: str) -> JSONResponse:
         _reject_replay(is_replay)
         try:
-            resume(case_id, cases_root=config.cases_root)
+            resume(case_id, cases_root=config.cases_root, worker_runner=spawn_worker_background)
         except Exception as exc:  # noqa: BLE001
             raise _http_from_control(exc, case_id, config) from exc
         stage = _case_stage_value(case_id, config)

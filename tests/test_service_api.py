@@ -211,7 +211,7 @@ def _make_state_yaml(case_id: str, stage: str) -> str:
     )
 
 
-def _make_case_dir(root: Path, case_id: str, stage: str) -> None:
+def _make_case_dir(root: Path, case_id: str, stage: str, *, resumable: bool = True) -> None:
     case_dir = root / case_id
     case_dir.mkdir(parents=True, exist_ok=True)
     (case_dir / "shared" / "evidence").mkdir(parents=True, exist_ok=True)
@@ -224,6 +224,13 @@ def _make_case_dir(root: Path, case_id: str, stage: str) -> None:
     (case_dir / "shared" / "task_graph.yaml").write_text("nodes: []\n", encoding="utf-8")
     (case_dir / "state.yaml").write_text(_make_state_yaml(case_id, stage))
     (case_dir / "audit.jsonl").write_text("")
+    # A worker recovers the prompt from control_meta (or an IntakeRecord); a
+    # case with neither cannot resume and auto-resume must skip it.
+    if resumable:
+        (case_dir / "shared" / "control_meta.yaml").write_text(
+            "raw_prompt: Should I take the offer?\nbudget_profile: small\n",
+            encoding="utf-8",
+        )
 
 
 def test_find_stuck_cases_detects_active_stages(tmp_path: Path) -> None:
@@ -252,6 +259,20 @@ def test_find_stuck_cases_empty_dir(tmp_path: Path) -> None:
     from orchestrator.service.app import _find_stuck_cases
 
     assert _find_stuck_cases(tmp_path) == []
+
+
+def test_find_stuck_cases_skips_unresumable(tmp_path: Path) -> None:
+    """A legacy case with no raw_prompt/IntakeRecord must be skipped, not resumed.
+
+    Auto-resuming it just spawns a worker that crashes on every startup.
+    """
+    from orchestrator.service.app import _find_stuck_cases
+
+    _make_case_dir(tmp_path, "case-010-resumable", "investigation", resumable=True)
+    _make_case_dir(tmp_path, "case-011-legacy-broken", "investigation", resumable=False)
+    stuck_ids = {cid for cid, _ in _find_stuck_cases(tmp_path)}
+    assert "case-010-resumable" in stuck_ids
+    assert "case-011-legacy-broken" not in stuck_ids
 
 
 def test_control_post_endpoints_are_sync() -> None:
