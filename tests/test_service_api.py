@@ -252,3 +252,37 @@ def test_find_stuck_cases_empty_dir(tmp_path: Path) -> None:
     from orchestrator.service.app import _find_stuck_cases
 
     assert _find_stuck_cases(tmp_path) == []
+
+
+def test_control_post_endpoints_are_sync() -> None:
+    """Control-plane POSTs must be sync ``def`` so FastAPI runs them in a threadpool.
+
+    Each one calls a blocking control function (``new_case``/``approve_framing``/
+    ``resume`` → ``_run_worker_to_halt`` → ``process.communicate()``) that blocks
+    until a worker subprocess halts — seconds to minutes.  If any were declared
+    ``async def`` they would run on uvicorn's single event loop and freeze every
+    other request (case list polls, SSE, views) for the whole worker run, which
+    is exactly the "Loading… forever" freeze this guards against.
+    """
+    import asyncio
+
+    app = create_app(cases_root=FIXTURES)
+    control_paths = {
+        "/api/cases",
+        "/api/cases/{case_id}/checkpoints/scope",
+        "/api/cases/{case_id}/checkpoints/delivery",
+        "/api/cases/{case_id}/pause",
+        "/api/cases/{case_id}/resume",
+        "/api/cases/{case_id}/outcome",
+    }
+    seen: set[str] = set()
+    for route in app.routes:
+        path = getattr(route, "path", None)
+        methods = getattr(route, "methods", set()) or set()
+        if path in control_paths and "POST" in methods:
+            seen.add(path)
+            assert not asyncio.iscoroutinefunction(route.endpoint), (
+                f"{path} POST must be a sync def so its blocking control call "
+                "runs in a threadpool and never freezes the event loop."
+            )
+    assert seen == control_paths, f"missing control POST routes: {control_paths - seen}"

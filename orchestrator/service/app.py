@@ -434,8 +434,17 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
         return PlainTextResponse(content, media_type="text/plain; charset=utf-8")
 
     # ── POST /api/cases ──────────────────────────────────────────────────
+    #
+    # The control-plane POSTs below are declared as *sync* ``def`` on purpose.
+    # They call blocking control functions (``new_case``/``approve_framing``/
+    # ``resume`` → ``_run_worker_to_halt`` → ``process.communicate()``) that
+    # block until a worker subprocess reaches its next halt — seconds to many
+    # minutes.  FastAPI runs sync path operations in a threadpool, so the
+    # blocking call never occupies uvicorn's single asyncio event loop.  If any
+    # of these were ``async def``, one in-flight control call would freeze every
+    # other request (case list polls, SSE, views) for the whole worker run.
     @application.post("/api/cases", status_code=201)
-    async def post_new_case(body: NewCaseRequest) -> JSONResponse:
+    def post_new_case(body: NewCaseRequest) -> JSONResponse:
         _reject_replay(is_replay)
         slug = body.slug or _slug_from_prompt(body.prompt)
         try:
@@ -454,7 +463,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
 
     # ── POST /api/cases/{case_id}/checkpoints/scope ──────────────────────
     @application.post("/api/cases/{case_id}/checkpoints/scope")
-    async def post_scope_checkpoint(case_id: str, body: ScopeCheckpointRequest) -> JSONResponse:
+    def post_scope_checkpoint(case_id: str, body: ScopeCheckpointRequest) -> JSONResponse:
         _reject_replay(is_replay)
         try:
             if body.decision == "approve":
@@ -485,9 +494,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
 
     # ── POST /api/cases/{case_id}/checkpoints/delivery ───────────────────
     @application.post("/api/cases/{case_id}/checkpoints/delivery")
-    async def post_delivery_checkpoint(
-        case_id: str, body: DeliveryCheckpointRequest
-    ) -> JSONResponse:
+    def post_delivery_checkpoint(case_id: str, body: DeliveryCheckpointRequest) -> JSONResponse:
         _reject_replay(is_replay)
         try:
             if body.decision == "accept":
@@ -518,7 +525,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
 
     # ── POST /api/cases/{case_id}/pause ──────────────────────────────────
     @application.post("/api/cases/{case_id}/pause")
-    async def post_pause(case_id: str) -> JSONResponse:
+    def post_pause(case_id: str) -> JSONResponse:
         _reject_replay(is_replay)
         try:
             pause(case_id, cases_root=config.cases_root)
@@ -528,7 +535,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
 
     # ── POST /api/cases/{case_id}/resume ─────────────────────────────────
     @application.post("/api/cases/{case_id}/resume")
-    async def post_resume(case_id: str) -> JSONResponse:
+    def post_resume(case_id: str) -> JSONResponse:
         _reject_replay(is_replay)
         try:
             resume(case_id, cases_root=config.cases_root)
@@ -539,7 +546,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
 
     # ── POST /api/cases/{case_id}/outcome ────────────────────────────────
     @application.post("/api/cases/{case_id}/outcome")
-    async def post_outcome(case_id: str, body: OutcomeRequest) -> JSONResponse:
+    def post_outcome(case_id: str, body: OutcomeRequest) -> JSONResponse:
         _reject_replay(is_replay)
         case = _load_or_404(case_id, config)
         state = load_case_state(case)
