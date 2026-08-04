@@ -17,6 +17,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 5 | Evaluation and hardening | done | 4 |
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | done | 4, 6 |
+| 8 | Pipeline improvement | in_progress | 6, 7 |
 
 **Current position (2026-08-03).** Phase 7 is done: all eleven specs (027-037) verified. The web
 product (FastAPI + SSE service, React SPA with commissioning, scope checkpoint, living brief,
@@ -34,6 +35,10 @@ checked; reports at `report-and-findings/2026-08-03-evaluation.md` and `dod-audi
 **All phases (0-7) are done. The MVP is complete.** `make check` is green: lint, mypy, 716 unit
 tests, plus 18 live tests deselected by default. `make frontend-check` passes (tsc, the
 type-generation drift check, and 77 frontend unit tests).
+
+**(2026-08-04) Phase 8 opened** from the professional-practice gap analysis at
+`../report-and-findings/2026-08-04-consulting-practice-gap-analysis.md`. Seven specs (038-044), all
+`draft` and awaiting approval. Nothing is implemented yet.
 
 ---
 
@@ -338,6 +343,68 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 ---
 
+## Phase 8 — Pipeline improvement [in_progress]
+
+Promoted 2026-08-04 by user direction from the professional-practice gap analysis at
+`../report-and-findings/2026-08-04-consulting-practice-gap-analysis.md`. The analysis compared the
+pipeline against how consulting firms and think tanks actually run a framework engagement (ICD 203
+analytic standards, RAND-style independent QA, the Decision Quality chain, the Heuer/Pherson
+structured analytic techniques) and found the middle of the engagement strong and both ends thin.
+Measured against the Decision Quality chain — frame, alternatives, information, values and
+tradeoffs, reasoning, commitment to action — the pipeline scores well on four elements, carries
+"clear values and tradeoffs" as prose only, and has "commitment to action" essentially absent. The
+chain is only as strong as its weakest link, which sets this phase's priorities.
+
+Sequencing follows the cost analysis in section 7 of that report: difficulty runs almost exactly
+inverse to value, so the cheap additive changes go first and two of them build seams the expensive
+ones need. SPEC-038 gives alternatives a typed score for SPEC-040's matrix to populate; SPEC-039
+establishes a third model family in the role table. SPEC-038, SPEC-039 and SPEC-041 all extend
+`orchestrator/artifacts/recommendations.py`, so they are sequenced rather than parallelized per the
+`README.md` disjoint-files rule; SPEC-043 touches a disjoint set and can run alongside them.
+
+**Specs**
+
+| Spec | Task | Status |
+|---|---|---|
+| SPEC-038 | Objective weights and a bound value model | draft |
+| SPEC-039 | Independent review with blocking authority, and a limitations statement | draft |
+| SPEC-040 | Analysis of Competing Hypotheses stage | draft |
+| SPEC-041 | Typed action plan | draft |
+| SPEC-042 | Monitoring plan and post-delivery life | draft |
+| SPEC-043 | Private evidence channel (text first cut) | draft |
+| SPEC-044 | Phase 8 re-evaluation | draft |
+
+**Findings**
+
+- (2026-08-04) **Extension-point pricing, measured rather than estimated.** The Phase 6 commit
+  (`55b7ded`) added four roles, four stages, gates, verification and memory in 6,471 insertions
+  against 65 deletions across 80 files. That ratio prices one new stage-plus-role at roughly 600-900
+  lines across ~15 files, essentially all additive, because the extension points are registries
+  (`_INCLUDE_HANDLERS`, `_FLOW_PLANS`, `load_role_config(role, variant)`) rather than conditionals.
+  The expensive categories are different: changing a required field on a widely-consumed artifact
+  (725 tests, 35 fixtures, the role-contract check, ~178 coercion tests, a TS drift gate), changing
+  case lifecycle semantics in `state_machine.py`, adding a dependency, and touching the evidence
+  provenance model.
+- (2026-08-04) **SPEC-042 rejects the obvious design deliberately.** A `MONITORING` stage the case
+  sits in indefinitely would ripple through the state machine, CLI, supervisor, service and resume
+  path for no decision-quality gain. Cases stay terminal; the monitoring plan is written at delivery
+  and lives outside the pipeline under the memory root. A breached indicator recommends a new linked
+  case rather than reopening a delivered one, because re-opening would corrupt the audit chain that
+  is the product's main claim.
+- (2026-08-04) **SPEC-043 keeps `EvidenceRecord` untouched at the cost of two named special cases.**
+  Its required `source_url`, `publisher` and `publication_date` are load-bearing in `normalize.py`,
+  `citations.py`, `evidence_critic.py`, `gates.py` and `memory.py`. Making them optional weakens
+  validation for all evidence; a separate `PrivateEvidenceRecord` would need unioning at seventeen
+  consumer modules. Ingestion therefore synthesizes `file://` URLs, and the two modules that would
+  be misled special-case `SourceType.USER_DOCUMENT` explicitly.
+- (2026-08-04) **Two open questions block approval.** SPEC-043 asks whether the user accepts private
+  documents being written into agent workspaces and sent to the configured third-party CLI backend —
+  that is a posture decision, not an implementation detail. SPEC-039 may require raising the
+  `high_tier_calls` cap (currently 6) to accommodate `reviewer-b`; any budget change must be recorded
+  in the SPEC-044 comparison as a condition rather than treated as neutral.
+
+---
+
 ## Emergent work
 
 Work discovered mid-project lands here first as a candidate. With user approval it is promoted to a spec inside an existing phase, or to a new phase appended to the phase table. The static plan is never edited to absorb it.
@@ -393,7 +460,11 @@ Work discovered mid-project lands here first as a candidate. With user approval 
   4. **Independent review with blocking authority** — a third model family sees the final package and the raw evidence ledger but not the reasoning trail, and answers whether it reaches the same conclusion; plus a required `Limitations` section (`DisclosureRecord` currently covers only budget exhaustion).
   5. **Bind the value model to the ranking** — objective weights elicited at the scope checkpoint, per-objective scores on `AlternativeAssessment`, ranking computed in the orchestrator and diffed against the agent's stated rank. Closes the widest text-to-code gap in north star §8; `objectives` is currently collected and never used quantitatively.
 
+  **Promoted to Phase 8 on 2026-08-04** as SPEC-038 to SPEC-044. The two hard items were each split at their natural seam: the typed action plan (SPEC-041) separated from the post-delivery lifecycle (SPEC-042), and the private-evidence text first cut (SPEC-043) separated from the binary-format work, which is deliberately not specced until the seam is proven.
+
 **Promoted**
+
+- Professional-practice gap analysis: five proposed changes → **Phase 8**, SPEC-038…SPEC-044 (2026-08-04, user-directed)
 
 - Frontend product surface: discovery report + spec family SPEC-027…SPEC-037 → **Phase 7** (2026-08-02, user-directed)
 - Per-workspace permission profiles (`.cursor/cli.json`) → SPEC-006 (2026-07-30, spec review); implemented and verified 2026-07-31
