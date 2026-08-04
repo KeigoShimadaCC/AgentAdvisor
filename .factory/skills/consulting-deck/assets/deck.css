@@ -1,0 +1,679 @@
+/* Consulting deck component library.
+   Frame: 960 x 540 px (16:9, 720 x 405 pt).
+   Web-safe fonts only: the PowerPoint renderer strips remote font links. */
+
+:root {
+  --ink: #10202e;
+  --ink-soft: #33475b;
+  --muted: #6b7c8c;
+  --rule: #d8dee4;
+  --rule-strong: #9fadb9;
+  --tint: #f2f5f7;
+  --accent: #1b6b8f;
+  --accent-soft: #dbe9f0;
+  --warm: #c2703a;
+  --warm-soft: #f6e7dc;
+  --pos: #2e7d5b;
+  --neg: #a63b27;
+  --paper: #ffffff;
+
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: Arial, Helvetica, sans-serif;
+
+  --pad-x: 44px;
+  --pad-t: 34px;
+  --pad-b: 34px;
+
+  --t-title: 28px;
+  --t-body: 15px;
+  --t-small: 12.5px;
+}
+
+/* Present mode: bigger type, less content per slide. */
+.deck--present {
+  --t-title: 36px;
+  --t-body: 20px;
+  --t-small: 15px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #e9edf0;
+  font-family: var(--sans);
+  color: var(--ink);
+}
+
+/* ---------- Frame ---------- */
+
+.slide {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  line-height: 1.45;
+  padding: var(--pad-t) var(--pad-x) var(--pad-b);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---------- Header ---------- */
+
+.hd {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 10px;
+}
+
+.kicker {
+  font-size: 10.5px;
+  font-weight: bold;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 6px;
+}
+
+.action-title {
+  font-family: var(--serif);
+  font-size: var(--t-title);
+  line-height: 1.22;
+  font-weight: normal;
+  color: var(--ink);
+  margin: 0;
+}
+
+.action-title em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.deck {
+  font-size: var(--t-small);
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+/* ---------- Body ---------- */
+
+.bd {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Layout containers absorb the leftover frame height instead of leaving a
+   dead band above the footer. Fixed-height bands (.kpis, .takeaway, .callout)
+   deliberately do not. */
+.bd > .cols-2,
+.bd > .cols-3,
+.bd > .cols-4,
+.bd > .split,
+.bd > .split--narrow,
+.bd > .split--left,
+.bd > .matrix,
+.bd > .steps,
+.bd > .exhibit {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Tables keep natural row heights; stretching them opens gaps between rows.
+   A trailing band is pinned to the bottom instead, so the slack reads as
+   deliberate spacing rather than an unfinished slide. */
+.bd > .takeaway:last-child,
+.bd > .callout:last-child {
+  margin-top: auto;
+}
+
+.cols-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  min-height: 0;
+}
+.cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  min-height: 0;
+}
+.cols-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+/* Grid children must be allowed to shrink, or a tall child forces the whole
+   row past the frame. */
+.cols-2 > *,
+.cols-3 > *,
+.cols-4 > *,
+.split > *,
+.split--narrow > *,
+.split--left > * {
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Main exhibit plus right-hand commentary rail. */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 252px;
+  gap: 22px;
+  min-height: 0;
+}
+.split--narrow {
+  grid-template-columns: 1fr 190px;
+}
+.split--left {
+  grid-template-columns: 252px 1fr;
+}
+
+.rail {
+  border-left: 2px solid var(--accent);
+  padding-left: 14px;
+  font-size: var(--t-small);
+  color: var(--ink-soft);
+}
+.rail h4 {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+.rail p {
+  margin: 0 0 10px;
+}
+
+/* ---------- Text ---------- */
+
+.slide p {
+  margin: 0 0 9px;
+}
+.slide p:last-child {
+  margin-bottom: 0;
+}
+
+.lead {
+  font-size: calc(var(--t-body) + 2px);
+  color: var(--ink-soft);
+}
+
+ul.bul,
+ol.bul {
+  margin: 0;
+  padding-left: 17px;
+}
+ul.bul li,
+ol.bul li {
+  margin-bottom: 7px;
+  padding-left: 2px;
+}
+ul.bul li:last-child,
+ol.bul li:last-child {
+  margin-bottom: 0;
+}
+ul.bul {
+  list-style: none;
+  padding-left: 0;
+}
+ul.bul > li {
+  position: relative;
+  padding-left: 15px;
+}
+ul.bul > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+}
+
+.subhead {
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 7px;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  background: var(--tint);
+  border-top: 3px solid var(--accent);
+  padding: 13px 15px;
+  min-height: 0;
+}
+.card--plain {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent);
+}
+.card--warm {
+  border-top-color: var(--warm);
+  background: var(--warm-soft);
+}
+.card--pos {
+  border-top-color: var(--pos);
+}
+.card--neg {
+  border-top-color: var(--neg);
+}
+.card h3 {
+  font-family: var(--sans);
+  font-size: 14px;
+  margin: 0 0 7px;
+  color: var(--ink);
+}
+.card p,
+.card li {
+  font-size: var(--t-small);
+  color: var(--ink-soft);
+}
+
+.num {
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* ---------- KPI band ---------- */
+
+/* Avoid a double rule when the band sits directly under the header. */
+.bd > .kpis:first-child {
+  border-top: none;
+}
+
+.kpis {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 1px;
+  background: var(--rule);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.kpi {
+  background: var(--paper);
+  padding: 11px 14px;
+}
+.kpi__val {
+  font-family: var(--serif);
+  font-size: 27px;
+  line-height: 1.05;
+  color: var(--ink);
+  display: block;
+}
+.kpi__val--pos {
+  color: var(--pos);
+}
+.kpi__val--neg {
+  color: var(--neg);
+}
+.kpi__lab {
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+}
+
+/* ---------- Table ---------- */
+
+table.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-small);
+}
+table.tbl th {
+  text-align: left;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: bold;
+  padding: 0 10px 7px 0;
+  border-bottom: 1.5px solid var(--rule-strong);
+  vertical-align: bottom;
+}
+table.tbl td {
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  vertical-align: top;
+}
+table.tbl tr:last-child td {
+  border-bottom: none;
+}
+table.tbl td:first-child {
+  color: var(--ink);
+  font-weight: bold;
+}
+table.tbl .n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+table.tbl tr.hl td {
+  background: var(--accent-soft);
+}
+
+/* ---------- Takeaway band ---------- */
+
+.takeaway {
+  flex: 0 0 auto;
+  background: var(--tint);
+  border-left: 4px solid var(--accent);
+  padding: 11px 15px;
+  font-size: var(--t-small);
+  color: var(--ink);
+}
+.takeaway b {
+  color: var(--accent);
+}
+
+.callout {
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--warm);
+  background: var(--paper);
+  padding: 10px 14px;
+  font-size: var(--t-small);
+  color: var(--ink-soft);
+}
+
+/* ---------- Tags and harvey balls ---------- */
+
+.tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.tag--pos {
+  background: #dcefe5;
+  color: var(--pos);
+}
+.tag--neg {
+  background: #f4dfda;
+  color: var(--neg);
+}
+.tag--warn {
+  background: var(--warm-soft);
+  color: var(--warm);
+}
+.tag--flat {
+  background: var(--tint);
+  color: var(--muted);
+}
+
+/* Harvey balls: hb-0 empty through hb-4 full. */
+.hb {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.25px solid var(--ink-soft);
+  border-radius: 50%;
+  vertical-align: -2px;
+  background: var(--paper);
+}
+.hb-1 {
+  background: linear-gradient(90deg, var(--ink-soft) 25%, var(--paper) 25%);
+}
+.hb-2 {
+  background: linear-gradient(90deg, var(--ink-soft) 50%, var(--paper) 50%);
+}
+.hb-3 {
+  background: linear-gradient(90deg, var(--ink-soft) 75%, var(--paper) 75%);
+}
+.hb-4 {
+  background: var(--ink-soft);
+}
+
+/* ---------- Exhibits ---------- */
+
+.exhibit {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.exhibit__cap {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+/* flex-basis 0 gives the image a definite height from the flex layout, which is
+   what makes object-fit letterbox it instead of overflowing the slot. A
+   percentage max-height cannot work here: the parent height is indefinite. */
+.exhibit img {
+  display: block;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: center;
+  margin: 0 auto;
+}
+
+/* ---------- 2x2 matrix ---------- */
+
+.matrix {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1px;
+  background: var(--rule-strong);
+  border: 1px solid var(--rule-strong);
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.matrix .q {
+  background: var(--paper);
+  padding: 11px 13px;
+  font-size: var(--t-small);
+  color: var(--ink-soft);
+}
+.matrix .q h4 {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+.matrix .q--hl {
+  background: var(--accent-soft);
+}
+.axis-x,
+.axis-y {
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+.axis-y {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+/* ---------- Process / step flow ---------- */
+
+.steps {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 10px;
+}
+.step {
+  background: var(--tint);
+  padding: 11px 13px;
+  border-top: 3px solid var(--accent);
+  font-size: var(--t-small);
+  color: var(--ink-soft);
+}
+.step__n {
+  font-size: 10.5px;
+  font-weight: bold;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 5px;
+}
+.step b {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+/* ---------- Footer ---------- */
+
+.ft {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+.src {
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: var(--muted);
+  margin: 0;
+  max-width: 78%;
+}
+.pg {
+  font-size: 9.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Footer without the rule, for slides that end in a takeaway band. */
+.ft--bare {
+  border-top: none;
+  padding-top: 2px;
+}
+
+/* ---------- Slide variants ---------- */
+
+.slide--title {
+  background: var(--ink);
+  color: var(--paper);
+  justify-content: center;
+  padding: 0 68px;
+}
+.slide--title .action-title {
+  color: var(--paper);
+  font-size: 44px;
+  line-height: 1.15;
+  max-width: 720px;
+}
+.slide--title .kicker {
+  color: #79b6d1;
+}
+.slide--title .meta {
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 13px;
+  color: #b7c6d2;
+  max-width: 620px;
+}
+
+.slide--section {
+  background: var(--tint);
+  justify-content: center;
+  padding: 0 68px;
+}
+.slide--section .action-title {
+  font-size: 36px;
+}
+.slide--section .kicker {
+  font-size: 12px;
+}
+.slide--section .rule {
+  width: 64px;
+  height: 3px;
+  background: var(--accent);
+  margin-bottom: 18px;
+}
+
+.slide--exec .bd {
+  gap: 14px;
+}
+.slide--exec .answer {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 15px 18px;
+  font-size: calc(var(--t-body) + 2px);
+  line-height: 1.4;
+}
+.slide--exec .answer b {
+  color: #8ecae6;
+}
+
+.slide--dark {
+  background: var(--ink);
+  color: var(--paper);
+}
+.slide--dark .action-title,
+.slide--dark .kpi__val {
+  color: var(--paper);
+}
+.slide--dark .hd,
+.slide--dark .ft {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.slide--dark .src,
+.slide--dark .pg,
+.slide--dark .kpi__lab {
+  color: #9db0bf;
+}
+.slide--dark .kpis,
+.slide--dark .kpi {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ---------- Appendix ---------- */
+
+.slide--appendix .action-title {
+  font-size: 22px;
+}
+.slide--appendix {
+  font-size: 12px;
+}
+.slide--appendix table.tbl {
+  font-size: 11px;
+}

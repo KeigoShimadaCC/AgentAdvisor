@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Deck</title>
+    <link rel="stylesheet" href="../../.factory/skills/consulting-deck/assets/deck.css" />
+    <style>
+      /* Deck-local overrides. Retheme by redeclaring custom properties here
+         rather than editing deck.css. */
+      :root {
+        /* --accent: #1b6b8f; */
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 1. Title -->
+    <section class="slide slide--title">
+      <p class="kicker">Kicker line</p>
+      <h1 class="action-title">The deck's governing thought, as one sentence</h1>
+      <div class="meta">Prepared for X &middot; 4 August 2026 &middot; Confidential draft</div>
+    </section>
+
+    <!-- 2. Executive summary: the answer first -->
+    <section class="slide slide--exec">
+      <div class="hd">
+        <p class="kicker">Executive summary</p>
+        <h1 class="action-title">State the recommendation as an assertion, not a topic</h1>
+      </div>
+      <div class="bd">
+        <div class="answer">
+          <b>Recommendation.</b> One or two sentences naming the action and the timing.
+        </div>
+        <div class="cols-3">
+          <div class="card">
+            <span class="num">1</span>
+            <h3>First supporting reason</h3>
+            <p>The evidence in one or two lines.</p>
+          </div>
+          <div class="card">
+            <span class="num">2</span>
+            <h3>Second supporting reason</h3>
+            <p>The evidence in one or two lines.</p>
+          </div>
+          <div class="card">
+            <span class="num">3</span>
+            <h3>Third supporting reason</h3>
+            <p>The evidence in one or two lines.</p>
+          </div>
+        </div>
+      </div>
+      <div class="ft">
+        <p class="src">Source: name the artifacts, datasets, and dates.</p>
+        <span class="pg">2</span>
+      </div>
+    </section>
+
+    <!-- 3. Exhibit slide: chart plus commentary rail -->
+    <section class="slide">
+      <div class="hd">
+        <p class="kicker">Section name</p>
+        <h1 class="action-title">The claim this exhibit proves</h1>
+      </div>
+      <div class="bd">
+        <div class="split">
+          <div class="exhibit">
+            <p class="exhibit__cap">Exhibit 1 &middot; What is plotted, units</p>
+            <img src="charts/example.png" alt="" />
+          </div>
+          <div class="rail">
+            <h4>What it shows</h4>
+            <p>Read the exhibit for the reader.</p>
+            <h4>Why it matters</h4>
+            <p>Connect it to the recommendation.</p>
+          </div>
+        </div>
+        <div class="takeaway">
+          <b>So what.</b> The consequence for the decision.
+        </div>
+      </div>
+      <div class="ft ft--bare">
+        <p class="src">Source: dataset, retrieved 2026-08-04. Note any limitation.</p>
+        <span class="pg">3</span>
+      </div>
+    </section>
+
+    <!-- 4. Section divider -->
+    <section class="slide slide--section">
+      <div class="rule"></div>
+      <p class="kicker">Part two</p>
+      <h1 class="action-title">Section title</h1>
+    </section>
+  </body>
+</html>

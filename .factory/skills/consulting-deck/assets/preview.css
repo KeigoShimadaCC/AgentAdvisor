@@ -1,0 +1,37 @@
+/* Preview-only rules. Appended by build_deck.py to the *.preview.html output
+   and deliberately absent from the *.pptx.html output, where Factory's
+   renderer owns the frame size. Do not link this file from slides.html. */
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #e9edf0;
+}
+
+.slide {
+  width: 960px;
+  height: 540px;
+  margin: 0 auto 24px;
+  box-shadow: 0 1px 4px rgba(16, 32, 46, 0.18);
+}
+
+@page {
+  size: 10in 5.625in;
+  margin: 0;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+  .slide {
+    margin: 0;
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+  }
+  .slide:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+}

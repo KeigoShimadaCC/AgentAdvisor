@@ -370,6 +370,16 @@ Work discovered mid-project lands here first as a candidate. With user approval 
   tested place rather than a regex in a component, but it is still an inference where the north star
   wants a typed assertion. Needs a spec: schema change, `cursor/roles/synthesizer.md` contract and worked
   example, and a `test_role_contracts.py` pass.
+- (2026-08-04) **Consulting deck output for a completed case.** A repo-local skill now exists at
+  `.factory/skills/consulting-deck/`: HTML/CSS slides against a fixed component library, matplotlib
+  exhibits sized to the slide slots, a Chromium render step that reports overflow and out-of-frame
+  elements, and dual export to PDF and `.pptx`. `case-mapping.md` maps `FinalRecommendation` onto the
+  standard slide arc and holds the line that outcome probability, evidence confidence, recommendation
+  confidence and model stability stay four separate figures. This is **tooling only** and runs by hand
+  under `tmp/`. Turning it into a pipeline stage or an `advisor deck <case-id>` subcommand is product
+  functionality and needs a spec: where the deck artifact lives in the case directory, whether it is
+  gated on review passing, and whether matplotlib becomes a project dependency (currently invoked via
+  `uv run --with matplotlib`, so `pyproject.toml` is untouched).
 - (2026-08-03) **ESLint with `react-hooks` and `jsx-a11y` for `frontend/`.** A conditional `useMemo` in
   `OptionsRoom` shipped and survived 50 passing tests, a clean `tsc`, and a browser walkthrough; only
   reading the file caught it. `frontend/README.md` had also advertised a lint script for some time that
