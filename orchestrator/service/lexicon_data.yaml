@@ -20,8 +20,8 @@ budget_profile_selected:
   technical: true
 
 role_invocation_attempt:
-  template: "{actor} is running…"
-  technical: true
+  template: "{actor} — attempt {attempt}: {status}"
+  technical: false
 
 stage_completed:
   template: "Completed stage: {stage}"
@@ -145,3 +145,7 @@ thesis_revision_skipped_duplicate:
 unpack_skipped_duplicate:
   template: "Skipped duplicate {artifact_type} for task {task_id}"
   technical: true
+
+render_skipped:
+  template: "Recommendation render skipped (citation issue) — case continues"
+  technical: false

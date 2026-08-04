@@ -3,6 +3,7 @@ import { useCaseView } from "../screens/shared/useCaseView";
 import { RoomTabs } from "../screens/shared/RoomTabs";
 import { InspectorHost } from "../screens/inspector/InspectorHost";
 import { CitationText } from "../screens/inspector/CitationText";
+import { LiveActivity } from "../screens/Brief/LiveActivity";
 import { stageLabel, phaseLabel, NEEDS_YOU } from "../copy/terms";
 import type { CaseView } from "../generated/case_view";
 
@@ -54,6 +55,8 @@ export function CaseDetail() {
           </Link>
         </p>
       )}
+
+      <LiveActivity events={events} />
 
       {caseId && <RoomTabs caseId={caseId} />}
 

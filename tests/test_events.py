@@ -131,15 +131,23 @@ def test_translate_event_missing_slots_use_dash() -> None:
     assert "—" in translated.message
 
 
-def test_translate_event_role_invocation_is_technical() -> None:
+def test_translate_event_role_invocation_is_user_visible() -> None:
+    """Agent attempt events must be visible in the narration (not technical).
+
+    They were previously hidden as technical noise, but that left the UI silent
+    for minutes at a time while an agent ran. Now they surface so users can see
+    which agent is active, which attempt, and the outcome.
+    """
     event = {
         "event_type": "role_invocation_attempt",
         "actor": "researcher",
         "payload": {"attempt": 1, "status": "ok", "task_id": "T-001"},
     }
     translated = translate_event(event, line_cursor=1)
-    assert translated.technical is True
+    assert translated.technical is False
     assert "researcher" in translated.message
+    assert "attempt" in translated.message
+    assert "ok" in translated.message
 
 
 # ── format_sse ──────────────────────────────────────────────────────────────

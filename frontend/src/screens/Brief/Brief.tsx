@@ -6,6 +6,7 @@ import { CitationLink } from "../inspector/CitationLink";
 import { CitationText } from "../inspector/CitationText";
 import { FailurePath } from "../shared/FailurePath";
 import { MarginNarration } from "./MarginNarration";
+import { LiveActivity } from "./LiveActivity";
 import { WorkingViewCard } from "./WorkingViewCard";
 import { MethodStrip } from "./MethodStrip";
 import { SealedAnswerCard } from "./SealedAnswerCard";
@@ -89,6 +90,7 @@ export function Brief() {
             caseId={view.case_id}
             revisions={view.history?.thesis_revisions ?? []}
           />
+          <LiveActivity events={events} />
           <MarginNarration events={events} />
           <FailurePath view={view} />
           <section className="brief-sections" aria-label="Brief sections">
