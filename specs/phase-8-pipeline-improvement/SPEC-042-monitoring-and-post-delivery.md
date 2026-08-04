@@ -13,17 +13,19 @@ last_updated: 2026-08-04
 
 ## Summary
 
-Turns the change-triggers and pre-mortem indicators the pipeline already generates — and then
-discards at delivery — into a tracked monitoring plan with observables, thresholds and check
-cadences, plus an `advisor watch` surface that reports which checks are due. Closes the loop into
-the existing outcome-recording and Brier calibration machinery.
+Turns the change-triggers, pre-mortem indicators and preventive actions the pipeline already
+generates — and then discards at delivery — into a tracked monitoring plan: observables with
+thresholds and check cadences, paired with a risk register of mitigations and owners, plus an
+`advisor watch` surface that reports which checks are due. Closes the loop into the existing
+outcome-recording and Brier calibration machinery.
 
 ## Motivation
 
-Every case already produces two lists that are exactly the raw material of an indicators-and-warning
-set: `FailureMode.leading_indicators` on each of up to five pre-mortem failure modes, and
-`FinalRecommendation.recommendation_change_triggers`. Both are prose, both are rendered once, and no
-code ever reads them again. North star Section 3 item 10 promises "the conditions under which the
+Every case already produces the raw material of an indicators-and-warning set and a risk register,
+and throws all of it away: `FailureMode.leading_indicators` and `FailureMode.preventive_action` on
+each of up to five pre-mortem failure modes, and
+`FinalRecommendation.recommendation_change_triggers`. All three are prose, all three are rendered
+once, and no code ever reads them again. North star Section 3 item 10 promises "the conditions under which the
 recommendation would change" and Section 19 wants forecasts retained so calibration can be computed;
 without a tracking surface the first is decorative and the second depends on the user spontaneously
 remembering to run `scripts/record_outcome.py`.
@@ -37,10 +39,16 @@ argued is what separates a think tank from a one-off engagement.
   - `IndicatorSource` — `premortem_failure_mode` | `change_trigger`.
   - `MonitoredIndicator` — `indicator_id` (`M-` prefixed), `source`, `source_ref`, `observable`,
     `threshold`, `check_cadence_days`, `would_imply`, `implicated_alternative`.
-  - `MonitoringPlan` — `case_id`, `delivered_at`, `indicators`, `horizon`.
+  - `TrackedMitigation` — `mitigation_id` (`R-` prefixed), `failure_mode`, `mitigation`,
+    `owner`, `severity`, `status` (`not_started` | `in_place` | `not_applicable`),
+    `triggered_by` (the `indicator_id`s whose breach makes this mitigation urgent).
+  - `MonitoringPlan` — `case_id`, `delivered_at`, `indicators`, `mitigations`, `horizon`.
   - `IndicatorCheck` — `indicator_id`, `checked_at`, `observed`, `breached`, `note`.
 - `orchestrator/monitoring.py` — deterministic assembly from the pre-mortem report and the final
-  recommendation; `due_checks(plan, checks, as_of)` computing which indicators are overdue.
+  recommendation; `due_checks(plan, checks, as_of)` computing which indicators are overdue;
+  `mitigations_for(plan, breached_indicator_ids)` returning the responses a breach makes urgent.
+- `orchestrator/service/lexicon_data.yaml` — narration for `monitoring_plan_written`,
+  `indicator_check_recorded` and `indicator_breached`.
 - `cursor/roles/monitor.{md,yaml}` and `TaskRole.MONITOR` — one cheap invocation that converts each
   prose indicator into a concrete observable and threshold.
 - `orchestrator/stages.py::handle_review` — assemble and write the plan after review passes, before
@@ -85,6 +93,15 @@ turn "competitor pricing pressure increases" into an observable with a threshold
 cadence. If that invocation fails, the plan is still written with the prose indicators and a flag
 saying concretization did not run — a degraded plan beats no plan.
 
+**Detection and response are two halves of the same artifact.** Indicators tell the user *what to
+watch*; they do not say *what to do when it fires*. The pre-mortem already generates the other half
+and the pipeline discards it: each `FailureMode` carries a `preventive_action` alongside its
+`leading_indicators`, and that action reaches the rendered report as prose and is never tracked.
+`TrackedMitigation` captures it with an owner and a status, linked by `triggered_by` to the
+indicators drawn from the same failure mode, so a breach surfaces both the observation and the
+response it was written for. Owner semantics match SPEC-041: free text, defaulting to the decision
+owner. This is a register the user maintains, not one the system executes.
+
 **Cadence.** `check_cadence_days` is bounded to `[7, 180]`. `due_checks` compares the last recorded
 check per indicator against the cadence, with the delivery date as the origin.
 
@@ -93,11 +110,13 @@ check per indicator against the cadence, with the delivery date as the origin.
 - [ ] `orchestrator/artifacts/monitoring.py` and `orchestrator/monitoring.py`
 - [ ] `cursor/roles/monitor.{md,yaml}`, `TaskRole.MONITOR`, model table entries
 - [ ] Plan assembly in `handle_review`, with the degraded path
+- [ ] `TrackedMitigation` assembly from `FailureMode.preventive_action`, linked to indicators
 - [ ] `memory/monitoring/` store with atomic writes
 - [ ] `advisor watch` and `advisor check` commands
 - [ ] Service read endpoint and Delivery-screen monitoring block
 - [ ] `scripts/record_outcome.py` breach integration
-- [ ] Renderer monitoring table
+- [ ] Renderer monitoring table and risk register
+- [ ] Three `lexicon_data.yaml` narration entries
 - [ ] `tests/test_monitoring.py`
 - [ ] Regenerated `schemas/` and `frontend/src/generated/`
 
@@ -115,6 +134,14 @@ check per indicator against the cadence, with the delivery date as the origin.
 - [ ] `advisor check` recording a breach prints the linked-case recommendation and does not mutate
       the delivered case directory.
 - [ ] The delivered case's stage history is unchanged from the pre-change pipeline.
+- [ ] Every `FailureMode.preventive_action` in a fixture case appears as a `TrackedMitigation`,
+      asserted by count, each carrying an owner and a `triggered_by` list that resolves to
+      indicators drawn from the same failure mode.
+- [ ] `mitigations_for` returns exactly the mitigations linked to a breached indicator, and
+      `advisor check --breached` prints them.
+- [ ] `advisor report` renders a risk register with owner and status columns.
+- [ ] No audit event emitted by this spec renders through the lexicon's unknown-event fallback,
+      asserted by a test over `lexicon_data.yaml`.
 
 ## Verification plan
 

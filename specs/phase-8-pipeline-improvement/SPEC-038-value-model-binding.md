@@ -51,6 +51,8 @@ varies the user's own weights, which is usually what actually flips a personal d
   already rendered on that sheet, posting through the existing SPEC-028 `edits` path.
 - `orchestrator/projection.py`: include `objective_weights` in the director, analyst and
   synthesizer projections.
+- `orchestrator/service/lexicon_data.yaml`: narration for `objective_weights_recorded` and
+  `value_model_ranked`, so neither renders through the unknown-event fallback.
 
 ## Out of scope
 

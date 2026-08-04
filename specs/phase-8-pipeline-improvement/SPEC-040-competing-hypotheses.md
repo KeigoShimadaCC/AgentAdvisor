@@ -25,10 +25,15 @@ The pipeline's adversarial machinery is good but all of it operates on a thesis 
 the Challenger attacks a stated recommendation, the pre-mortem attacks its future, dual-track
 compares two conclusions. None of them ask which alternative the evidence *fails to rule out*.
 North star Section 5.3 asks for controlled disagreement and Section 18 makes adversarial robustness
-a success criterion; ACH is the standard technique for exactly this, and its core insight — that
+a success criterion; ACH is the standard technique for exactly this. Its core insight — that
 evidence consistent with every hypothesis carries no information, and the best hypothesis is the
 least disconfirmed rather than the best supported — is the direct structural antidote to
-confirmation bias.
+confirmation bias. The technique is Richards Heuer's, catalogued with its scoring discipline in
+Heuer and Pherson, *Structured Analytic Techniques for Intelligence Analysis*; an implementer should
+read the ACH chapter before writing the role instructions. It is also one of the nine analytic
+tradecraft standards ICD 203 requires of finished analysis ("incorporate analysis of alternatives"),
+alongside source-quality description and uncertainty expression, which this pipeline already
+implements.
 
 Every prerequisite already exists: a broadened alternative set, an evidence ledger with
 `independence_group`, materiality on assumptions, and the evidence critique's authority scores.

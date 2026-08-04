@@ -13,11 +13,12 @@ last_updated: 2026-08-04
 
 ## Summary
 
-Lets the decision's own documents into the case. A user drops markdown or plain-text files into
-`cases/<case-id>/inputs/`; a deterministic ingestion step turns them into evidence records with
-`source_type: user_document`, correct provenance semantics, and isolation from the review roles.
-Deliberately scoped to text formats so it adds no dependencies and proves the seam before the
-binary-format work is specced.
+Lets the decision's own information into the case, by two routes: the user drops markdown or
+plain-text files into `cases/<case-id>/inputs/`, and intake gains the ability to ask an open
+substantive question instead of only filling one of eight framing slots. Both routes produce
+evidence records with `source_type: user_document`, correct provenance semantics, and isolation from
+the review roles. Deliberately scoped to text formats so it adds no dependencies and proves the seam
+before the binary-format work is specced.
 
 ## Motivation
 
@@ -34,8 +35,19 @@ stage at once: the analyst finally models real numbers instead of public proxies
 ## Scope
 
 - `orchestrator/artifacts/common.py` — `SourceType.USER_DOCUMENT`.
-- `orchestrator/artifacts/intake.py` — `IntakeField.INTERNAL_INFORMATION`, and a relaxation of
-  `validate_clarifications_target_unknown_fields` so a clarification may request a document.
+- `orchestrator/artifacts/intake.py`:
+  - `IntakeField.INTERNAL_INFORMATION`.
+  - `ClarificationKind` — `field` | `document` | `fact`. `resolves_field` becomes optional and is
+    required only when `kind` is `field`, so intake can ask an open substantive question
+    ("what is your cost basis?", "what did the vendor quote?") rather than only filling one of the
+    eight enum slots.
+  - `validate_clarifications_target_unknown_fields` applies its existing check to `field`
+    clarifications only.
+  - The cap rises from 5 to 8, since document and fact requests now compete with field questions
+    for the same budget.
+- `orchestrator/ingest.py` — answers to `fact` clarifications are ingested as evidence records with
+  `source_type: user_document` and `source_url: user://intake/<question_id>`, on the same provenance
+  footing as a supplied document.
 - `orchestrator/ingest.py` — read `cases/<case-id>/inputs/*.{md,txt}`, split into excerpt-sized
   chunks, mint `E-` ids through the existing `unpack` path, write to the evidence ledger.
 - `orchestrator/evidence_critic.py` — a `user_document` branch: `directness` high, authority tier
@@ -76,6 +88,16 @@ The model is untouched; the two modules that would be misled — `evidence_criti
 This is a deliberate trade: it keeps the change additive at the cost of two special cases, which are
 tested and named rather than implicit.
 
+**Why the clarification mechanism changes too.** A private evidence channel that only accepts files
+solves half the problem. The facts that most often decide a personal case — a cost basis, a quoted
+price, a vesting schedule — usually live in the user's head rather than in a document, and today
+intake cannot ask for them: `ClarificationQuestion.resolves_field` is a required `IntakeField`, so
+every question must map to one of eight framing slots. Making the field optional behind an explicit
+`kind` keeps the existing validator honest for `field` questions while letting intake ask the
+substantive question directly. A `fact` answer is user-supplied evidence and is recorded as such,
+with the same `unverifiable` authority treatment as a document, rather than being silently promoted
+to fact.
+
 **Chunking.** A document is split on markdown headings, falling back to paragraph groups, capped so
 that a single record's `excerpt` stays within the projection character budget. Each chunk records
 its source filename and heading path, so a citation points at a location a human can find.
@@ -93,7 +115,7 @@ buried.
 
 ## Deliverables
 
-- [ ] `SourceType.USER_DOCUMENT` and `IntakeField.INTERNAL_INFORMATION`
+- [ ] `SourceType.USER_DOCUMENT`, `IntakeField.INTERNAL_INFORMATION`, `ClarificationKind`
 - [ ] `orchestrator/ingest.py` with chunking and id minting
 - [ ] `evidence_critic.py` and `memory.py` special cases
 - [ ] `private_evidence` projection key with role allow-list
@@ -117,8 +139,15 @@ buried.
       and the analyst and director workspaces do.
 - [ ] A material claim supported only by a user document produces exactly one
       `evidence.sole_private_support` finding.
-- [ ] A case with an empty `inputs/` directory behaves identically to the pre-change pipeline.
+- [ ] A case with an empty `inputs/` directory and no clarification answers behaves identically to
+      the pre-change pipeline.
 - [ ] `advisor new --input <file>` copies the file and the run cites it.
+- [ ] A `field` clarification without `resolves_field` is rejected; a `fact` or `document`
+      clarification without it is accepted.
+- [ ] An answered `fact` clarification produces an evidence record with `source_type:
+      user_document` and a `user://` URL, scored `unverifiable` by the evidence critique.
+- [ ] `IntakeRecord` accepts 8 clarification questions and rejects 9.
+- [ ] Existing intake fixtures, which carry no `kind`, still validate — `kind` defaults to `field`.
 
 ## Verification plan
 

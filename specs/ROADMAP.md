@@ -397,6 +397,20 @@ establishes a third model family in the role table. SPEC-038, SPEC-039 and SPEC-
   validation for all evidence; a separate `PrivateEvidenceRecord` would need unioning at seventeen
   consumer modules. Ingestion therefore synthesizes `file://` URLs, and the two modules that would
   be misled special-case `SourceType.USER_DOCUMENT` explicitly.
+- (2026-08-04) **Adversarial review of the seven drafts found three defects, all fixed before
+  approval.** Full accounting in section 8 of the gap-analysis report. (a) Gap 14, the risk register,
+  was claimed closed by the report and appeared in no spec: SPEC-042 assembled its plan from
+  `leading_indicators` and `recommendation_change_triggers` but ignored `FailureMode.preventive_action`
+  entirely. The pre-mortem is equally a source of *responses*, not only of indicators; SPEC-042 now
+  carries `TrackedMitigation` linked to the indicators from the same failure mode. (b) Gap 3 was
+  half-covered: SPEC-043 let intake request a document but not ask a free-text substantive question,
+  which is what the gap's own examples were. SPEC-043 now adds `ClarificationKind` and raises the cap
+  from 5 to 8. (c) Gap 4, the stakeholder map, was catalogued and then neither specced nor deferred —
+  it vanished without a decision, and is now an explicit deferral. Two smaller corrections: SPEC-038
+  and SPEC-042 emit audit events but had not scheduled `lexicon_data.yaml` entries, so both would
+  have rendered through the unknown-event fallback; SPEC-040 now cites Heuer/Pherson and ICD 203.
+  The lesson worth keeping: a report that asserts "closes gaps X, Y, Z" is a claim to verify against
+  the specs, not a summary to trust.
 - (2026-08-04) **Two open questions block approval.** SPEC-043 asks whether the user accepts private
   documents being written into agent workspaces and sent to the configured third-party CLI backend —
   that is a posture decision, not an implementation detail. SPEC-039 may require raising the

@@ -230,6 +230,12 @@ but nobody varies *the user's own weights*, which is usually what actually flips
   each is a refinement of a mechanism that already works rather than a missing limb.
 - **Deliverable tiering and a flexible model.** Follows naturally once change 2 gives the case a
   post-delivery life; premature before that.
+- **Stakeholder and decision-rights map (gap 4).** Real practice, and it matters for any decision
+  needing someone else's agreement — a partner, a manager, a board. Deferred because it needs an
+  identity model this system does not have and SPEC-041 explicitly declines to introduce, and
+  because for a single-user tool the owner is usually the user. Revisit if organizational decisions
+  become a common case. *(Added 2026-08-04 during the adversarial review below, which found this gap
+  was catalogued in section 4 and then neither specced nor deferred.)*
 
 ---
 
@@ -380,3 +386,72 @@ matrix scoring would also want. Changes 5, 4 and 3 together are roughly 1,700–
 nothing — comparable to a third of Phase 6, which was delivered in one commit. Only after those
 should the two changes that alter lifecycle semantics and the evidence model be attempted, and each
 deserves its own spec.
+
+---
+
+## 8. Adversarial review of the Phase 8 specs (2026-08-04)
+
+Every gap in section 4 was traced to either a spec that closes it or an explicit deferral in
+section 6. Three defects were found and fixed; the coverage table below is the result.
+
+| Gap | Coverage |
+|---|---|
+| 1 Private evidence | SPEC-043 |
+| 2 Objectives not quantitative | SPEC-038 |
+| 3 Clarifications cannot ask substantive questions | SPEC-043 — **was partial, fixed** |
+| 4 No stakeholder map | **Was silently dropped, now deferred in section 6** |
+| 5 No independent peer review | SPEC-039 |
+| 6 No ACH | SPEC-040 |
+| 7 Only two checkpoints | Deferred, section 6 |
+| 8 Nothing red-teams the final package | SPEC-039 |
+| 9 No estimative-language standard | Deferred, section 6 |
+| 10 No reference-class library | Deferred, section 6 |
+| 11 No limitations statement | SPEC-039 |
+| 12 `next_actions` untyped | SPEC-041 |
+| 13 Nothing survives delivery | SPEC-042 |
+| 14 No risk register | SPEC-042 — **was missing entirely, fixed** |
+| 15 One deliverable tier | Deferred, section 6 |
+| 16 Model not flexible | Deferred, section 6 |
+
+**Defect 1 — gap 14 was claimed closed and was not in any spec.** Section 5 states that change 2
+"closes gaps 12, 13, 14," but SPEC-042 assembled its plan only from `leading_indicators` and
+`recommendation_change_triggers`. `FailureMode.preventive_action` — the entire basis of gap 14 —
+appeared in no spec in the phase. The error came from treating the pre-mortem as a source of
+*indicators* and forgetting it is equally a source of *responses*. SPEC-042 now carries
+`TrackedMitigation`, linked by `triggered_by` to the indicators from the same failure mode, so a
+breach surfaces the observation and the prepared response together.
+
+**Defect 2 — gap 3 was half-covered.** SPEC-043 relaxed the intake validator so a clarification
+could request a *document*, but gap 3's own examples are free-text facts ("what is your cost
+basis?", "what did the vendor quote?"), and section 5 change 1 explicitly promised both. Facts that
+decide personal cases usually live in the user's head, not in a file. SPEC-043 now adds
+`ClarificationKind` (`field` | `document` | `fact`), makes `resolves_field` required only for
+`field`, raises the cap from 5 to 8, and records `fact` answers as user-supplied evidence with the
+same `unverifiable` treatment as a document rather than promoting them to fact.
+
+**Defect 3 — gap 4 vanished between sections.** The stakeholder and decision-rights map was
+catalogued in section 4 and then neither promoted to a spec nor listed among the deliberate
+deferrals, so it disappeared without a decision. Now deferred explicitly, with the reason.
+
+**Two smaller corrections.** SPEC-038 and SPEC-042 emit audit events but did not schedule
+`lexicon_data.yaml` entries; unnarrated events render through the unknown-event fallback, so both
+specs now list them with an acceptance criterion. SPEC-040 described ACH's mechanics without citing
+Heuer and Pherson or noting that analysis of alternatives is one of ICD 203's nine tradecraft
+standards — an implementer writing the role instructions benefits from the source.
+
+**Research coverage.** The ICD 203 tradecraft standards map onto the pipeline as follows: source
+quality description (evidence critic, SPEC-023), uncertainty expression (four separate measures),
+distinguishing information from assumption (assumption ledger, SPEC-023), **analysis of
+alternatives (SPEC-040, previously absent)**, customer relevance and implications (SPEC-041),
+explaining change in judgments (thesis revision ledger, SPEC-024), accuracy over time (Brier
+calibration, SPEC-025), and visual information (SPEC-040's exhibit). The Heuer/Pherson techniques
+surveyed are similarly accounted for: ACH (SPEC-040), Key Assumptions Check (SPEC-023), Quality of
+Information Check (SPEC-023), indicators and warning (SPEC-042), devil's advocacy and Team A/Team B
+(challenger and dual-track, SPEC-024). The Decision Quality chain's weak links — element 4 and
+element 6 — are SPEC-038 and SPEC-041/042 respectively.
+
+**One research finding remains unimplemented by design.** Consulting practice issues a *data
+request list* at kickoff: the firm tells the client which documents it needs. SPEC-043 approaches
+this from the other end — the user supplies what they have, and intake may request a specific
+document when it notices a gap. A generated, upfront request list is the sharper version and is a
+reasonable follow-on once SPEC-043 shows what intake actually asks for in practice.
