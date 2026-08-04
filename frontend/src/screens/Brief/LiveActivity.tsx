@@ -103,20 +103,22 @@ export function LiveActivity({ events }: LiveActivityProps) {
     return latestAttempt.line_cursor > latestStageCompleted.line_cursor;
   }, [latestAttempt, latestStageCompleted]);
 
+  // Elapsed time from the attempt event's timestamp.
+  // Computed unconditionally (before the early return) to satisfy the
+  // Rules of Hooks — React requires every hook to run on every render.
+  const elapsedS = useMemo(() => {
+    if (!latestAttempt?.ts) return 0;
+    const start = new Date(latestAttempt.ts).getTime();
+    if (Number.isNaN(start)) return 0;
+    return Math.max(0, (now - start) / 1000);
+  }, [latestAttempt?.ts, now]);
+
   if (!latestAttempt) return null;
 
   const status = statusLabel(latestAttempt.raw_payload.status as string | undefined);
   const attempt = latestAttempt.raw_payload.attempt as number | undefined;
   const isRunning = attemptActive && status !== "completed";
   const isDone = attemptActive && status === "completed";
-
-  // Elapsed time from the attempt event's timestamp.
-  const elapsedS = useMemo(() => {
-    if (!latestAttempt.ts) return 0;
-    const start = new Date(latestAttempt.ts).getTime();
-    if (Number.isNaN(start)) return 0;
-    return Math.max(0, (now - start) / 1000);
-  }, [latestAttempt.ts, now]);
 
   return (
     <section className="live-activity" aria-label="Live agent activity">
