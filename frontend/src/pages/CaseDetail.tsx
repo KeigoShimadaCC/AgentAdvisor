@@ -1,6 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import { useCaseView } from "../screens/shared/useCaseView";
 import { RoomTabs } from "../screens/shared/RoomTabs";
+import { InspectorHost } from "../screens/inspector/InspectorHost";
+import { CitationText } from "../screens/inspector/CitationText";
 import { stageLabel, phaseLabel, NEEDS_YOU } from "../copy/terms";
 import type { CaseView } from "../generated/case_view";
 
@@ -26,6 +28,7 @@ export function CaseDetail() {
   if (!view) return <p>No data.</p>;
 
   return (
+    <InspectorHost events={events}>
     <div className="case-detail">
       <h2>{view.case_id}</h2>
       <dl className="case-meta">
@@ -62,7 +65,7 @@ export function CaseDetail() {
             {section.blocks?.map((block, i) => (
               <p key={i} className="brief-block">
                 <small className="provenance">{block.provenance}</small>
-                {block.text}
+                <CitationText>{block.text}</CitationText>
               </p>
             ))}
           </div>
@@ -84,5 +87,6 @@ export function CaseDetail() {
         <Link to="/">← All cases</Link>
       </p>
     </div>
+    </InspectorHost>
   );
 }

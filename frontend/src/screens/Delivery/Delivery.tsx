@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useCaseView } from "../shared/useCaseView";
 import { InspectorHost } from "../inspector/InspectorHost";
 import { CitationLink } from "../inspector/CitationLink";
+import { CitationText } from "../inspector/CitationText";
 import { FailurePath } from "../shared/FailurePath";
 import { ProbabilityBand } from "../../uncertainty/ProbabilityBand";
 import { ConfidenceBands } from "../../uncertainty/ConfidenceBands";
@@ -123,8 +124,8 @@ export function Delivery() {
           <>
             <section className="answer-card" aria-label="Answer">
               <h3>Recommended action</h3>
-              <p className="answer-recommendation">{final.recommended_action}</p>
-              <p className="answer-timing">Timing: {final.timing}</p>
+              <p className="answer-recommendation"><CitationText>{final.recommended_action}</CitationText></p>
+              <p className="answer-timing">Timing: <CitationText>{final.timing}</CitationText></p>
             </section>
 
             <section className="uncertainty-widgets" aria-label="Four uncertainty measures">
@@ -150,7 +151,7 @@ export function Delivery() {
               <h3>Why this recommendation</h3>
               <ul>
                 {final.key_reasons.slice(0, 4).map((reason, i) => (
-                  <li key={i}>{reason}</li>
+                  <li key={i}><CitationText>{reason}</CitationText></li>
                 ))}
               </ul>
               {final.citations && final.citations.length > 0 && (
@@ -243,7 +244,7 @@ function Tripwires({ triggers }: { triggers?: string[] }) {
       <h3>{TRIPWIRE_COPY.title}</h3>
       <ul>
         {triggers.map((t, i) => (
-          <li key={i}>{t}</li>
+          <li key={i}><CitationText>{t}</CitationText></li>
         ))}
       </ul>
     </section>
@@ -371,7 +372,7 @@ function FullBrief({ sections }: { sections: BriefSection[] }) {
           {section.blocks?.map((block, i) => (
             <div key={i} className="brief-block">
               <span className="provenance-stripe">{provenanceLabel(block.provenance)}</span>
-              <p>{block.text}</p>
+              <p><CitationText>{block.text}</CitationText></p>
               {block.citation_ids && block.citation_ids.length > 0 && (
                 <div className="brief-block-citations">
                   {block.citation_ids.map((id) => (

@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useCaseView } from "../shared/useCaseView";
 import { InspectorHost } from "../inspector/InspectorHost";
 import { CitationLink } from "../inspector/CitationLink";
+import { CitationText } from "../inspector/CitationText";
 import { FailurePath } from "../shared/FailurePath";
 import { MarginNarration } from "./MarginNarration";
 import { WorkingViewCard } from "./WorkingViewCard";
@@ -152,7 +153,7 @@ function BriefSectionCard({
               <span className="provenance-stripe">
                 {provenanceLabel(block.provenance)}
               </span>
-              <p className="brief-block-text">{block.text}</p>
+              <p className="brief-block-text"><CitationText>{block.text}</CitationText></p>
               {block.citation_ids && block.citation_ids.length > 0 && (
                 <div className="brief-block-citations">
                   {block.citation_ids.map((id) => (
