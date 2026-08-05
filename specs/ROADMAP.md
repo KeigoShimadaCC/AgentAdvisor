@@ -18,6 +18,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | done | 4, 6 |
 | 8 | Pipeline improvement | in_progress | 6, 7 |
+| 9 | UX improvement | not_started | 7 (SPEC-053 additionally on 8) |
 
 **Current position (2026-08-03).** Phase 7 is done: all eleven specs (027-037) verified. The web
 product (FastAPI + SSE service, React SPA with commissioning, scope checkpoint, living brief,
@@ -342,6 +343,80 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
   full frontend development and three of SPEC-037's four e2e modes at zero token cost.
 
 ---
+
+## Phase 9 — UX Improvement [not_started]
+
+Opened 2026-08-05 from the UX review at `../report-and-findings/2026-08-04-ux-review.md`, which
+audited the shipped web surface against north star Section 15 and found eleven areas where the
+product does not communicate what the engine does. Not new product scope: Section 15 already
+requires that "agents work while the interface exposes meaningful progress rather than raw
+chain-of-thought" and that the interface distinguish sourced facts from agent interpretation from
+user-supplied information from assumptions. It was written before there was a UI to hold to it.
+
+The phase constraint is that the pipeline flow does not change: no stage, transition, handler, role
+or artifact schema is modified. Phase 9 adds no artifact type at all. Every backend touch is a read
+or an emit — two audit events, a non-blocking `new_case`, a `needs_you` field, a calibration read,
+and the `CaseView` projection extensions in SPEC-053. SPEC-046 delivers
+`tests/test_pipeline_invariants.py`, which snapshots `ALLOWED_TRANSITIONS`, `_FLOW_PLANS` and the
+registered stage handlers, so the constraint is enforced by a test rather than by intent.
+
+Sequencing runs in waves: SPEC-045 and SPEC-046 are the foundation and are parallel-safe with each
+other and with phase 8; SPEC-047 and SPEC-048 establish truth and form; SPEC-049 through SPEC-052
+carry substance and reach. **SPEC-053 is the phase's other purpose** — none of SPEC-038 to SPEC-044
+mentions the frontend, `CaseView` or the UI, so without it phase 8's six user-visible improvements
+are reachable only by reading YAML in `cases/`. The hard phase 8 dependency is deliberately isolated
+in that one sheet. The full plan, including the phase 8 reconciliation table and the per-spec
+testing contract, is at `phase-9-ux-improvement/README.md`.
+
+**Specs**
+
+| Spec | Task | Status |
+|---|---|---|
+| SPEC-045 | Design system: tokens, type scale, theming, visual-regression harness | draft |
+| SPEC-046 | Service additions: progress events, non-blocking creation, projection reads | draft |
+| SPEC-047 | The live case: streaming truth, the narrator, and the case map | draft |
+| SPEC-048 | The reading room: shell, persistent chrome, hierarchy, altitudes | draft |
+| SPEC-049 | The cast: voice attribution, margin objections, dissent | draft |
+| SPEC-050 | Commissioning and checkpoints | draft |
+| SPEC-051 | Presence and engagement: notifications, away digest, reactions, calibration | draft |
+| SPEC-052 | Distribution: export, share, replay onboarding, library, mobile | draft |
+| SPEC-053 | Phase 8 made visible: projecting and rendering the pipeline improvements | draft |
+| SPEC-054 | The calibration language: one uncertainty vocabulary at every altitude | draft |
+| SPEC-055 | Resilience: degraded states, storage failure, announcement policy, budgets | draft |
+| SPEC-056 | Phase 9 re-evaluation | draft |
+
+**Findings**
+
+- (2026-08-05) **Two phase 7 sheets are marked `verified` with deliverables absent from the
+  codebase.** SPEC-035's Scope covers the Notification API ("permission prompt at first run start;
+  two classes... in-app fallback banner when permission is denied") and export ("download the
+  deterministic Markdown; print stylesheet for PDF"); neither `Notification` nor any export or print
+  path exists anywhere in `frontend/src/`. SPEC-037's acceptance criterion "Axe passes... on the six
+  covered screens in both themes" is checked, but only one theme exists and `frontend/e2e/` contains
+  no `colorScheme` or theme handling. SPEC-051 and SPEC-052 complete SPEC-035's scope; SPEC-045
+  introduces the second theme and the theme matrix that makes SPEC-037's criterion satisfiable.
+- (2026-08-05) **The frontend test stack is stronger than the review credited, and its gaps are
+  specific.** Already present: vitest + Testing Library (77 tests), Playwright across
+  fixture/stub/replay with dedicated ports, `@axe-core/playwright` on six screens, terminology
+  guards on five screens, and the generated-types drift gate. Genuinely missing: any visual
+  regression at all (`toHaveScreenshot` is never used), theme testing, any mobile viewport (both
+  Playwright projects are desktop), a reduced-motion test despite `styles.css` and `Brief.tsx`
+  branching on it, and axe coverage beyond 6 of ~13 routes. That harness lands in SPEC-045, and a
+  six-point testing contract binds every sheet in the phase.
+- (2026-08-05) **Auditing the drafted sheets back against the review found two categories of gap.**
+  Four discussed items were in no sheet: the calibration language (the review's single
+  "spend the design budget here" recommendation), expand-in-place "why" on a claim, the output-shape
+  question at commissioning, and a settings surface that SPEC-052 referenced and nobody owned.
+  Reliability had been specified only as SSE reconnect, while the code showed four new
+  `localStorage` dependencies in a frontend with zero today, an unbounded event array copied on
+  every append that SPEC-046's heartbeats would feed, and exactly one `role="status"` in the whole
+  frontend against a narrator that rewrites in place. SPEC-054 and SPEC-055 close them; the sheet
+  count went from ten to twelve.
+- (2026-08-05) **Spec sizing was corrected by measurement.** A first plan proposed 17 sheets.
+  Phases 6-7 run 104-192 lines with 3-6 deliverables and 3-7 acceptance criteria, and breadth per
+  sheet is far wider than assumed: SPEC-035 alone covers the whole Brief route, the whole Delivery
+  sheet, the Notification API and three failure paths. Six of the seventeen proposed sheets fitted
+  inside that one. Compressed to ten, each 118-140 lines with 6 deliverables and 7 criteria.
 
 ## Phase 8 — Pipeline improvement [in_progress]
 
