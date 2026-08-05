@@ -18,6 +18,7 @@ from orchestrator.artifacts.audit_findings import (
     AuditStopInput,
 )
 from orchestrator.artifacts.common import (
+    ActionId,
     AssumptionId,
     AssumptionStatus,
     AssumptionType,
@@ -85,6 +86,7 @@ from orchestrator.artifacts.recommendations import (
     AlternativeAssessment,
     Counterargument,
     FinalRecommendation,
+    NextAction,
     PreliminaryRecommendation,
     ScenarioAssessment,
 )
@@ -115,6 +117,7 @@ __all__ = [
     "AnalysisScenario",
     "AlternativeAssessment",
     "AssumptionBatch",
+    "ActionId",
     "AssumptionId",
     "AssumptionRecord",
     "AssumptionStatus",
@@ -164,6 +167,7 @@ __all__ = [
     "IntakeRecord",
     "Level",
     "ModelStability",
+    "NextAction",
     "ObjectionBatch",
     "ObjectionId",
     "ObjectionMode",

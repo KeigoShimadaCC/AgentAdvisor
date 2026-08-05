@@ -38,6 +38,10 @@ _REF_ID_RE = re.compile(r"\b(?:E|A)-\d+\b")
 CLUSTER_BLOCK_THRESHOLD = 0.6
 CLUSTER_WARN_THRESHOLD = 0.4
 CONFIDENCE_OVERCLAIM_MARGIN = 0.25
+NEAR_TERM_ACTION_DAYS = 30
+_PLACEHOLDER_OWNERS = frozenset(
+    {"tbd", "tba", "unknown", "n/a", "na", "none", "someone", "somebody", "unassigned", "owner"}
+)
 ISSUE_COVERAGE_WARN_THRESHOLD = 0.5
 
 
@@ -344,6 +348,66 @@ def _check_missing_critical_assumptions(case: Case) -> list[GateFinding]:
     ]
 
 
+def _check_action_plan(case: Case, as_of: date) -> list[GateFinding]:
+    """Check that the action plan is executable rather than aspirational.
+
+    ``owner`` and ``by_date`` are schema-required, so absence is impossible here.
+    What the schema cannot catch is a vacuous owner ("TBD") or a plan whose
+    earliest action sits months out, which is the practical form of the same
+    failure.
+    """
+    recs = case.list_artifacts(FinalRecommendation)
+    if not recs:
+        return []
+    actions = recs[0].next_actions
+    findings: list[GateFinding] = []
+
+    placeholder = [
+        action.action_id
+        for action in actions
+        if action.owner.strip().lower().rstrip("?.") in _PLACEHOLDER_OWNERS
+    ]
+    if placeholder:
+        findings.append(
+            GateFinding(
+                check_id="action_plan.missing_owner",
+                severity=GateSeverity.WARN,
+                message=(
+                    f"{len(placeholder)} next action(s) name a placeholder owner. "
+                    "An action nobody owns will not happen."
+                ),
+                target_ids=placeholder,
+            )
+        )
+
+    earliest = min((action.by_date for action in actions), default=None)
+    if earliest is not None and (earliest - as_of).days > NEAR_TERM_ACTION_DAYS:
+        findings.append(
+            GateFinding(
+                check_id="action_plan.no_near_term_action",
+                severity=GateSeverity.WARN,
+                message=(
+                    f"The earliest next action is due {earliest.isoformat()}, more than "
+                    f"{NEAR_TERM_ACTION_DAYS} days out. A plan with no near-term step "
+                    "gives the decision owner nothing to do now."
+                ),
+                target_ids=[action.action_id for action in actions],
+            )
+        )
+
+    stale = [action.action_id for action in actions if action.by_date < as_of]
+    if stale:
+        findings.append(
+            GateFinding(
+                check_id="action_plan.date_in_past",
+                severity=GateSeverity.WARN,
+                message=f"{len(stale)} next action(s) are dated before the case completed.",
+                target_ids=stale,
+            )
+        )
+    return findings
+
+
 _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "investigation": ("task_health", "analysis_presence"),
     "evidence_critique": ("evidence_independence",),
@@ -356,6 +420,7 @@ _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
         "confidence_coherence",
         "objection_resolution",
         "missing_critical_assumptions",
+        "action_plan",
     ),
 }
 
@@ -368,7 +433,6 @@ def run_stage_gate(
     as_of: date | None = None,
 ) -> GateReport:
     """Run the checks registered for ``stage`` and persist the report."""
-    del as_of
     checks = _CHECKS_BY_STAGE.get(stage, ())
     findings: list[GateFinding] = []
     cancellable: list[str] = []
@@ -394,6 +458,8 @@ def run_stage_gate(
             cancellable.extend(immaterial)
         elif check == "missing_critical_assumptions":
             findings.extend(_check_missing_critical_assumptions(case))
+        elif check == "action_plan":
+            findings.extend(_check_action_plan(case, as_of or datetime.now(UTC).date()))
 
     cancelled: list[str] = []
     if cancellable and task_graph is not None:

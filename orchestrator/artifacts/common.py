@@ -12,6 +12,7 @@ EvidenceId = Annotated[str, Field(pattern=r"^E-\d+$")]
 AssumptionId = Annotated[str, Field(pattern=r"^A-\d+$")]
 TaskId = Annotated[str, Field(pattern=r"^T-\d+$")]
 ObjectionId = Annotated[str, Field(pattern=r"^O-\d+$")]
+ActionId = Annotated[str, Field(pattern=r"^N-\d+$")]
 IssueNodeId = Annotated[str, Field(pattern=r"^Q-\d+(?:\.\d+)*$")]
 CaseId = Annotated[str, Field(pattern=r"^case-\d+[-a-z0-9-]*$")]
 

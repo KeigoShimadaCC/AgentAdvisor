@@ -127,6 +127,79 @@
       "title": "ModelStability",
       "type": "object"
     },
+    "NextAction": {
+      "additionalProperties": false,
+      "description": "One executable step, not a sentence about a step.\n\n``first_step`` is what makes the record useful: an action the reader cannot\nstart today is not an action.",
+      "properties": {
+        "action": {
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "action_id": {
+          "pattern": "^N-\\d+$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "by_date": {
+          "format": "date",
+          "title": "By Date",
+          "type": "string"
+        },
+        "depends_on": {
+          "items": {
+            "pattern": "^N-\\d+$",
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "estimated_cost": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Cost"
+        },
+        "first_step": {
+          "minLength": 1,
+          "title": "First Step",
+          "type": "string"
+        },
+        "owner": {
+          "minLength": 1,
+          "title": "Owner",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "why_now": {
+          "minLength": 1,
+          "title": "Why Now",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_id",
+        "action",
+        "owner",
+        "by_date",
+        "first_step",
+        "why_now"
+      ],
+      "title": "NextAction",
+      "type": "object"
+    },
     "ProbabilityAdjustment": {
       "additionalProperties": false,
       "properties": {
@@ -347,8 +420,7 @@
     },
     "next_actions": {
       "items": {
-        "minLength": 1,
-        "type": "string"
+        "$ref": "#/$defs/NextAction"
       },
       "minItems": 1,
       "title": "Next Actions",

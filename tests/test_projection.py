@@ -191,7 +191,16 @@ def _final_recommendation() -> FinalRecommendation:
                 probability=_probability(0.7),
             )
         ],
-        next_actions=["Monitor demand indicators monthly."],
+        next_actions=[
+            {
+                "action_id": "N-001",
+                "action": "Monitor demand indicators monthly",
+                "owner": "user",
+                "by_date": "2026-08-15",
+                "first_step": "Block 30 minutes and open the tracking sheet",
+                "why_now": "Carries the recommendation into execution",
+            }
+        ],
         outcome_probabilities={"success": _probability(0.6)},
         evidence_confidence=_confidence(0.72),
         recommendation_confidence=_confidence(0.67),

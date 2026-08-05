@@ -234,8 +234,25 @@ def render_final_recommendation_markdown(
         lines.append("- [interpretation] No explicit recommendation-change triggers were provided.")
     lines.append("")
     lines.append("## Next actions")
+    lines.append("")
+    lines.append("| # | Action | Owner | By | First step |")
+    lines.append("|---|---|---|---|---|")
     for action in recommendation.next_actions:
-        lines.append(f"- [{PROVENANCE_RECOMMENDATION}] {action}")
+        lines.append(
+            f"| {_escape_md_cell(action.action_id)} "
+            f"| {_escape_md_cell(action.action)} "
+            f"| {_escape_md_cell(action.owner)} "
+            f"| {action.by_date.isoformat()} "
+            f"| {_escape_md_cell(action.first_step)} |"
+        )
+    lines.append("")
+    for action in recommendation.next_actions:
+        detail = f"{action.action_id}: {_ensure_terminal_punctuation(action.why_now)}"
+        if action.estimated_cost is not None:
+            detail = f"{detail} Estimated cost: {action.estimated_cost}."
+        if action.depends_on:
+            detail = f"{detail} Depends on {', '.join(sorted(action.depends_on))}."
+        lines.append(f"- [{PROVENANCE_RECOMMENDATION}] {detail}")
     lines.append("")
     if user_supplied_inputs:
         lines.append("## User-supplied inputs")

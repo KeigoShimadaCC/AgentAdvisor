@@ -515,8 +515,23 @@ def _make_final_recommendation() -> FinalRecommendation:
         critical_assumptions=["A-001"],
         recommendation_change_triggers=["If earnings miss by >10%, shift to ETF strategy"],
         next_actions=[
-            "Place initial 30% allocation this week",
-            "Set earnings alert for next quarter",
+            {
+                "action_id": "N-001",
+                "action": "Place initial 30% allocation",
+                "owner": "user",
+                "by_date": "2026-08-15",
+                "first_step": "Open the brokerage order ticket and set a limit price",
+                "why_now": "Staged entry starts now so later tranches stay optional",
+            },
+            {
+                "action_id": "N-002",
+                "action": "Set an earnings alert for next quarter",
+                "owner": "user",
+                "by_date": "2026-08-20",
+                "first_step": "Add the earnings date to the calendar with a price alert",
+                "why_now": "The next print is the first checkpoint",
+                "depends_on": ["N-001"],
+            },
         ],
         citations=["E-001", "E-002"],
         outcome_probabilities={"positive_return_12m": _prob(0.58)},
@@ -800,6 +815,10 @@ def test_pipeline_stub_e2e(stub_env: Case, tmp_path: Path):
     # Rendered markdown
     md_path = case.root / "outputs" / "final_recommendation.md"
     assert md_path.exists(), "final_recommendation.md was not rendered"
+    # SPEC-041: the action plan renders as a table with owner, date and first step.
+    rendered = md_path.read_text(encoding="utf-8")
+    assert "| # | Action | Owner | By | First step |" in rendered
+    assert "| N-001 |" in rendered
 
     # Audit log
     audit_lines = (case.root / "audit.jsonl").read_text().strip().split("\n")
@@ -929,7 +948,16 @@ def test_coerce_flattens_nested_objects():
                 "probability": {"method": "scenario_model", "point": 0.30, "adjustments": []},
             },
         ],
-        "next_actions": ["Place initial allocation", "Set earnings alert"],
+        "next_actions": [
+            {
+                "action_id": "N-001",
+                "action": "Place initial allocation",
+                "owner": "user",
+                "by_date": "2026-08-15",
+                "first_step": "Open the brokerage order ticket",
+                "why_now": "Starts the staged plan",
+            },
+        ],
         "outcome_probabilities": {
             "positive_return": {"method": "scenario_model", "point": 0.58, "adjustments": []},
         },

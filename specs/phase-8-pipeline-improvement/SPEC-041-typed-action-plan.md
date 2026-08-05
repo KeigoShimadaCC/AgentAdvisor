@@ -2,8 +2,8 @@
 id: SPEC-041
 title: Typed action plan
 phase: 8
-status: draft
-depends_on: [SPEC-039]
+status: verified
+depends_on: []
 parallel_with: [SPEC-043]
 north_star_refs: ["3", "14", "16"]
 last_updated: 2026-08-04
@@ -45,7 +45,8 @@ appears at roughly eight real code sites.
 - `orchestrator/render.py:237` — render the action table.
 - `orchestrator/service/caseview.py:699-704` — `next_actions` blocks carry the structured fields.
 - `orchestrator/stub_backend.py:504` — updated fixture.
-- `orchestrator/gates.py` — `action_plan.missing_owner`, `action_plan.no_near_term_action`.
+- `orchestrator/gates.py` — `action_plan.missing_owner`, `action_plan.no_near_term_action`,
+  `action_plan.date_in_past`.
 - `cursor/roles/synthesizer.md` — contract and a worked example that validates.
 - `frontend/src/screens/Delivery/` — render owner and date; update `Delivery.test.tsx`.
 - `frontend/src/copy/terms.ts` — terms for the new fields.
@@ -112,7 +113,41 @@ schema-valid typed actions without coercion intervention.
 
 ## Verification results
 
-Not yet executed.
+**Verified 2026-08-04.** Implemented first in the phase, as the canary for the cost model, with the
+`depends_on: [SPEC-039]` file-level constraint dropped since it now runs before both.
+
+Commands: `uv run ruff check`, `uv run ruff format --check`, `uv run mypy orchestrator`,
+`uv run pytest` (743 passed, 18 deselected), `npm run typecheck`, `npm run check:clean`,
+`npm test` (87 passed).
+
+All acceptance criteria met. `tests/test_action_plan.py` adds 15 tests covering the dependency
+graph (chain, self-reference, two- and three-node cycles, diamond-is-not-a-cycle, unresolvable id,
+duplicate ids) and all three gate checks. The end-to-end stub run in `tests/test_pipeline_stub.py`
+now asserts the rendered action table and an `N-001` row.
+
+**Two deviations from the spec as written, both resolved in favour of the implementation:**
+
+1. The spec asked for an `action_plan.missing_owner` finding for an action "missing an owner", but
+   `owner` is a required `NonEmptyStr`, so literal absence is unconstructible. The check instead
+   detects *vacuous* owners against a placeholder set (`tbd`, `unknown`, `someone`, `unassigned`,
+   …), which is the practical form of the same failure. The check id is unchanged. A third check,
+   `action_plan.date_in_past`, was added because the same pass had the date in hand and a backdated
+   action is the other way a plan arrives dead.
+2. `run_stage_gate` previously accepted `as_of` and immediately discarded it (`del as_of`). The
+   action-plan check needs a reference date, so the parameter is now used, defaulting to the
+   current UTC date. No existing caller passes it, so behaviour elsewhere is unchanged.
+
+**Cost-model check (the point of running this spec first).** The spec estimated ~250 lines across
+"roughly eight real code sites". The production change was close to that, but the *migration* was
+larger than estimated: 13 sites, not 8 — seven YAML fixtures (including two `.invalid.yaml` files
+that must still fail for their original reason, and one golden case output), five Python test
+construction sites, and one frontend mock. Two further regenerations were required and not listed
+in the spec: `tests/fixtures/artifacts/final_recommendation.valid.yaml` had to be re-dumped
+canonically for the byte-identical round-trip test, and the render golden had to be regenerated.
+**Correction to the section 7 cost model: for a breaking change to a widely-consumed artifact, the
+fixture-and-golden migration tax is roughly 1.5–2× the production diff, not a rounding error.**
+This is the single most useful thing learned from running the canary first, and it applies directly
+to any later spec that changes a required field.
 
 ## Open questions
 

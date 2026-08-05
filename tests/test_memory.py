@@ -85,7 +85,16 @@ def _final(action: str = "Enter in three tranches") -> FinalRecommendation:
         ],
         critical_assumptions=[],
         recommendation_change_triggers=["Earnings miss"],
-        next_actions=["Place the first tranche"],
+        next_actions=[
+            {
+                "action_id": "N-001",
+                "action": "Place the first tranche",
+                "owner": "user",
+                "by_date": "2026-08-15",
+                "first_step": "Block 30 minutes and open the tracking sheet",
+                "why_now": "Carries the recommendation into execution",
+            }
+        ],
         citations=["E-001"],
         outcome_probabilities={"positive_return_12m": _prob(0.58)},
         evidence_confidence=ConfidenceAssessment(value=0.55, basis="Mixed"),

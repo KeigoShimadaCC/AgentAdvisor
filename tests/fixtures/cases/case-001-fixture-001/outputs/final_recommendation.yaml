@@ -31,8 +31,18 @@ model_stability:
   schema_version: 1
   share_of_sensitivity_runs_supporting_recommendation: 0.0
 next_actions:
-- Place initial 30% allocation this week
-- Set earnings alert for next quarter
+  - action_id: "N-001"
+    action: "Place initial 30% allocation this week"
+    owner: "user"
+    by_date: "2026-08-15"
+    first_step: "Block 30 minutes and start: place initial 30% allocation this week"
+    why_now: "Carries the recommendation into execution"
+  - action_id: "N-002"
+    action: "Set earnings alert for next quarter"
+    owner: "user"
+    by_date: "2026-08-22"
+    first_step: "Block 30 minutes and start: set earnings alert for next quarter"
+    why_now: "Carries the recommendation into execution"
 outcome_probabilities:
   positive_return_12m:
     adjustments: []

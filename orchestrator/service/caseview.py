@@ -701,7 +701,14 @@ def _build_brief_sections(
         BriefSection(
             key="next_actions",
             status="final",
-            blocks=[_block(PROVENANCE_RECOMMENDATION, action) for action in final.next_actions],
+            blocks=[
+                _block(
+                    PROVENANCE_RECOMMENDATION,
+                    f"{action.action} — {action.owner}, by {action.by_date.isoformat()}. "
+                    f"First step: {action.first_step}",
+                )
+                for action in final.next_actions
+            ],
         )
     )
 

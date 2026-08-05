@@ -51,8 +51,30 @@ Populate all blocks through the schema fields:
 - Strongest counterarguments -> `strongest_counterarguments`
 - Critical assumptions -> `critical_assumptions`
 - What would change recommendation -> `recommendation_change_triggers`
-- Next actions -> `next_actions`
+- Next actions -> `next_actions` (see the action-plan contract below)
 - Evidence and citations -> `citations`
+
+## Action-plan contract
+
+`next_actions` is a list of structured records, not sentences. Each entry requires:
+
+- `action_id` — `N-001`, `N-002`, … in order
+- `action` — the step itself, stated as an instruction
+- `owner` — who does it. Usually the decision owner from the decision spec, but name
+  someone else when the work is theirs ("your accountant", "the vendor's AE").
+  Never write "TBD", "unknown" or "someone"; the process gate flags placeholder owners.
+- `by_date` — a concrete ISO date (`YYYY-MM-DD`), never a duration. Compute it from the
+  current date in your inputs. At least one action should fall within 30 days, and none
+  should be dated in the past.
+- `first_step` — **the field people skip and the reason the record exists.** What the
+  owner does today to start: a call to make, a document to request, a number to look up.
+  It must be completable in one sitting. If you cannot write it, the action is too vague.
+- `why_now` — why this is on the list and why at this time
+- `estimated_cost` — optional, free text ("15000 USD", "≈2 engineer-days")
+- `depends_on` — optional list of other `action_id`s. Must reference actions you declared,
+  and the dependency graph must not contain a cycle.
+
+Order the list by urgency or information value, as Section 16 requires.
 
 ## Output quality bar
 
@@ -125,9 +147,21 @@ recommendation_change_triggers:
   - "If earnings miss by >10%, shift to ETF strategy"
   - "If valuation drops below 25x forward P/E, increase allocation"
 next_actions:
-  - "Place initial 30% allocation this week"
-  - "Set earnings alert for next quarter"
-  - "Review allocation after 90 days"
+  - action_id: "N-001"
+    action: "Place the initial 30% allocation"
+    owner: "user"
+    by_date: "2026-08-15"
+    first_step: "Open the brokerage order ticket and set a limit price"
+    why_now: "Staged entry starts now so the remaining tranches stay optional"
+    estimated_cost: "15000 USD"
+  - action_id: "N-002"
+    action: "Set an earnings alert for next quarter"
+    owner: "user"
+    by_date: "2026-08-20"
+    first_step: "Add the earnings date to the calendar with a price alert"
+    why_now: "The next print is the first checkpoint for the staged plan"
+    depends_on:
+      - "N-001"
 citations:
   - E-001
   - E-003
