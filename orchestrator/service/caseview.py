@@ -100,7 +100,13 @@ def _phase_for_stage(stage: CaseStage) -> Phase:
     return _STAGE_TO_PHASE[stage]
 
 
-def _needs_you_for_state(state: CaseState) -> NeedsYou:
+def needs_you_for_state(state: CaseState) -> NeedsYou:
+    """What this case needs from the user, if anything.
+
+    Public because the case-list endpoint serves the same value (SPEC-046);
+    keeping one implementation is what stops the list and the projection
+    disagreeing about whether a case is waiting on someone.
+    """
     if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
         return "scope_checkpoint"
     if state.stage is CaseStage.AWAITING_FINAL_APPROVAL:
@@ -1300,7 +1306,7 @@ def build_case_view(case: Case) -> CaseView:
     return CaseView(
         case_id=case.root.name,
         phase=_phase_for_stage(state.stage),
-        needs_you=_needs_you_for_state(state),
+        needs_you=needs_you_for_state(state),
         stage=state.stage.value,
         is_terminal=state.stage in _TERMINAL_STAGES,
         brief_sections=brief_sections,

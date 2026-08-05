@@ -18,7 +18,11 @@ from orchestrator.artifacts.evidence_critique import EvidenceCritique
 from orchestrator.artifacts.gates import GateReport
 from orchestrator.artifacts.intake import FramingApproval, IntakeRecord
 from orchestrator.artifacts.issue_tree import IssueTree
-from orchestrator.artifacts.memory import CaseMemoryDigest, PriorEvidenceDigest
+from orchestrator.artifacts.memory import (
+    CalibrationSummary,
+    CaseMemoryDigest,
+    PriorEvidenceDigest,
+)
 from orchestrator.artifacts.objections import ObjectionBatch, ObjectionRecord
 from orchestrator.artifacts.premortem import PreMortemReport
 from orchestrator.artifacts.probability import ProbabilityAdjustment, ProbabilityEstimate
@@ -74,6 +78,7 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "audit_event": AuditEvent,
     "audit_finding": AuditFinding,
     "audit_usage": AuditUsage,
+    "calibration_summary": CalibrationSummary,
     "case_memory_digest": CaseMemoryDigest,
     "confidence_assessment": ConfidenceAssessment,
     "counterargument": Counterargument,

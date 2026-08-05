@@ -220,10 +220,15 @@ def new_case(
     cases_root: Path | None = None,
     worker_runner: WorkerRunner = _run_worker_to_halt,
 ) -> str:
-    """Create a case, start a worker, and block until the first halt.
+    """Create a case and start a worker on it.
 
-    Returns the case_id.  The case will be parked at
-    ``awaiting_framing_approval`` when this function returns.
+    Returns the case_id.  With the default ``worker_runner`` this blocks until
+    the first halt, so the case is parked at ``awaiting_framing_approval`` on
+    return — the CLI's behaviour.  Callers that must not block (the service,
+    per SPEC-046) pass ``spawn_worker_background``, exactly as
+    :func:`approve_framing` and :func:`resume` already do; the case directory
+    and its ``control_case_created`` audit line are durable before this returns
+    either way, so the caller always has a case it can stream from.
     """
     root = _resolve_root(cases_root)
     case = create_case(slug, cases_root=root)

@@ -2,7 +2,7 @@
 id: SPEC-046
 title: Service additions — progress events, non-blocking creation, projection reads
 phase: 9
-status: draft
+status: implemented
 depends_on: []
 parallel_with: [SPEC-045]
 north_star_refs: ["13", "15"]
@@ -86,13 +86,13 @@ so a UI spec that quietly reaches into the pipeline breaks a test rather than a 
 
 ## Deliverables
 
-- [ ] `orchestrator/invoke_role.py` — `role_invocation_started`, `role_invocation_progress`, timer
-- [ ] `orchestrator/service/lexicon_data.yaml` — two narration templates
-- [ ] `orchestrator/control.py` + `app.py` — non-blocking `new_case` returning 202
-- [ ] `app.py` — `needs_you` on `CaseSummary`; `GET /api/calibration`; `CalibrationSummary` schema
+- [x] `orchestrator/invoke_role.py` — `role_invocation_started`, `role_invocation_progress`, timer
+- [x] `orchestrator/service/lexicon_data.yaml` — two narration templates
+- [x] `orchestrator/control.py` + `app.py` — non-blocking `new_case` returning 202
+- [x] `app.py` — `needs_you` on `CaseSummary`; `GET /api/calibration`; `CalibrationSummary` schema
       and regenerated TS type
-- [ ] `tests/test_pipeline_invariants.py` — transitions/handlers snapshot guard
-- [ ] Extensions to `tests/test_invoke_role.py`, `tests/test_service_api.py`, `tests/test_events.py`
+- [x] `tests/test_pipeline_invariants.py` — transitions/handlers snapshot guard
+- [x] Extensions to `tests/test_invoke_role.py`, `tests/test_service_api.py`, `tests/test_events.py`
 
 ## Acceptance criteria
 
@@ -111,7 +111,7 @@ so a UI spec that quietly reaches into the pipeline breaks a test rather than a 
       case across all four states.
 - [ ] `GET /api/calibration` returns the sample size and, with fewer than five recorded outcomes,
       the "noise, not a calibration estimate" interpretation verbatim from `calibration.py`.
-- [ ] `tests/test_pipeline_invariants.py` passes, and fails if a transition, flow plan or stage
+- [x] `tests/test_pipeline_invariants.py` passes, and fails if a transition, flow plan or stage
       handler is added, removed or re-pointed. `make check` and `make frontend-check` are green.
 
 ## Verification plan
@@ -127,7 +127,33 @@ E2E_MODE=stub npx playwright test --config=frontend/e2e/playwright.config.ts   #
 
 ## Verification results
 
-Not yet executed.
+- 2026-08-05. `make check` green: ruff, mypy, **741 unit tests** (up from 725; +16 for this spec) with
+  18 deselected. `make frontend-check` green (tsc, generated-types drift clean including the new
+  `calibration_summary.ts`, 86 frontend tests).
+- `tests/test_progress_events.py` (6) covers both events on the success and retry paths, the
+  heartbeat-cannot-outlive-its-call criterion (asserted by cursor ordering *and* thread count), a
+  failing audit write not failing the invocation, and both events being non-technical in the lexicon.
+- `tests/test_pipeline_invariants.py` (5) passes and is the phase's structural guard.
+- `tests/test_service_api.py` extended to 29: 202 without waiting for the worker, the background
+  runner actually being passed, `needs_you` matching the projection for every fixture case, and the
+  calibration endpoint's empty-history and small-sample copy.
+- Browser: all **35 Playwright tests pass** across fixture (24), stub (5) and replay (6) in chromium.
+  The stub lifecycle still parks at both gates and still writes `framing_approval.yaml` and
+  `final_approval.yaml`, so the 202 changed the wait and nothing else.
+
+**Deviations from the sheet.**
+
+1. `PROGRESS_INTERVAL_S` was initially bound as a default argument, which made it unconfigurable at
+   runtime and silently produced no heartbeats under test. Now resolved at construction.
+2. The sheet put all UI consumption in later specs, but the 202 breaks the *existing* commissioning
+   flow: `NewDecision` navigated straight to the scope sheet, which would have rendered blank before
+   framing finished. An interim client-side wait was added to `NewDecision`, marked
+   `INTERIM (SPEC-046 -> SPEC-050)`. The server no longer holds a request open for minutes, which
+   was the actual defect; SPEC-050 replaces the wait with streaming.
+3. `caseview._needs_you_for_state` was made public as `needs_you_for_state` rather than imported
+   privately by the service.
+4. `CalibrationSummary` was added to `MODEL_EXPORTS`, so it now has a JSON schema and a generated
+   TypeScript type. The sheet implied this; it was not spelled out.
 
 ## Open questions
 

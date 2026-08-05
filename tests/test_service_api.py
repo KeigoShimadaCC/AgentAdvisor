@@ -307,3 +307,136 @@ def test_control_post_endpoints_are_sync() -> None:
                 "runs in a threadpool and never freezes the event loop."
             )
     assert seen == control_paths, f"missing control POST routes: {control_paths - seen}"
+
+
+# ── SPEC-046: service additions ──────────────────────────────────────────────
+
+
+def test_new_case_returns_202_without_waiting_for_the_worker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Creation must not block through intake and framing.
+
+    Before this, ``POST /api/cases`` ran the worker to the first halt, so the
+    client had no case id — and nothing to stream — for minutes.  The case has
+    to be durable and resolvable when the response lands; the analysis catches
+    up over SSE.
+    """
+    started: list[str] = []
+
+    def _fake_worker(case_id: str, cases_root: Path) -> None:
+        started.append(case_id)  # returns immediately, like the background runner
+
+    monkeypatch.setattr("orchestrator.service.app.spawn_worker_background", _fake_worker)
+    app = create_app(cases_root=tmp_path)
+    c = TestClient(app)
+
+    resp = c.post("/api/cases", json={"prompt": "Should I take the offer?", "effort": "light"})
+
+    assert resp.status_code == 202
+    case_id = resp.json()["case_id"]
+    assert started == [case_id], "the worker was not handed the case"
+
+    # Durable and resolvable the moment the response returns.
+    assert (tmp_path / case_id / "state.yaml").exists()
+    assert c.get(f"/api/cases/{case_id}/view").status_code == 200
+    audit = (tmp_path / case_id / "audit.jsonl").read_text(encoding="utf-8")
+    assert "control_case_created" in audit
+
+
+def test_new_case_uses_the_background_runner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The endpoint must pass the non-blocking runner, not the default."""
+    from orchestrator.service import app as app_module
+
+    captured: dict[str, object] = {}
+    real_new_case = app_module.new_case
+
+    def _spy(prompt: str, **kwargs: object) -> str:
+        captured.update(kwargs)
+        return real_new_case(prompt, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(app_module, "new_case", _spy)
+    monkeypatch.setattr(app_module, "spawn_worker_background", lambda *_a, **_k: None)
+    c = TestClient(create_app(cases_root=tmp_path))
+
+    c.post("/api/cases", json={"prompt": "Build or buy?"})
+
+    assert captured["worker_runner"] is app_module.spawn_worker_background
+
+
+def test_case_list_carries_needs_you_matching_the_projection(client: TestClient) -> None:
+    """One rule, one implementation.
+
+    The client used to re-derive this from a stage string, which is a second
+    copy of a rule the projection already owns.
+    """
+    listed = {c["case_id"]: c["needs_you"] for c in client.get("/api/cases").json()}
+    assert listed, "no fixture cases listed"
+
+    for case_id, needs_you in listed.items():
+        projected = client.get(f"/api/cases/{case_id}/view").json()["needs_you"]
+        assert needs_you == projected, f"{case_id}: list says {needs_you}, view says {projected}"
+
+    # The parked fixture is the one that should be asking for a signature.
+    assert listed["case-002-fixture-002-parked"] == "scope_checkpoint"
+
+
+def test_calibration_endpoint_reports_an_empty_history_honestly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With no outcomes, it must say so rather than imply a score."""
+    monkeypatch.setenv("AGENTADVISOR_MEMORY_ROOT", str(tmp_path / "memory"))
+    c = TestClient(create_app(cases_root=tmp_path))
+
+    resp = c.get("/api/calibration")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["sample_size"] == 0
+    assert body["brier_score"] is None
+    assert "calibration is unknown" in body["interpretation"]
+
+
+def test_calibration_endpoint_flags_a_small_sample_as_noise(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Under five outcomes the honesty is in the wording, so it is asserted.
+
+    A UI that turned this into a confident dial would undo the property
+    ``calibration.py`` was written to protect.
+    """
+    from orchestrator.calibration import summarize_calibration
+
+    monkeypatch.setenv("AGENTADVISOR_MEMORY_ROOT", str(tmp_path / "memory"))
+    c = TestClient(create_app(cases_root=tmp_path))
+
+    monkeypatch.setattr(
+        "orchestrator.memory.MemoryStore.calibration",
+        lambda _self: summarize_calibration(
+            [
+                _outcome(0.7, realized=True),
+                _outcome(0.4, realized=False),
+            ]
+        ),
+    )
+
+    body = c.get("/api/calibration").json()
+    assert body["sample_size"] == 2
+    assert "noise, not a calibration estimate" in body["interpretation"]
+
+
+def _outcome(probability: float, *, realized: bool):
+    from datetime import UTC, datetime
+
+    from orchestrator.artifacts import OutcomeRecord
+
+    return OutcomeRecord(
+        recorded_at=datetime.now(UTC),
+        outcome_summary="recorded for a calibration test",
+        recommendation_followed=True,
+        forecast_outcome_name="the recommended option outperformed",
+        forecast_probability=probability,
+        realized=realized,
+    )

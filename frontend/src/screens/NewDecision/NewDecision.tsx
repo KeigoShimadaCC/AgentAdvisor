@@ -6,6 +6,7 @@ import {
   EXAMPLE_CHIPS,
   METHOD_PROMISE,
   NOT_LICENSED_ADVICE,
+  FAILURE_COPY,
   DEFAULT_EFFORT,
   type EffortKey,
 } from "../../copy/terms";
@@ -35,6 +36,33 @@ export function NewDecision() {
 
   const trimmed = prompt.trim();
 
+  /**
+   * Wait for the case to reach the scope gate.
+   *
+   * INTERIM (SPEC-046 → SPEC-050). Case creation now returns `202` as soon as
+   * the case is durable, instead of holding the HTTP request open through
+   * intake and framing — which on a real backend meant a request held for
+   * minutes, at the mercy of every proxy timeout in between. The server no
+   * longer blocks; until SPEC-050 replaces this screen with one that routes
+   * immediately and streams, the client waits here so the scope sheet is never
+   * opened before there is a framing to review.
+   */
+  async function waitForScopeGate(newCaseId: string): Promise<void> {
+    const deadline = Date.now() + 30 * 60 * 1000;
+    while (Date.now() < deadline) {
+      const view = await api.getCaseView(newCaseId);
+      if (view.needs_you === "scope_checkpoint") return;
+      if (view.stage === "failed") {
+        throw { error: "case_failed", detail: FAILURE_COPY.failedDetail } as ErrorResponse;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    throw {
+      error: "timed_out",
+      detail: "This is taking longer than expected. Open the case to see where it is.",
+    } as ErrorResponse;
+  }
+
   async function handleCreate() {
     if (!trimmed || submitting) return;
     setSubmitting(true);
@@ -42,6 +70,7 @@ export function NewDecision() {
     try {
       const profile = EFFORT_PROFILES[effort];
       const created = await api.createCase(trimmed, profile.backendValue);
+      await waitForScopeGate(created.case_id);
       setCaseId(created.case_id);
       // Load the intake record to surface clarification questions inline.
       try {

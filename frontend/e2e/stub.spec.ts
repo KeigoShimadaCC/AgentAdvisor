@@ -28,7 +28,8 @@ modeDescribe("stub", "Stub mode — full lifecycle", () => {
         effort: "default",
       },
     );
-    expect(status).toBe(201);
+    // SPEC-046: creation is accepted and runs in the background.
+    expect(status).toBe(202);
     const caseId = data!.case_id;
     expect(caseId).toBeTruthy();
 

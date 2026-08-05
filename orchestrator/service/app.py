@@ -46,7 +46,7 @@ from orchestrator.control import (
     spawn_worker_background,
 )
 from orchestrator.memory import MemoryStore, memory_root
-from orchestrator.service.caseview import build_case_view
+from orchestrator.service.caseview import build_case_view, needs_you_for_state
 from orchestrator.service.events import replay_stream, sse_event_stream
 from orchestrator.state_machine import CaseStage, load_case_state
 from orchestrator.supervisor import CaseLocked as _CaseLocked  # noqa: F401 (re-export)
@@ -169,7 +169,12 @@ def _resume_in_background(case_id: str, cases_root: Path) -> None:
 
 
 class CaseSummary(BaseModel):
-    """One row in the case library list."""
+    """One row in the case library list.
+
+    ``needs_you`` is served here rather than re-derived on the client: the
+    projection already owns that rule (SPEC-032), and a second copy of it in
+    the frontend is a copy that drifts (SPEC-046).
+    """
 
     model_config = {"extra": "forbid"}
 
@@ -177,6 +182,7 @@ class CaseSummary(BaseModel):
     stage: str
     title: str
     updated: str
+    needs_you: str = "none"
 
 
 class NewCaseRequest(BaseModel):
@@ -377,6 +383,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
                     stage=state.stage.value,
                     title=_case_title(case),
                     updated=state.updated_at.isoformat(),
+                    needs_you=needs_you_for_state(state),
                 )
             ]
 
@@ -398,6 +405,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
                     stage=state.stage.value,
                     title=_case_title(case),
                     updated=state.updated_at.isoformat(),
+                    needs_you=needs_you_for_state(state),
                 )
             )
         return summaries
@@ -478,7 +486,12 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
     # blocking call never occupies uvicorn's single asyncio event loop.  If any
     # of these were ``async def``, one in-flight control call would freeze every
     # other request (case list polls, SSE, views) for the whole worker run.
-    @application.post("/api/cases", status_code=201)
+    # SPEC-046: 202, not 201, and the worker runs in the background.  Creating
+    # a case used to run intake *and* framing to the first halt before
+    # returning, so the client had no case id — and nothing to stream — for
+    # minutes.  The case directory and its audit line are durable before this
+    # responds, so the id it hands back is immediately resolvable.
+    @application.post("/api/cases", status_code=202)
     def post_new_case(body: NewCaseRequest) -> JSONResponse:
         _reject_replay(is_replay)
         slug = body.slug or _slug_from_prompt(body.prompt)
@@ -488,12 +501,13 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
                 slug=slug,
                 budget_profile=body.effort,
                 cases_root=config.cases_root,
+                worker_runner=spawn_worker_background,
             )
         except Exception as exc:  # noqa: BLE001
             raise _http_from_control(exc, "new", config) from exc
         return JSONResponse(
-            status_code=201,
-            content={"case_id": case_id, "stage": "awaiting_framing_approval"},
+            status_code=202,
+            content={"case_id": case_id, "stage": _case_stage_value(case_id, config)},
         )
 
     # ── POST /api/cases/{case_id}/checkpoints/scope ──────────────────────
@@ -593,6 +607,16 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
             raise _http_from_control(exc, case_id, config) from exc
         stage = _case_stage_value(case_id, config)
         return JSONResponse(content={"case_id": case_id, "stage": stage})
+
+    # ── GET /api/calibration ─────────────────────────────────────────────
+    #
+    # SPEC-046.  ``MemoryStore.calibration()`` has existed since SPEC-025 and
+    # nothing has ever served it, so no user has seen the system's own track
+    # record.  Read-only and cross-case, so it takes no case id.
+    @application.get("/api/calibration")
+    async def get_calibration() -> JSONResponse:
+        store = MemoryStore(root=memory_root())
+        return JSONResponse(content=store.calibration().model_dump(mode="json"))
 
     # ── POST /api/cases/{case_id}/outcome ────────────────────────────────
     @application.post("/api/cases/{case_id}/outcome")

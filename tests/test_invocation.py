@@ -150,6 +150,18 @@ def _write_invalid_output(invocation: RoleInvocation) -> None:
     )
 
 
+def _attempts(case_root: Path) -> list[AuditEvent]:
+    """Only the attempt outcomes.
+
+    Since SPEC-046 an invocation also emits ``role_invocation_started`` and,
+    for long calls, ``role_invocation_progress``.  Tests about the retry ladder
+    care about outcomes, so they filter rather than count every line.
+    """
+    return [
+        event for event in _audit_lines(case_root) if event.event_type == "role_invocation_attempt"
+    ]
+
+
 def _audit_lines(case_root: Path) -> list[AuditEvent]:
     lines = (case_root / "audit.jsonl").read_text(encoding="utf-8").splitlines()
     return [AuditEvent.model_validate_json(line) for line in lines]
@@ -173,11 +185,20 @@ def test_happy_path_valid_artifact_first_try(
     assert archived.exists()
     assert not (runtime_root / case.root.name / "researcher--T-001").exists()
     assert len(backend.invocations) == 1
-    events = _audit_lines(case.root)
+    events = _attempts(case.root)
     assert len(events) == 1
     assert events[0].model == "composer-2.5"
     assert events[0].usage is not None
     assert events[0].usage.total_tokens == 14
+
+    # SPEC-046: the attempt is preceded by a started event carrying the same
+    # identifiers, so the UI can say an agent is working while it still is.
+    started = [e for e in _audit_lines(case.root) if e.event_type == "role_invocation_started"]
+    assert len(started) == 1
+    assert started[0].actor == "researcher"
+    assert started[0].model == "composer-2.5"
+    assert started[0].payload["task_id"] == "T-001"
+    assert started[0].payload["attempt"] == 1
 
 
 def test_invalid_output_retries_same_model_and_applies_feedback(
@@ -246,8 +267,11 @@ def test_escalation_fail_raises_and_archives_all_attempts(
     for attempt in (1, 2, 3):
         assert (case.root / "agents" / f"researcher--T-300--attempt-{attempt}").exists()
     assert not (runtime_root / case.root.name / "researcher--T-300").exists()
-    events = _audit_lines(case.root)
+    events = _attempts(case.root)
     assert len(events) == 3
+    # One started event per attempt, so a retry is visible as it happens.
+    started = [e for e in _audit_lines(case.root) if e.event_type == "role_invocation_started"]
+    assert len(started) == 3
     assert all(event.model is not None for event in events)
     assert all(event.usage is not None for event in events)
 
@@ -275,7 +299,7 @@ def test_agent_error_with_valid_output_file_is_recovered(
     assert len(backend.invocations) == 1
     assert not (case.root / "agents" / "researcher--T-901--attempt-1").exists()
     assert (case.root / "agents" / "researcher--T-901").exists()
-    events = _audit_lines(case.root)
+    events = _attempts(case.root)
     assert len(events) == 1
     assert events[0].payload["status"] == "ok"
     assert events[0].payload["backend_status"] == ResultStatus.AGENT_ERROR.value
