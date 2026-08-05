@@ -106,13 +106,16 @@ than it covered.
 
 Compression applied:
 
-| Original | Now | Why |
+Named rather than numbered, because the first plan's numbering no longer maps onto the sheets that
+exist:
+
+| Sheets in the first plan | Merged into | Why |
 |---|---|---|
-| 047 stream + 048 narrator + 049 case map | **047** | All three are "the interface says what is actually happening" |
-| 050 shell + 051 document + 052 altitudes | **048** | All three restructure the same surfaces; directly analogous to SPEC-035's breadth |
-| 054 commissioning + 055 checkpoints | **050** | The three human moments: create, scope, sign |
-| 056 presence + 057 engagement + 058 calibration | **051** | Everything about the user when they are not reading |
-| 059 share/replay + 060 library/mobile | **052** | Reach and distribution |
+| stream + narrator + case map | **SPEC-047** | All three are "the interface says what is actually happening" |
+| shell + document + altitudes | **SPEC-048** | All three restructure the same surfaces; directly analogous to SPEC-035's breadth |
+| commissioning + checkpoints | **SPEC-050** | The three human moments: create, scope, sign |
+| presence + engagement + calibration screen | **SPEC-051** | Everything about the user when they are not reading |
+| share/replay + library/mobile | **SPEC-052** | Reach and distribution |
 
 SPEC-048 is the largest and the natural split point if implementation shows it does not fit one
 session. `specs/README.md` already sanctions that: *"If implementation reveals the spec is wrong,
@@ -197,11 +200,10 @@ Four waves. Within a wave, specs are `parallel_with` each other; waves are seque
 |---|---|---|---|
 | A — Foundation | 045, 046 | Design system + test harness; the backend additions | none — can start now |
 | B — Truth and form | 047, 048 | Say what is happening; rank the information | none |
-| C — Substance | 049, 050 | The deliberation; the three human moments | extension slots only |
-| C — Substance | 055 | The uncertainty vocabulary at every altitude | none |
-| D — Reach | 051, 052, 056 | Absence, engagement, distribution, resilience | 051 renders SPEC-042's outputs |
+| C — Substance | 049, 050, 054 | The deliberation; the human moments; the uncertainty vocabulary | extension slots only |
+| D — Reach | 051, 052, 055 | Absence, engagement, distribution, resilience | 051 renders SPEC-042's outputs |
 | E — Phase 8 made visible | 053 | Project and render everything phase 8 built | **hard: phase 8 verified** |
-| F — Close | 057 | Verification | all |
+| F — Close | 056 | Verification | all |
 
 
 ## Audit against the discussion (2026-08-05)
@@ -260,8 +262,8 @@ reliability had been specified only as SSE reconnect. Both are now closed.
 | 17 | Export / share; replay as onboarding | 052 |
 | 18 | Standing note channel | 051 |
 | 19 | Library cards, grouping, command-K, mobile | 052 |
-| — | Calibration language; expand-in-place (review area 07, area 04) | 055 |
-| — | Resilience, announcement policy, budgets (audit) | 056 |
+| — | Calibration language; expand-in-place (review areas 04, 07) | 054 |
+| — | Resilience, announcement policy, budgets (audit) | 055 |
 
 Plus the work phase 8 creates and does not render, which the review could not have anticipated:
 
