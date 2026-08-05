@@ -1,9 +1,11 @@
 alternatives_considered:
 - alternative: invest_now
+  objective_scores: null
   rank: 2
   rationale: Higher upside but materially higher downside concentration.
   schema_version: 1
 - alternative: invest_smaller_amount
+  objective_scores: null
   rank: 1
   rationale: Best downside-adjusted expected utility under current uncertainty.
   schema_version: 1

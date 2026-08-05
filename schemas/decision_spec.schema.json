@@ -60,6 +60,24 @@
     "depth": {
       "$ref": "#/$defs/Depth"
     },
+    "objective_weights": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "propertyNames": {
+            "minLength": 1
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Objective Weights"
+    },
     "objectives": {
       "items": {
         "minLength": 1,

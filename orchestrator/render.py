@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 
 from orchestrator.artifacts import (
@@ -18,6 +18,12 @@ from orchestrator.case_store import atomic_write_text
 from orchestrator.citations import (
     collect_final_recommendation_citation_ids,
     validate_final_recommendation_citations,
+)
+from orchestrator.value_model import (
+    WEIGHT_PERTURBATION,
+    compute_ranking,
+    normalize_weights,
+    weight_sensitivity,
 )
 
 PROVENANCE_SOURCED_FACT = "sourced_fact"
@@ -124,6 +130,61 @@ def _render_premortem_section(report: PreMortemReport) -> list[str]:
     return lines
 
 
+def _render_value_model_section(
+    recommendation: FinalRecommendation,
+    objective_weights: Mapping[str, float] | None,
+) -> list[str]:
+    """Render the weighted ranking and its weight sensitivity (SPEC-038).
+
+    Emits nothing when no value model was elicited, so cases predating the weights
+    render exactly as before.
+    """
+    if not objective_weights:
+        return []
+    ranked = compute_ranking(objective_weights, recommendation.alternatives_considered)
+    if not ranked:
+        return []
+
+    normalized = normalize_weights(objective_weights)
+    lines = ["## Weighted ranking"]
+    lines.append("")
+    weight_summary = ", ".join(
+        f"{name} {share:.0%}" for name, share in sorted(normalized.items(), key=lambda kv: -kv[1])
+    )
+    lines.append(f"- [{PROVENANCE_USER_INPUT}] Objective weights: {weight_summary}.")
+    lines.append("")
+    lines.append("| Weighted rank | Alternative | Score | Rank stated by synthesis |")
+    lines.append("|---|---|---|---|")
+    for row in ranked:
+        lines.append(
+            f"| {row.computed_rank} | {_escape_md_cell(row.alternative)} "
+            f"| {row.score:.2f} | {row.stated_rank} |"
+        )
+    lines.append("")
+
+    sensitivity = weight_sensitivity(objective_weights, recommendation.alternatives_considered)
+    if sensitivity is not None:
+        lines.append(
+            f"- [{PROVENANCE_CALCULATION}] `{sensitivity.top_alternative}` stays top under "
+            f"{sensitivity.share_preserving_top:.0%} of "
+            f"{sensitivity.runs_total} single-weight perturbations of "
+            f"±{int(WEIGHT_PERTURBATION * 100)}%."
+        )
+        if sensitivity.smallest_flip is not None:
+            name, direction = sensitivity.smallest_flip
+            lines.append(
+                f"- [{PROVENANCE_CALCULATION}] Changing the weight on `{name}` by "
+                f"{direction:+.0%} flips the top choice."
+            )
+        else:
+            lines.append(
+                f"- [{PROVENANCE_CALCULATION}] No single weight perturbation of "
+                f"±{int(WEIGHT_PERTURBATION * 100)}% changes the top choice."
+            )
+        lines.append("")
+    return lines
+
+
 def render_final_recommendation_markdown(
     recommendation: FinalRecommendation,
     evidence_records: Sequence[EvidenceRecord],
@@ -131,6 +192,7 @@ def render_final_recommendation_markdown(
     disclosure_record: DisclosureRecord | None = None,
     user_supplied_inputs: Sequence[str] = (),
     premortem_report: PreMortemReport | None = None,
+    objective_weights: Mapping[str, float] | None = None,
 ) -> str:
     validate_final_recommendation_citations(recommendation, evidence_records)
     evidence_by_id = {record.evidence_id: record for record in evidence_records}
@@ -180,6 +242,7 @@ def render_final_recommendation_markdown(
             f"`{assessment.alternative}` — {assessment.rationale}"
         )
     lines.append("")
+    lines.extend(_render_value_model_section(recommendation, objective_weights))
     lines.append("## Key reasons")
     for reason in recommendation.key_reasons:
         lines.append(f"- [{PROVENANCE_INTERPRETATION}] {reason}")
@@ -307,6 +370,7 @@ def write_final_recommendation_markdown(
     disclosure_record: DisclosureRecord | None = None,
     user_supplied_inputs: Sequence[str] = (),
     premortem_report: PreMortemReport | None = None,
+    objective_weights: Mapping[str, float] | None = None,
 ) -> Path:
     markdown = render_final_recommendation_markdown(
         recommendation,
@@ -314,6 +378,7 @@ def write_final_recommendation_markdown(
         disclosure_record=disclosure_record,
         user_supplied_inputs=user_supplied_inputs,
         premortem_report=premortem_report,
+        objective_weights=objective_weights,
     )
     output_path = case_root / "outputs" / "final_recommendation.md"
     atomic_write_text(output_path, markdown)

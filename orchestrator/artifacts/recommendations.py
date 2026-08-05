@@ -20,6 +20,24 @@ class AlternativeAssessment(ArtifactModel):
     alternative: NonEmptyStr
     rank: int = Field(ge=1)
     rationale: NonEmptyStr
+    #: SPEC-038. How well this alternative serves each objective, on a 0..1 scale.
+    #: Optional, so a case without an elicited value model is unchanged.
+    objective_scores: dict[NonEmptyStr, float] | None = None
+
+    @model_validator(mode="after")
+    def validate_objective_scores(self) -> AlternativeAssessment:
+        if self.objective_scores is None:
+            return self
+        if not self.objective_scores:
+            raise ValueError(
+                "objective_scores must be omitted entirely rather than set to an empty mapping."
+            )
+        out_of_range = sorted(
+            name for name, score in self.objective_scores.items() if not 0.0 <= score <= 1.0
+        )
+        if out_of_range:
+            raise ValueError(f"objective_scores must lie in [0, 1]; out of range: {out_of_range}")
+        return self
 
 
 class ScenarioAssessment(ArtifactModel):

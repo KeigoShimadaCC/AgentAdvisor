@@ -28,7 +28,42 @@ import {
   canonicalSheetContent,
   computeSummaryHash,
   allGroundRulesConfirmed,
+  weightTotal,
+  weightsAreValid,
+  WEIGHT_BUDGET,
 } from "./sheetPayload";
+
+/**
+ * SPEC-038. Seed the point allocation from the framing director's proposal,
+ * rescaled to the {@link WEIGHT_BUDGET}.  Returns an empty allocation when the
+ * framing proposed nothing, which means the case simply runs without a value
+ * model — the same behaviour as before the weights existed.
+ */
+function seedWeights(spec: DecisionSpec): Record<string, number> {
+  const proposed = spec.objective_weights;
+  const objectives = spec.objectives ?? [];
+  if (!proposed || Object.keys(proposed).length === 0 || objectives.length === 0) return {};
+
+  const total = Object.values(proposed).reduce<number>((sum, n) => sum + Number(n), 0);
+  if (total <= 0) return {};
+
+  // Largest-remainder apportionment so the displayed points sum to exactly the
+  // budget; naive rounding drifts off 100 and would block the sign gate.
+  const exact = objectives.map((name) => (Number(proposed[name] ?? 0) / total) * WEIGHT_BUDGET);
+  const floors = exact.map(Math.floor);
+  let remaining = WEIGHT_BUDGET - floors.reduce((sum, n) => sum + n, 0);
+  const order = exact
+    .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+    .sort((a, b) => b.remainder - a.remainder);
+  for (const { index } of order) {
+    if (remaining <= 0) break;
+    floors[index] += 1;
+    remaining -= 1;
+  }
+  return Object.fromEntries(
+    objectives.map((name, index) => [name, floors[index]]).filter(([, points]) => (points as number) > 0),
+  );
+}
 
 /** Map a backend effort/depth value to a UI EffortKey. */
 function effortKeyFromDepth(depth: string | null | undefined): EffortKey {
@@ -123,6 +158,9 @@ export function ScopeCheckpoint() {
 
   // Track the original restatement so we can detect edits.
   const [originalRestatement, setOriginalRestatement] = useState("");
+  // SPEC-038: the elicited value model — points allocated across objectives.
+  const [objectiveWeights, setObjectiveWeights] = useState<Record<string, number>>({});
+  const [originalObjectiveWeights, setOriginalObjectiveWeights] = useState<Record<string, number>>({});
 
   async function loadAll() {
     if (!caseId) return;
@@ -152,6 +190,9 @@ export function ScopeCheckpoint() {
         setUserAddedOptions(new Set());
         setGroundRuleEdits({});
         setNewOption("");
+        const seeded = seedWeights(specEnv.data);
+        setObjectiveWeights(seeded);
+        setOriginalObjectiveWeights(seeded);
         // Initialize confirmations as all-unconfirmed.
         const keys = [GROUND_RULE_KEYS.deadline, GROUND_RULE_KEYS.riskTolerance, GROUND_RULE_KEYS.reversibility];
         setConfirmations(Object.fromEntries(keys.map((k) => [k, false])));
@@ -214,10 +255,13 @@ export function ScopeCheckpoint() {
     confirmations,
     groundRuleKeys,
     clarificationAnswers: {},
+    objectiveWeights,
+    originalObjectiveWeights,
   };
 
   const revisionNeeded = needsRevision(sheetState, originalRestatement);
-  const canSign = allGroundRulesConfirmed(sheetState) && !submitting;
+  const weightsValid = weightsAreValid(objectiveWeights);
+  const canSign = allGroundRulesConfirmed(sheetState) && weightsValid && !submitting;
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   function removeOption(index: number) {
@@ -265,6 +309,10 @@ export function ScopeCheckpoint() {
       else next.add(q);
       return next;
     });
+  }
+
+  function setObjectiveWeight(objective: string, points: number) {
+    setObjectiveWeights((prev) => ({ ...prev, [objective]: points }));
   }
 
   function toggleConfirmation(key: string) {
@@ -416,6 +464,38 @@ export function ScopeCheckpoint() {
           })}
         </ul>
       </section>
+
+      {/* ── Objective weights (SPEC-038) ──────────────────────────────────── */}
+      {Object.keys(objectiveWeights).length > 0 && (
+        <section className="scope-section">
+          <h2>{SCOPE_COPY.weightsTitle}</h2>
+          <p className="section-help">{SCOPE_COPY.weightsHelp}</p>
+          <ul className="weight-list">
+            {Object.keys(objectiveWeights).map((objective) => {
+              const fieldId = `objective-weight-${objective.replace(/\s+/g, "-")}`;
+              return (
+                <li key={objective} className="weight-item">
+                  <label htmlFor={fieldId} className="weight-label">{objective}</label>
+                  <input
+                    id={fieldId}
+                    type="number"
+                    className="weight-input"
+                    min={0}
+                    max={WEIGHT_BUDGET}
+                    value={objectiveWeights[objective]}
+                    onChange={(e) => setObjectiveWeight(objective, Number(e.target.value))}
+                  />
+                  <span className="weight-unit">points</span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className={`weight-total${weightsValid ? "" : " invalid"}`} role="status">
+            {weightTotal(objectiveWeights)} / {WEIGHT_BUDGET} points allocated
+            {weightsValid ? "" : ` — ${SCOPE_COPY.weightsInvalid}`}
+          </p>
+        </section>
+      )}
 
       {/* ── Ground rules ──────────────────────────────────────────────────── */}
       <section className="scope-section">

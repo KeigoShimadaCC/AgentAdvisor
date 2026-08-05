@@ -16,6 +16,7 @@ from orchestrator.artifacts import (
     AnalysisResult,
     AssumptionRecord,
     AuditEvent,
+    DecisionSpec,
     EvidenceCritique,
     EvidenceRecord,
     FinalRecommendation,
@@ -32,6 +33,7 @@ from orchestrator.artifacts import (
 )
 from orchestrator.case_store import Case
 from orchestrator.task_graph import TaskGraph
+from orchestrator.value_model import rank_divergence
 
 _REF_ID_RE = re.compile(r"\b(?:E|A)-\d+\b")
 
@@ -408,6 +410,59 @@ def _check_action_plan(case: Case, as_of: date) -> list[GateFinding]:
     return findings
 
 
+def _check_value_model(case: Case) -> list[GateFinding]:
+    """Compare the weighted ranking against the ranking the synthesizer stated.
+
+    A mismatch is a finding, never an override: deterministic code does not silently
+    reorder a recommendation, because a disagreement usually means the value model is
+    wrong rather than the judgment.
+    """
+    specs = case.list_artifacts(DecisionSpec)
+    recs = case.list_artifacts(FinalRecommendation)
+    if not specs or not recs:
+        return []
+    weights = specs[0].objective_weights
+    if not weights:
+        return []
+
+    assessments = recs[0].alternatives_considered
+    divergence = rank_divergence(weights, assessments)
+    findings: list[GateFinding] = []
+
+    if divergence.unscored:
+        findings.append(
+            GateFinding(
+                check_id="value_model.unscored_alternative",
+                severity=GateSeverity.WARN,
+                message=(
+                    f"{len(divergence.unscored)} alternative(s) carry no objective_scores, so "
+                    "they were excluded from the weighted ranking rather than scored as zero."
+                ),
+                target_ids=list(divergence.unscored),
+            )
+        )
+
+    if not divergence.agrees:
+        detail = ", ".join(
+            f"{alt} (weighted {computed}, stated {stated})"
+            for alt, computed, stated in divergence.positions
+        )
+        findings.append(
+            GateFinding(
+                check_id="value_model.rank_divergence",
+                severity=GateSeverity.WARN,
+                message=(
+                    "The ranking implied by the decision owner's objective weights disagrees "
+                    f"with the ranking the synthesizer stated: {detail}. Either revise the "
+                    "scores or say in key_reasons why the weighted model does not capture "
+                    "this decision."
+                ),
+                target_ids=[alt for alt, _, _ in divergence.positions],
+            )
+        )
+    return findings
+
+
 _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "investigation": ("task_health", "analysis_presence"),
     "evidence_critique": ("evidence_independence",),
@@ -421,6 +476,7 @@ _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
         "objection_resolution",
         "missing_critical_assumptions",
         "action_plan",
+        "value_model",
     ),
 }
 
@@ -460,6 +516,8 @@ def run_stage_gate(
             findings.extend(_check_missing_critical_assumptions(case))
         elif check == "action_plan":
             findings.extend(_check_action_plan(case, as_of or datetime.now(UTC).date()))
+        elif check == "value_model":
+            findings.extend(_check_value_model(case))
 
     cancelled: list[str] = []
     if cancellable and task_graph is not None:

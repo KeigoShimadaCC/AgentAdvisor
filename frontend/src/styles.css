@@ -326,6 +326,22 @@ table.case-list th { font-weight: 600; color: var(--color-muted); font-size: 0.8
 .outline-item input[type="checkbox"] { margin-top: 0.25rem; }
 .strike { text-decoration: line-through; color: var(--color-muted); }
 
+/* SPEC-038 — objective weight allocation */
+.weight-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.weight-item { display: flex; align-items: center; gap: 0.5rem; }
+.weight-label { flex: 1; }
+.weight-input {
+  width: 5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  text-align: right;
+}
+.weight-input:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.weight-unit { color: var(--color-muted); font-size: 0.8125rem; }
+.weight-total { margin-top: 0.75rem; font-size: 0.875rem; color: var(--color-muted); }
+.weight-total.invalid { color: var(--color-danger, #b3261e); font-weight: 600; }
+
 .ground-rules { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .ground-rule-item {
   padding: 0.5rem 0.75rem;

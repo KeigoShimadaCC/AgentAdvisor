@@ -2,8 +2,8 @@
 id: SPEC-038
 title: Objective weights and a bound value model
 phase: 8
-status: draft
-depends_on: []
+status: verified
+depends_on: [SPEC-041]
 parallel_with: [SPEC-043]
 north_star_refs: ["5.5", "7", "8", "15", "16"]
 last_updated: 2026-08-04
@@ -129,10 +129,52 @@ run to `done`, a fixture-case diff to confirm no-weights behavior is unchanged, 
 
 ## Verification results
 
-Not yet executed.
+**Verified 2026-08-04.** Sequenced after SPEC-041 (both extend `recommendations.py`).
+
+Commands: `uv run ruff check`, `uv run ruff format --check`, `uv run mypy orchestrator`,
+`uv run pytest` (771 passed, 18 deselected), `npm run typecheck`, `npm run check:clean`,
+`npm test` (102 passed).
+
+All acceptance criteria met. `tests/test_value_model.py` adds 28 tests; `sheetPayload.test.ts` adds
+9 and `ScopeCheckpoint.test.tsx` adds 5. The end-to-end stub run asserts the weighted-ranking table
+and the weight-sensitivity line.
+
+**The mechanism found a real defect on its first run.** With the stub's weights (risk management
+60%, capital appreciation 40%), the computed ranking disagreed with the stub's stated ranks: it
+placed the diversified ETF above the single stock, while the stub had ranked them the other way.
+The stub's prose ranking was simply arbitrary — a risk-weighted objective set *should* prefer the
+ETF. The fix was to the stub, not the model. This is exactly the failure the gate exists to
+surface, and it appeared without being contrived.
+
+**Deviations from the spec as written:**
+
+1. **No new projection key was needed.** The spec scoped `objective_weights` into the director,
+   analyst and synthesizer projections. `decision_spec` is already an include key for all three, and
+   the weights are a field on `DecisionSpec`, so they project automatically. Scope reduced.
+2. **Two gate checks, not one.** `value_model.unscored_alternative` was added alongside
+   `value_model.rank_divergence` so an excluded alternative is visible rather than silently dropped
+   from the computation.
+3. **Renormalization over scored objectives.** `weighted_score` renormalizes over the objectives an
+   alternative actually scored rather than treating a missing score as zero, so a partially scored
+   alternative is not penalized for the gap. The gap is returned and reported instead.
+4. **Largest-remainder apportionment in the UI.** Seeding the 100-point allocation from the framing
+   proposal needed exact apportionment; naive rounding drifts off 100 and would have left the sign
+   gate permanently shut. Not anticipated in the spec.
+
+**Migration tax, as SPEC-041 predicted.** Two optional fields still required canonicalising
+`decision_spec.valid.yaml` and `final_recommendation.valid.yaml` for the byte-identical round-trip
+test. Additive fields are cheap for *behaviour* but not free for *fixtures*.
+
+**One trap worth recording.** `tests/test_pipeline_stub.py` carries its own `_make_decision_spec`
+and `_make_final_recommendation`, duplicating `orchestrator/stub_backend.py`. Updating only the
+module version left the end-to-end run silently using unweighted fixtures — the artifacts on disk
+read `objective_weights: null` while the module's factory returned weights. Any later spec that
+changes a stub fixture must update both copies.
 
 ## Open questions
 
-- Should an alternative with no `objective_scores` be excluded from the computed ranking or scored
-  as zero? Proposal: excluded, with a gate finding naming it, so a missing score is visible rather
-  than silently penalizing the alternative.
+None. The open question — whether an unscored alternative is excluded or scored as zero — was
+resolved as proposed: **excluded**, with a `value_model.unscored_alternative` finding naming it, so
+a missing score reads as an omission rather than as a worthless option. Covered by
+`test_compute_ranking_excludes_unscored_alternatives` and
+`test_unscored_alternative_produces_its_own_finding`.

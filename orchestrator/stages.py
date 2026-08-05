@@ -346,6 +346,15 @@ class StageHandlers:
             return StepResult.error(f"Framing failed: {exc}")
         assert isinstance(artifact, DecisionSpec)
         case.write_artifact(artifact)
+        if artifact.objective_weights:
+            _audit(
+                case,
+                "objective_weights_recorded",
+                {
+                    "source": "framing_proposal",
+                    "objective_count": len(artifact.objective_weights),
+                },
+            )
         _audit(case, "stage_completed", {"stage": "framing"})
         return StepResult.ok()
 
@@ -1101,6 +1110,11 @@ class StageHandlers:
                 premortem = case.read_artifact(PreMortemReport)
             except FileNotFoundError:
                 pass
+            objective_weights: dict[str, float] | None = None
+            try:
+                objective_weights = case.read_artifact(DecisionSpec).objective_weights
+            except FileNotFoundError:
+                pass
 
             write_final_recommendation_markdown(
                 case.root,
@@ -1109,6 +1123,7 @@ class StageHandlers:
                 disclosure_record=disclosure,
                 user_supplied_inputs=[self._raw_prompt],
                 premortem_report=premortem,
+                objective_weights=objective_weights,
             )
         except FileNotFoundError as exc:
             return StepResult.error(f"Render failed: {exc}")

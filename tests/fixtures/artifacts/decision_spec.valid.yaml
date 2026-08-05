@@ -8,6 +8,7 @@ constraints:
 deadline: '2026-08-15'
 decision_id: case-1-investment
 depth: standard
+objective_weights: null
 objectives:
 - expected_return
 - downside_protection

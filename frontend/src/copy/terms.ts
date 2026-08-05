@@ -243,6 +243,10 @@ export const SCOPE_COPY = {
     "The broad questions I plan to answer. Strike through any you do not want me to spend time on.",
   outlineFidelityNote:
     "This is the planned set of questions, not a final task tree. The full investigation plan appears once framing is signed.",
+  weightsTitle: "What matters most",
+  weightsHelp:
+    "Split 100 points across your objectives to show how you would trade them off. I use this to rank the options, and I will tell you if my ranking disagrees with yours.",
+  weightsInvalid: "the points must add up to 100 before you can sign",
   groundRulesTitle: "Ground rules",
   groundRulesHelp:
     "Confirm each of these so I work within your real constraints. Items I filled in because you skipped them are marked and editable.",

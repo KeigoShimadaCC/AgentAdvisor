@@ -229,6 +229,21 @@
           "default": null,
           "title": "Expected Value"
         },
+        "objective_scores": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objective Scores"
+        },
         "rank": {
           "title": "Rank",
           "type": "integer"
@@ -236,6 +251,30 @@
         "rationale": {
           "title": "Rationale",
           "type": "string"
+        },
+        "weighted_rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weighted Rank"
+        },
+        "weighted_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weighted Score"
         }
       },
       "required": [

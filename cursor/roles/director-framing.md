@@ -24,6 +24,16 @@ Required `DecisionSpec` fields:
 - `reversibility`
 - `depth`
 
+Optional field:
+- `objective_weights`: a mapping from objective to a positive number, proposing how much
+  each objective matters relative to the others. Allocate 100 points across the
+  objectives you listed (e.g. `{"downside_protection": 50, "expected_return": 30,
+  "liquidity": 20}`). Every key must be an objective you named in `objectives`.
+  This is a **proposal** the decision owner corrects at the scope checkpoint, not an
+  assertion about their preferences — derive it from what intake actually said, and
+  spread weights evenly when intake gives you nothing to go on. Omit the field entirely
+  if you cannot justify any allocation; do not emit an empty mapping.
+
 Framing rules:
 1) Preserve all user-stated constraints from intake.
 2) If intake has `alternatives_mentioned`, include them.

@@ -163,3 +163,107 @@ describe("ScopeCheckpoint confirmation gating", () => {
     expect(payload.summary_hash).toMatch(/^[0-9a-f]{8}$/);
   });
 });
+
+describe("ScopeCheckpoint objective weights (SPEC-038)", () => {
+  const OBJECTIVES = ["Compare risk-adjusted compensation", "Evaluate learning velocity"];
+
+  function specWithWeights(weights: Record<string, number> | undefined) {
+    return {
+      ...fixtures.decisionSpec,
+      objectives: OBJECTIVES,
+      ...(weights ? { objective_weights: weights } : {}),
+    } as DecisionSpec;
+  }
+
+  function mockSpec(weights: Record<string, number> | undefined) {
+    mocks.getDecisionSpec.mockResolvedValue({
+      artifact_id: "decision_spec",
+      schema: "decision_spec",
+      data: specWithWeights(weights),
+    });
+  }
+
+  function confirmGroundRules() {
+    const boxes = screen
+      .getAllByRole("checkbox")
+      .filter((cb) => (cb.closest(".ground-rule-item") as HTMLElement | null) !== null);
+    for (const cb of boxes) fireEvent.click(cb);
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getCaseView.mockResolvedValue(fixtures.caseView);
+    mocks.getIntakeRecord.mockResolvedValue({
+      artifact_id: "intake_record",
+      schema: "intake_record",
+      data: fixtures.intake,
+    });
+    mocks.submitScopeCheckpoint.mockResolvedValue({ case_id: "case-1", stage: "structuring" });
+  });
+
+  it("renders no allocation section when framing proposed no weights", async () => {
+    mockSpec(undefined);
+    renderScope();
+    await screen.findByText(SCOPE_COPY.restatementTitle);
+    expect(screen.queryByText(SCOPE_COPY.weightsTitle)).not.toBeInTheDocument();
+  });
+
+  it("seeds the allocation from the framing proposal, rescaled to 100 points", async () => {
+    // 40/60 of a 20-point proposal must present as 40/60 of 100.
+    mockSpec({ [OBJECTIVES[0]]: 8, [OBJECTIVES[1]]: 12 });
+    renderScope();
+    await screen.findByText(SCOPE_COPY.weightsTitle);
+    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    expect(inputs.map((i) => i.value)).toEqual(["40", "60"]);
+    expect(screen.getByRole("status")).toHaveTextContent("100 / 100 points allocated");
+  });
+
+  it("blocks signing while the points do not add up to 100", async () => {
+    mockSpec({ [OBJECTIVES[0]]: 50, [OBJECTIVES[1]]: 50 });
+    renderScope();
+    await screen.findByText(SCOPE_COPY.weightsTitle);
+    confirmGroundRules();
+
+    const signButton = screen.getByRole("button", { name: SCOPE_COPY.signButton });
+    expect(signButton).not.toBeDisabled();
+
+    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    fireEvent.change(inputs[0], { target: { value: "20" } });
+
+    expect(screen.getByRole("status")).toHaveTextContent("70 / 100 points allocated");
+    expect(screen.getByRole("status")).toHaveTextContent(SCOPE_COPY.weightsInvalid);
+    expect(signButton).toBeDisabled();
+  });
+
+  it("submits a redistributed allocation through the revision path", async () => {
+    mockSpec({ [OBJECTIVES[0]]: 50, [OBJECTIVES[1]]: 50 });
+    renderScope();
+    await screen.findByText(SCOPE_COPY.weightsTitle);
+    confirmGroundRules();
+
+    const inputs = screen.getAllByRole("spinbutton") as HTMLInputElement[];
+    fireEvent.change(inputs[0], { target: { value: "70" } });
+    fireEvent.change(inputs[1], { target: { value: "30" } });
+
+    fireEvent.click(screen.getByRole("button", { name: SCOPE_COPY.signButton }));
+    await vi.waitFor(() => expect(mocks.submitScopeCheckpoint).toHaveBeenCalled());
+
+    const payload = mocks.submitScopeCheckpoint.mock.calls[0][1];
+    expect(payload.decision).toBe("edit");
+    expect(payload.edits.objective_weights).toEqual({
+      [OBJECTIVES[0]]: 70,
+      [OBJECTIVES[1]]: 30,
+    });
+  });
+
+  it("signs cleanly when the proposed allocation is accepted unchanged", async () => {
+    mockSpec({ [OBJECTIVES[0]]: 40, [OBJECTIVES[1]]: 60 });
+    renderScope();
+    await screen.findByText(SCOPE_COPY.weightsTitle);
+    confirmGroundRules();
+
+    fireEvent.click(screen.getByRole("button", { name: SCOPE_COPY.signButton }));
+    await vi.waitFor(() => expect(mocks.submitScopeCheckpoint).toHaveBeenCalled());
+    expect(mocks.submitScopeCheckpoint.mock.calls[0][1].decision).toBe("approve");
+  });
+});

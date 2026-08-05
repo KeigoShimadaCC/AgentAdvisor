@@ -149,3 +149,7 @@ unpack_skipped_duplicate:
 render_skipped:
   template: "Recommendation render skipped (citation issue) — case continues"
   technical: false
+
+objective_weights_recorded:
+  template: "Objective weights recorded ({objective_count} objectives, {source})"
+  technical: false

@@ -117,6 +117,7 @@ def _make_decision_spec() -> DecisionSpec:
         risk_tolerance=RiskTolerance.MODERATE,
         reversibility=Reversibility.PARTIALLY_REVERSIBLE,
         depth=Depth.STANDARD,
+        objective_weights={"capital appreciation": 40.0, "risk management": 60.0},
     )
 
 
@@ -456,18 +457,21 @@ def _make_final_recommendation() -> FinalRecommendation:
         alternatives_considered=[
             AlternativeAssessment(
                 alternative="invest_nvda_now",
-                rank=2,
+                rank=3,
                 rationale="Full allocation carries concentration risk",
+                objective_scores={"capital appreciation": 0.85, "risk management": 0.30},
             ),
             AlternativeAssessment(
                 alternative="staged_entry",
                 rank=1,
                 rationale="Balances timing risk with participation",
+                objective_scores={"capital appreciation": 0.70, "risk management": 0.75},
             ),
             AlternativeAssessment(
                 alternative="etf_diversified",
-                rank=3,
+                rank=2,
                 rationale="Lower risk but also lower expected return",
+                objective_scores={"capital appreciation": 0.45, "risk management": 0.72},
             ),
         ],
         key_reasons=[

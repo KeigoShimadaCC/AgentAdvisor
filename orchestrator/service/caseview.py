@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from orchestrator.artifacts import (
     AnalysisResult,
     AssumptionRecord,
+    DecisionSpec,
     DisclosureRecord,
     EvidenceCritique,
     EvidenceRecord,
@@ -52,6 +53,7 @@ from orchestrator.artifacts.sentinels import (
 from orchestrator.artifacts.stability import ModelStability
 from orchestrator.case_store import Case
 from orchestrator.state_machine import CaseStage, CaseState, load_case_state
+from orchestrator.value_model import compute_ranking
 
 __all__ = ["CaseView", "build_case_view"]
 
@@ -258,6 +260,11 @@ class OptionView(BaseModel):
     rank: int
     rationale: str
     expected_value: float | None = None
+    #: SPEC-038. Per-objective scores and the resulting weighted total, present only
+    #: when the decision owner supplied objective weights.
+    objective_scores: dict[str, float] | None = None
+    weighted_score: float | None = None
+    weighted_rank: int | None = None
     #: Whether this alternative was ruled out rather than ranked against the others.
     #: Derived here (see :func:`_is_eliminated`) so the presentation layer consumes a
     #: field instead of re-deriving it from prose.
@@ -903,6 +910,7 @@ def _is_eliminated(rationale: str) -> bool:
 def _build_options_room(
     final: FinalRecommendation | None,
     analysis_results: list[AnalysisResult],
+    spec: DecisionSpec | None = None,
 ) -> OptionsRoom:
     options: list[OptionView] = []
     if final is not None:
@@ -913,8 +921,21 @@ def _build_options_room(
                     rank=alt.rank,
                     rationale=alt.rationale,
                     eliminated=_is_eliminated(alt.rationale),
+                    objective_scores=dict(alt.objective_scores) if alt.objective_scores else None,
                 )
             )
+
+    # SPEC-038: join the weighted ranking on, when a value model was elicited.
+    if final is not None and spec is not None and spec.objective_weights:
+        ranked = {
+            row.alternative: row
+            for row in compute_ranking(spec.objective_weights, final.alternatives_considered)
+        }
+        for opt in options:
+            row = ranked.get(opt.alternative)
+            if row is not None:
+                opt.weighted_score = row.score
+                opt.weighted_rank = row.computed_rank
 
     ev_table: dict[str, float] = {}
     if analysis_results:
@@ -1285,6 +1306,9 @@ def build_case_view(case: Case) -> CaseView:
     final_approval_list = case.list_artifacts(FinalApproval)
     final_approval = final_approval_list[0] if final_approval_list else None
 
+    spec_list = case.list_artifacts(DecisionSpec)
+    spec = spec_list[0] if spec_list else None
+
     analysis_results = case.list_artifacts(AnalysisResult)
     tasks = case.list_artifacts(TaskRecord)
 
@@ -1295,7 +1319,7 @@ def build_case_view(case: Case) -> CaseView:
     rooms = RoomsView(
         sources=_build_sources_room(case, critique),
         assumptions=_build_assumptions_room(case),
-        options=_build_options_room(final, analysis_results),
+        options=_build_options_room(final, analysis_results, spec),
         challenges=_build_challenges_room(case, premortem, track_divergence),
         plan=_build_plan_view(issue_tree, tasks),
     )
