@@ -6,7 +6,9 @@ from dataclasses import dataclass
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
+from orchestrator.ach import rank_by_disconfirmation, zero_diagnosticity_records
 from orchestrator.artifacts import (
+    ACHMatrix,
     AnalysisResult,
     AssumptionRecord,
     AuditFinding,
@@ -540,6 +542,40 @@ def _independent_review_packet(case: Case) -> list[_Candidate]:
     return candidates
 
 
+def _ach_matrix(case: Case) -> list[_Candidate]:
+    """The competing-hypotheses matrix, with the deterministic standings appended.
+
+    The standings are computed here rather than left for the reading role to derive,
+    so the Director confronts the ranking the evidence implies instead of re-deriving
+    it (or not bothering).
+    """
+    try:
+        matrix = case.read_artifact(ACHMatrix)
+    except FileNotFoundError:
+        return []
+
+    standings = rank_by_disconfirmation(matrix)
+    uninformative = zero_diagnosticity_records(matrix)
+    summary_lines = [
+        "kind: ach_standings",
+        "note: ranked by weight of disconfirming evidence, least disconfirmed first",
+        "standings:",
+    ]
+    for standing in standings:
+        summary_lines.append(f"  - alternative: {standing.alternative}")
+        summary_lines.append(f"    rank: {standing.rank}")
+        summary_lines.append(f"    weighted_inconsistency: {standing.weighted_inconsistency:.3f}")
+    summary_lines.append("evidence_with_no_discriminating_power:")
+    for evidence_id in uninformative:
+        summary_lines.append(f"  - {evidence_id}")
+    summary = "\n".join(summary_lines) + "\n"
+
+    return [
+        _Candidate(filename="ach_matrix.yaml", yaml_text=dump_model_to_yaml_text(matrix)),
+        _Candidate(filename="ach_standings.yaml", yaml_text=summary),
+    ]
+
+
 _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "intake_record": _intake_record,
     "framing_approval": _framing_approval,
@@ -572,6 +608,7 @@ _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "issue_tree": _issue_tree,
     "evidence_critique": _evidence_critique,
     "independent_review_packet": _independent_review_packet,
+    "ach_matrix": _ach_matrix,
     "premortem_report": _premortem_report,
     "verification_worksheet": _verification_worksheet,
     "case_memory": _case_memory,

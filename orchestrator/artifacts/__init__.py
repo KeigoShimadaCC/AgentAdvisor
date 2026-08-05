@@ -1,3 +1,10 @@
+from orchestrator.artifacts.ach import (
+    MAX_ACH_EVIDENCE,
+    ACHCell,
+    ACHConsistency,
+    ACHExclusion,
+    ACHMatrix,
+)
 from orchestrator.artifacts.analysis import (
     AnalysisResult,
     AnalysisScenario,
@@ -115,6 +122,11 @@ from orchestrator.artifacts.verification import (
 )
 
 __all__ = [
+    "ACHCell",
+    "ACHConsistency",
+    "ACHExclusion",
+    "ACHMatrix",
+    "MAX_ACH_EVIDENCE",
     "AnalysisResult",
     "AnalysisScenario",
     "AlternativeAssessment",

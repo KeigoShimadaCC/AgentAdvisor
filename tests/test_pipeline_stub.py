@@ -14,6 +14,9 @@ import pytest
 import yaml
 
 from orchestrator.artifacts import (
+    ACHCell,
+    ACHConsistency,
+    ACHMatrix,
     AlternativeAssessment,
     AnalysisResult,
     AnalysisScenario,
@@ -510,7 +513,9 @@ def _make_final_recommendation() -> FinalRecommendation:
                 probability=_prob(0.25),
             ),
         ],
-        quantitative_findings=["Expected value of staged entry: $11,000 based on scenario model"],
+        quantitative_findings=[
+            "Expected value of staged entry: $11,000 based on scenario model [E-001]"
+        ],
         strongest_counterarguments=[
             Counterargument(
                 claim="Staged entry may miss the upside if earnings beat",
@@ -569,6 +574,43 @@ def _make_independent_review() -> IndependentReview:
         ),
         unsupported_claims=["Demand growth is independently corroborated"],
         evidence_ids=["E-001", "E-002"],
+    )
+
+
+def _make_ach_matrix() -> ACHMatrix:
+    """A deliberately mixed matrix: one discriminating record, one that is not.
+
+    E-002 scores the same against every alternative, so it lands in the
+    zero-diagnosticity list — which exercises the reporting path that names evidence
+    the case collected and could not have used.
+    """
+    alternatives = ["invest_nvda_now", "staged_entry", "etf_diversified"]
+    scores = {
+        "E-001": {
+            "invest_nvda_now": ACHConsistency.STRONGLY_INCONSISTENT,
+            "staged_entry": ACHConsistency.CONSISTENT,
+            "etf_diversified": ACHConsistency.CONSISTENT,
+        },
+        "E-002": {
+            "invest_nvda_now": ACHConsistency.NEUTRAL,
+            "staged_entry": ACHConsistency.NEUTRAL,
+            "etf_diversified": ACHConsistency.NEUTRAL,
+        },
+    }
+    return ACHMatrix(
+        decision_question="Should I invest $50k in Nvidia vs semiconductor ETF?",
+        alternatives=alternatives,
+        evidence_ids=["E-001", "E-002"],
+        cells=[
+            ACHCell(
+                evidence_id=evidence_id,
+                alternative=alternative,
+                consistency=consistency,
+                note=f"Scored {consistency.value} for {alternative}",
+            )
+            for evidence_id, row in scores.items()
+            for alternative, consistency in row.items()
+        ],
     )
 
 
@@ -737,6 +779,8 @@ class PipelineStubBackend:
         # Map schema to artifact factory
         if output_schema == "intake_record":
             artifact = _make_intake()
+        elif output_schema == "ach_matrix":
+            artifact = _make_ach_matrix()
         elif output_schema == "independent_review":
             artifact = _make_independent_review()
         elif output_schema == "decision_spec":
@@ -846,6 +890,13 @@ def test_pipeline_stub_e2e(stub_env: Case, tmp_path: Path):
     assert "| N-001 |" in rendered
     # SPEC-038: the weighted ranking and weight sensitivity render when the
     # decision spec carries objective weights.
+    # SPEC-040: the competing-hypotheses exhibit, including the zero-diagnosticity list.
+    assert "## Competing hypotheses" in rendered
+    assert "| Rank | Alternative | Disconfirming weight | Records against |" in rendered
+    assert "could not have changed the ranking" in rendered
+    # SPEC-039: limitations and the independent review verdict.
+    assert "## Limitations" in rendered
+    assert "## Independent review" in rendered
     assert "## Weighted ranking" in rendered
     assert "| Weighted rank | Alternative | Score | Rank stated by synthesis |" in rendered
     assert "single-weight perturbations" in rendered

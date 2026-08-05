@@ -3,7 +3,13 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 
+from orchestrator.ach import (
+    diagnosticity,
+    rank_by_disconfirmation,
+    zero_diagnosticity_records,
+)
 from orchestrator.artifacts import (
+    ACHMatrix,
     DisclosureRecord,
     EvidenceRecord,
     FinalRecommendation,
@@ -161,6 +167,65 @@ def _render_independent_review_section(review: IndependentReview | None) -> list
     return lines
 
 
+def _render_ach_section(matrix: ACHMatrix | None) -> list[str]:
+    """Render the competing-hypotheses exhibit (SPEC-040).
+
+    The zero-diagnosticity list is included deliberately: naming the evidence that could
+    never have changed the answer is one of the more useful things the technique produces.
+    """
+    if matrix is None:
+        return []
+    standings = rank_by_disconfirmation(matrix)
+    if not standings:
+        return []
+
+    weights = diagnosticity(matrix)
+    lines = ["## Competing hypotheses"]
+    lines.append("")
+    lines.append(
+        f"- [{PROVENANCE_CALCULATION}] Alternatives ranked by weight of disconfirming "
+        "evidence, least disconfirmed first. Evidence consistent with every alternative "
+        "carries no weight."
+    )
+    lines.append("")
+    lines.append("| Rank | Alternative | Disconfirming weight | Records against |")
+    lines.append("|---|---|---|---|")
+    for standing in standings:
+        against = (
+            ", ".join(standing.disconfirming_evidence_ids)
+            if standing.disconfirming_evidence_ids
+            else "—"
+        )
+        lines.append(
+            f"| {standing.rank} | {_escape_md_cell(standing.alternative)} "
+            f"| {standing.weighted_inconsistency:.2f} | {against} |"
+        )
+    lines.append("")
+
+    informative = sorted(
+        (eid for eid, value in weights.items() if value > 0),
+        key=lambda eid: (-weights[eid], eid),
+    )
+    if informative:
+        top = ", ".join(f"{eid} ({weights[eid]:.2f})" for eid in informative[:5])
+        lines.append(f"- [{PROVENANCE_CALCULATION}] Most discriminating evidence: {top}.")
+    uninformative = zero_diagnosticity_records(matrix)
+    if uninformative:
+        lines.append(
+            f"- [{PROVENANCE_CALCULATION}] {len(uninformative)} record(s) scored the same "
+            f"against every alternative and could not have changed the ranking: "
+            f"{', '.join(uninformative)}."
+        )
+    if matrix.excluded_evidence_ids:
+        lines.append(
+            f"- [{PROVENANCE_CALCULATION}] "
+            f"{len(matrix.excluded_evidence_ids)} record(s) fell below the authority cut "
+            "for the capped matrix and were not scored."
+        )
+    lines.append("")
+    return lines
+
+
 def _render_value_model_section(
     recommendation: FinalRecommendation,
     objective_weights: Mapping[str, float] | None,
@@ -226,6 +291,7 @@ def render_final_recommendation_markdown(
     objective_weights: Mapping[str, float] | None = None,
     independent_review: IndependentReview | None = None,
     unanswered_questions: Sequence[str] = (),
+    ach_matrix: ACHMatrix | None = None,
 ) -> str:
     validate_final_recommendation_citations(recommendation, evidence_records)
     evidence_by_id = {record.evidence_id: record for record in evidence_records}
@@ -276,6 +342,7 @@ def render_final_recommendation_markdown(
         )
     lines.append("")
     lines.extend(_render_value_model_section(recommendation, objective_weights))
+    lines.extend(_render_ach_section(ach_matrix))
     lines.append("## Key reasons")
     for reason in recommendation.key_reasons:
         lines.append(f"- [{PROVENANCE_INTERPRETATION}] {reason}")
@@ -424,6 +491,7 @@ def write_final_recommendation_markdown(
     objective_weights: Mapping[str, float] | None = None,
     independent_review: IndependentReview | None = None,
     unanswered_questions: Sequence[str] = (),
+    ach_matrix: ACHMatrix | None = None,
 ) -> Path:
     markdown = render_final_recommendation_markdown(
         recommendation,
@@ -434,6 +502,7 @@ def write_final_recommendation_markdown(
         objective_weights=objective_weights,
         independent_review=independent_review,
         unanswered_questions=unanswered_questions,
+        ach_matrix=ach_matrix,
     )
     output_path = case_root / "outputs" / "final_recommendation.md"
     atomic_write_text(output_path, markdown)

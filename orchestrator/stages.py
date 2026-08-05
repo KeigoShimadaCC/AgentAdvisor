@@ -12,13 +12,22 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
+from orchestrator.ach import (
+    rank_by_disconfirmation,
+    select_matrix_evidence,
+    zero_diagnosticity_records,
+)
 from orchestrator.artifacts import (
+    MAX_ACH_EVIDENCE,
+    ACHExclusion,
+    ACHMatrix,
     AnalysisResult,
     AssumptionBatch,
     AuditEvent,
     DecisionSpec,
     DisclosureRecord,
     EvidenceBatch,
+    EvidenceCritique,
     EvidenceRecord,
     FinalApproval,
     FinalRecommendation,
@@ -300,6 +309,7 @@ class StageHandlers:
             "investigation": self.handle_investigation,
             "evidence_critique": self.handle_evidence_critique,
             "assumption_ledger": self.handle_assumption_ledger,
+            "competing_hypotheses": self.handle_competing_hypotheses,
             "preliminary_recommendation": self.handle_preliminary_recommendation,
             "pre_mortem": self.handle_pre_mortem,
             "challenge": self.handle_challenge,
@@ -621,6 +631,100 @@ class StageHandlers:
                 "no_assumptions_found": artifact.no_assumptions_found,
             },
         )
+        return StepResult.ok()
+
+    def handle_competing_hypotheses(
+        self, case: Case, state: CaseState, plan: StepPlan
+    ) -> StepResult:
+        """SPEC-040 — score the evidence against every alternative before the thesis forms.
+
+        Failure is non-fatal. The matrix sharpens the Director's input; a case without one
+        is a weaker case, not an invalid one, and dying here would throw away a completed
+        investigation over a hard structured-output task.
+        """
+        try:
+            spec = case.read_artifact(DecisionSpec)
+        except FileNotFoundError as exc:
+            return StepResult.error(f"Competing-hypotheses setup failed: {exc}")
+
+        if len(spec.alternatives) < 2:
+            _audit(
+                case,
+                "ach_skipped",
+                {"reason": "fewer than two alternatives to discriminate between"},
+            )
+            return StepResult.ok()
+
+        evidence = case.list_artifacts(EvidenceRecord)
+        if not evidence:
+            _audit(case, "ach_skipped", {"reason": "no evidence records to score"})
+            return StepResult.ok()
+
+        # Rank by the authority the evidence critique already computed, so the matrix
+        # spends its budget on the records most likely to discriminate.
+        authority: dict[str, float] = {}
+        critiques = case.list_artifacts(EvidenceCritique)
+        if critiques:
+            authority = {score.evidence_id: score.authority_score for score in critiques[0].scored}
+        selected, excluded = select_matrix_evidence(
+            authority,
+            [record.evidence_id for record in evidence],
+            cap=MAX_ACH_EVIDENCE,
+        )
+
+        task = InvokeTask(
+            task_id="T-competing-hypotheses",
+            assignment=(
+                "Score every listed evidence record against every listed alternative.\n"
+                f"Alternatives: {', '.join(spec.alternatives)}\n"
+                f"Evidence ids: {', '.join(selected)}\n"
+                f"Write exactly {len(selected) * len(spec.alternatives)} cells — one per "
+                "(evidence_id, alternative) pair. A partial matrix is rejected.\n"
+                "Ask of each cell: if this alternative were right, how surprising would "
+                "this evidence be? Use 'neutral' freely; most evidence does not "
+                "discriminate, and pretending otherwise is the failure this guards against."
+            ),
+            output_artifact_type="ach_matrix",
+            timeout_s=_role_timeout(self._backend, "ach"),
+        )
+        try:
+            artifact = invoke(
+                case, "ach", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
+        except RoleInvocationFailed as exc:
+            _audit(case, "ach_skipped", {"reason": str(exc)})
+            return StepResult.ok()
+        assert isinstance(artifact, ACHMatrix)
+
+        if excluded:
+            artifact = artifact.model_copy(
+                update={
+                    "excluded_evidence_ids": [
+                        ACHExclusion(
+                            evidence_id=evidence_id,
+                            reason="below the authority cut for the capped matrix",
+                        )
+                        for evidence_id in excluded
+                    ]
+                }
+            )
+        case.write_artifact(artifact)
+
+        standings = rank_by_disconfirmation(artifact)
+        uninformative = zero_diagnosticity_records(artifact)
+        self._gate(case, "competing_hypotheses")
+        _audit(
+            case,
+            "ach_matrix_scored",
+            {
+                "alternatives": len(artifact.alternatives),
+                "evidence_scored": len(artifact.evidence_ids),
+                "evidence_excluded": len(excluded),
+                "least_disconfirmed": standings[0].alternative if standings else None,
+                "zero_diagnosticity_count": len(uninformative),
+            },
+        )
+        _audit(case, "stage_completed", {"stage": "competing_hypotheses"})
         return StepResult.ok()
 
     def _run_track_b(self, case: Case, primary: PreliminaryRecommendation) -> None:
@@ -1188,6 +1292,11 @@ class StageHandlers:
                 premortem = case.read_artifact(PreMortemReport)
             except FileNotFoundError:
                 pass
+            ach_matrix: ACHMatrix | None = None
+            try:
+                ach_matrix = case.read_artifact(ACHMatrix)
+            except FileNotFoundError:
+                pass
             objective_weights: dict[str, float] | None = None
             try:
                 objective_weights = case.read_artifact(DecisionSpec).objective_weights
@@ -1204,6 +1313,7 @@ class StageHandlers:
                 objective_weights=objective_weights,
                 independent_review=independent,
                 unanswered_questions=_unanswered_issue_questions(case),
+                ach_matrix=ach_matrix,
             )
         except FileNotFoundError as exc:
             return StepResult.error(f"Render failed: {exc}")

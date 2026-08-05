@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "ACHCell": {
+      "additionalProperties": false,
+      "description": "One evidence record scored against one alternative.",
+      "properties": {
+        "alternative": {
+          "minLength": 1,
+          "title": "Alternative",
+          "type": "string"
+        },
+        "consistency": {
+          "$ref": "#/$defs/ACHConsistency"
+        },
+        "evidence_id": {
+          "pattern": "^E-\\d+$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "note": {
+          "minLength": 1,
+          "title": "Note",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "alternative",
+        "consistency",
+        "note"
+      ],
+      "title": "ACHCell",
+      "type": "object"
+    },
+    "ACHConsistency": {
+      "description": "How an evidence record bears on a hypothesis.",
+      "enum": [
+        "strongly_inconsistent",
+        "inconsistent",
+        "neutral",
+        "consistent",
+        "strongly_consistent"
+      ],
+      "title": "ACHConsistency",
+      "type": "string"
+    },
+    "ACHExclusion": {
+      "additionalProperties": false,
+      "description": "An evidence record left out of the matrix, and why.",
+      "properties": {
+        "evidence_id": {
+          "pattern": "^E-\\d+$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "reason"
+      ],
+      "title": "ACHExclusion",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A complete hypothesis × evidence consistency matrix.\n\nCompleteness is enforced: a partially filled matrix would let the ranking be driven\nby which cells the model bothered to fill.",
+  "properties": {
+    "alternatives": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Alternatives",
+      "type": "array"
+    },
+    "cells": {
+      "items": {
+        "$ref": "#/$defs/ACHCell"
+      },
+      "minItems": 1,
+      "title": "Cells",
+      "type": "array"
+    },
+    "decision_question": {
+      "minLength": 1,
+      "title": "Decision Question",
+      "type": "string"
+    },
+    "evidence_ids": {
+      "items": {
+        "pattern": "^E-\\d+$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Evidence Ids",
+      "type": "array"
+    },
+    "excluded_evidence_ids": {
+      "items": {
+        "$ref": "#/$defs/ACHExclusion"
+      },
+      "title": "Excluded Evidence Ids",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "decision_question",
+    "alternatives",
+    "evidence_ids",
+    "cells"
+  ],
+  "title": "ACHMatrix",
+  "type": "object"
+}

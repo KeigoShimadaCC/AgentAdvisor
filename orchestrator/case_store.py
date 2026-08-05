@@ -27,6 +27,7 @@ import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
 from orchestrator.artifacts import (
+    ACHMatrix,
     AnalysisResult,
     AssumptionBatch,
     AssumptionRecord,
@@ -196,6 +197,8 @@ def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
         return case_root / "analysis" / f"{model.task_id}.analysis_result.yaml"
     if isinstance(model, AuditFinding):
         return case_root / "shared" / "audit_finding.yaml"
+    if isinstance(model, ACHMatrix):
+        return case_root / "shared" / "ach_matrix.yaml"
     if isinstance(model, ReviewReport):
         return case_root / "outputs" / "review_report.yaml"
     if isinstance(model, IndependentReview):
@@ -258,6 +261,8 @@ def _artifact_path_for_read(
         return case_root / "analysis" / f"{artifact_id}.analysis_result.yaml"
     if issubclass(model_type, AuditFinding):
         return case_root / "shared" / "audit_finding.yaml"
+    if issubclass(model_type, ACHMatrix):
+        return case_root / "shared" / "ach_matrix.yaml"
     if issubclass(model_type, ReviewReport):
         return case_root / "outputs" / "review_report.yaml"
     if issubclass(model_type, IndependentReview):
@@ -299,6 +304,8 @@ def _artifact_dir_for_list(case_root: Path, model_type: type[BaseModel]) -> Path
     if issubclass(model_type, AnalysisResult):
         return case_root / "analysis"
     if issubclass(model_type, AuditFinding):
+        return case_root / "shared"
+    if issubclass(model_type, ACHMatrix):
         return case_root / "shared"
     if issubclass(model_type, ReviewReport):
         return case_root / "outputs"
@@ -409,6 +416,11 @@ class Case:
             if not finding_path.exists():
                 return []
             return [load_model_from_yaml_path(model_type, finding_path)]
+        if issubclass(model_type, ACHMatrix):
+            ach_path = self.root / "shared" / "ach_matrix.yaml"
+            if not ach_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, ach_path)]
         if issubclass(model_type, IndependentReview):
             independent_path = self.root / "outputs" / "independent_review.yaml"
             if not independent_path.exists():

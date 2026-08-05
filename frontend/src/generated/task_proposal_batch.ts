@@ -35,6 +35,7 @@ export type TaskRole =
   | 'researcher'
   | 'analyst'
   | 'assumption_analyst'
+  | 'ach'
   | 'synthesizer'
   | 'reviewer'
   | 'specialist';

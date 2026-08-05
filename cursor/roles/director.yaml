@@ -4,6 +4,7 @@ escalation_model: composer-2.5
 read_only: false
 allow_shell: false
 projection_include:
+  - ach_matrix
   - decision_spec
   - issue_tree
   - key_evidence

@@ -34,6 +34,11 @@ roles:
   premortem:
     default_model: gpt-5.4
     escalation_model: claude-sonnet-5
+  # SPEC-040: the matrix is a large structured output, which is where invocations
+  # die on this backend; the stronger model buys reliability rather than judgement.
+  ach:
+    default_model: claude-sonnet-5
+    escalation_model: gpt-5.4
   researcher:
     default_model: gpt-5.4
     escalation_model: claude-sonnet-5

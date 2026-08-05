@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from orchestrator.artifacts.ach import ACHMatrix
 from orchestrator.artifacts.analysis import AnalysisResult
 from orchestrator.artifacts.approvals import FinalApproval
 from orchestrator.artifacts.assumptions import AssumptionBatch, AssumptionRecord
@@ -67,6 +68,7 @@ type ModelType = type[BaseModel]
 
 
 MODEL_EXPORTS: dict[str, ModelType] = {
+    "ach_matrix": ACHMatrix,
     "analysis_result": AnalysisResult,
     "alternative_assessment": AlternativeAssessment,
     "assumption_batch": AssumptionBatch,

@@ -161,3 +161,11 @@ independent_review_recorded:
 independent_review_skipped:
   template: "Independent review skipped — {reason}"
   technical: false
+
+ach_matrix_scored:
+  template: "Competing hypotheses scored: {evidence_scored} record(s) against {alternatives} alternatives; least disconfirmed is {least_disconfirmed}"
+  technical: false
+
+ach_skipped:
+  template: "Competing-hypotheses scoring skipped — {reason}"
+  technical: false

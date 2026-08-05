@@ -12,7 +12,9 @@ from __future__ import annotations
 import re
 from datetime import UTC, date, datetime
 
+from orchestrator.ach import zero_diagnosticity_records
 from orchestrator.artifacts import (
+    ACHMatrix,
     AnalysisResult,
     AssumptionRecord,
     AuditEvent,
@@ -515,10 +517,52 @@ def _check_review_disclosure(case: Case) -> list[GateFinding]:
     return findings
 
 
+def _check_ach(case: Case) -> list[GateFinding]:
+    """SPEC-040 — the matrix must cover the real alternative set and carry signal."""
+    matrices = case.list_artifacts(ACHMatrix)
+    if not matrices:
+        return []
+    matrix = matrices[0]
+    findings: list[GateFinding] = []
+
+    specs = case.list_artifacts(DecisionSpec)
+    if specs:
+        missing = sorted(set(specs[0].alternatives) - set(matrix.alternatives))
+        if missing:
+            findings.append(
+                GateFinding(
+                    check_id="ach.alternative_mismatch",
+                    severity=GateSeverity.WARN,
+                    message=(
+                        f"{len(missing)} decision-spec alternative(s) were never scored in "
+                        "the competing-hypotheses matrix, so the ranking cannot speak to them."
+                    ),
+                    target_ids=missing,
+                )
+            )
+
+    uninformative = zero_diagnosticity_records(matrix)
+    if len(uninformative) == len(matrix.evidence_ids):
+        findings.append(
+            GateFinding(
+                check_id="ach.thin_matrix",
+                severity=GateSeverity.WARN,
+                message=(
+                    "Every scored record has zero diagnosticity: no evidence in the matrix "
+                    "discriminates between the alternatives, so the ranking carries no "
+                    "information."
+                ),
+                target_ids=list(uninformative),
+            )
+        )
+    return findings
+
+
 _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "investigation": ("task_health", "analysis_presence"),
     "evidence_critique": ("evidence_independence",),
     "assumption_ledger": ("assumption_ledger", "issue_coverage"),
+    "competing_hypotheses": ("ach",),
     "preliminary_recommendation": ("citation_integrity", "confidence_coherence"),
     "challenge": ("objection_resolution",),
     "repair": ("citation_integrity", "task_health"),
@@ -573,6 +617,8 @@ def run_stage_gate(
             findings.extend(_check_value_model(case))
         elif check == "review_disclosure":
             findings.extend(_check_review_disclosure(case))
+        elif check == "ach":
+            findings.extend(_check_ach(case))
 
     cancelled: list[str] = []
     if cancellable and task_graph is not None:
