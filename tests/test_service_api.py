@@ -440,3 +440,41 @@ def _outcome(probability: float, *, realized: bool):
         forecast_probability=probability,
         realized=realized,
     )
+
+
+def test_needs_you_is_correct_for_every_state(tmp_path: Path) -> None:
+    """All four needs-you states, not just the two the fixtures happen to hold.
+
+    The fixtures cover `none` and `scope_checkpoint`; a rule with four branches
+    needs all four exercised, or the two untested ones are free to drift.
+    """
+    from datetime import UTC, datetime
+
+    from orchestrator.artifacts.yaml_io import dump_model_to_yaml_text
+    from orchestrator.case_store import create_case
+    from orchestrator.state_machine import CaseStage, CaseState
+
+    expected = {
+        CaseStage.INVESTIGATION: "none",
+        CaseStage.AWAITING_FRAMING_APPROVAL: "scope_checkpoint",
+        CaseStage.AWAITING_FINAL_APPROVAL: "delivery_checkpoint",
+        CaseStage.FAILED: "interrupted",
+    }
+
+    for stage in expected:
+        slug = f"needs-you-{stage.value.replace(chr(95), chr(45))}"
+        case = create_case(slug, cases_root=tmp_path)
+        now = datetime.now(UTC)
+        state = CaseState(case_id=case.root.name, stage=stage, created_at=now, updated_at=now)
+        (case.root / "state.yaml").write_text(dump_model_to_yaml_text(state), encoding="utf-8")
+
+    c = TestClient(create_app(cases_root=tmp_path))
+    listed = {row["case_id"]: row["needs_you"] for row in c.get("/api/cases").json()}
+
+    for stage, want in expected.items():
+        slug = f"needs-you-{stage.value.replace(chr(95), chr(45))}"
+        case_id = next(cid for cid in listed if cid.endswith(slug))
+        assert listed[case_id] == want, f"{stage.value}: listed {listed[case_id]}, want {want}"
+        # And the list must agree with the projection for the same case.
+        projected = c.get(f"/api/cases/{case_id}/view").json()["needs_you"]
+        assert listed[case_id] == projected

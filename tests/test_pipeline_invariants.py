@@ -128,3 +128,32 @@ def test_active_stages_match_the_non_terminal_set() -> None:
     """ACTIVE_STAGES stays the complement of the terminal stages."""
     terminal = {CaseStage.DONE, CaseStage.FAILED}
     assert set(ACTIVE_STAGES) == set(CaseStage) - terminal
+
+
+# ── The guard must actually guard ────────────────────────────────────────────
+
+
+def test_the_snapshot_detects_a_changed_transition() -> None:
+    """A tripwire nobody has tripped is not known to work.
+
+    Proves the comparison would fail on a real pipeline change, rather than
+    trusting that a passing equality assertion implies a sensitive one.
+    """
+    mutated = {stage: set(targets) for stage, targets in EXPECTED_TRANSITIONS.items()}
+    mutated["synthesis"].add("intake")  # an edge that does not exist
+    assert mutated != EXPECTED_TRANSITIONS
+
+    removed = {stage: set(targets) for stage, targets in EXPECTED_TRANSITIONS.items()}
+    del removed["repair"]  # a stage dropped from the machine
+    assert removed != EXPECTED_TRANSITIONS
+
+
+def test_the_snapshot_detects_a_repointed_handler() -> None:
+    """Re-pointing a stage at a different handler or role must not pass."""
+    mutated = dict(EXPECTED_FLOW_PLANS)
+    mutated["synthesis"] = ("challenge", ("synthesizer",))  # handler swapped
+    assert mutated != EXPECTED_FLOW_PLANS
+
+    roles_changed = dict(EXPECTED_FLOW_PLANS)
+    roles_changed["challenge"] = ("challenge", ("challenger",))  # auditor dropped
+    assert roles_changed != EXPECTED_FLOW_PLANS

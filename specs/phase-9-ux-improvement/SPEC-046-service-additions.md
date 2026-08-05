@@ -96,20 +96,20 @@ so a UI spec that quietly reaches into the pipeline breaks a test rather than a 
 
 ## Acceptance criteria
 
-- [ ] A stubbed invocation emits `role_invocation_started` before the backend call and at least one
+- [x] A stubbed invocation emits `role_invocation_started` before the backend call and at least one
       `role_invocation_progress` for a call exceeding the interval; both carry `task_id`, `role`,
       `model` and `attempt`, and the progress timer is stopped when the call returns — asserted on
       the success, validation-failure and backend-failure paths.
-- [ ] No `role_invocation_progress` is emitted after its invocation ends, verified by asserting the
+- [x] No `role_invocation_progress` is emitted after its invocation ends, verified by asserting the
       last progress event's cursor precedes the matching `role_invocation_attempt`.
-- [ ] Both event types have lexicon entries that fill without error and arrive over SSE as
+- [x] Both event types have lexicon entries that fill without error and arrive over SSE as
       non-technical translated events with monotonic cursors.
-- [ ] `POST /api/cases` returns `202` with a resolvable `case_id` before the worker reaches the
+- [x] `POST /api/cases` returns `202` with a resolvable `case_id` before the worker reaches the
       framing gate; `GET /api/cases/{id}/view` succeeds immediately afterwards, and the case still
       parks at `awaiting_framing_approval`.
-- [ ] `GET /api/cases` carries `needs_you` matching `GET /api/cases/{id}/view`'s value for the same
+- [x] `GET /api/cases` carries `needs_you` matching `GET /api/cases/{id}/view`'s value for the same
       case across all four states.
-- [ ] `GET /api/calibration` returns the sample size and, with fewer than five recorded outcomes,
+- [x] `GET /api/calibration` returns the sample size and, with fewer than five recorded outcomes,
       the "noise, not a calibration estimate" interpretation verbatim from `calibration.py`.
 - [x] `tests/test_pipeline_invariants.py` passes, and fails if a transition, flow plan or stage
       handler is added, removed or re-pointed. `make check` and `make frontend-check` are green.
@@ -140,6 +140,21 @@ E2E_MODE=stub npx playwright test --config=frontend/e2e/playwright.config.ts   #
 - Browser: all **35 Playwright tests pass** across fixture (24), stub (5) and replay (6) in chromium.
   The stub lifecycle still parks at both gates and still writes `framing_approval.yaml` and
   `final_approval.yaml`, so the 202 changed the wait and nothing else.
+
+**Gaps found by auditing the implementation back against these criteria, then closed.**
+
+- The started/progress events were only asserted on the success and validation-failure paths. Added
+  the isolation-failure path, which established a property worth stating: isolation is checked
+  *before* the started event, so a run that dies at the workspace boundary announces no start. That
+  is correct — nothing began — and it is now documented by a test rather than left to inference.
+- "Arrive over SSE" had been verified only as a lexicon lookup. Added a test that drives the real
+  path — audit line, tailer, lexicon, wire frame — and asserts both events arrive non-technical,
+  with filled slots and monotonic, non-duplicated cursors. Emitted is not delivered.
+- `needs_you` was checked against the two states the fixtures happen to hold. A four-branch rule now
+  has all four exercised against synthetic cases, each also cross-checked against the projection.
+- The invariants snapshot passed but had never been shown to *fail*. Added tests proving it detects
+  an added edge, a dropped stage, a re-pointed handler and a dropped role — a tripwire nobody has
+  tripped is not known to work.
 
 **Deviations from the sheet.**
 

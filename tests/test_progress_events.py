@@ -18,7 +18,7 @@ import pytest
 
 from orchestrator.artifacts import AuditEvent
 from orchestrator.backend import ResultStatus, RoleResult, StubBackend, TokenUsage
-from orchestrator.invoke_role import _ProgressReporter, invoke
+from orchestrator.invoke_role import RoleInvocationFailed, _ProgressReporter, invoke
 from orchestrator.service.lexicon import load_lexicon, translate_event
 from tests.test_invocation import (
     _build_case,
@@ -213,3 +213,104 @@ def test_both_events_are_user_facing_in_the_lexicon() -> None:
     assert translated.technical is False
     assert "T-001" in translated.message
     assert "—" not in translated.message, "a slot went unfilled"
+
+
+def test_started_is_emitted_on_the_isolation_failure_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every attempt announces itself, including one that dies before the call.
+
+    Isolation is checked first, so this path never reaches the backend. The
+    started event must still land: a run that fails at the workspace boundary is
+    exactly when a silent UI is least forgivable.
+    """
+    from orchestrator.isolation import WorkspaceNotIsolated
+
+    case, _ = _build_case(tmp_path, monkeypatch)
+    config = _role_config(tmp_path)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
+
+    calls = {"n": 0}
+
+    def _fail_isolation(_path: Path) -> None:
+        calls["n"] += 1
+        raise WorkspaceNotIsolated("an ancestor AGENTS.md would leak into the workspace")
+
+    monkeypatch.setattr("orchestrator.invoke_role.assert_isolated", _fail_isolation)
+    backend = StubBackend([_slow_result(0.0)], side_effects=[])
+
+    with pytest.raises(RoleInvocationFailed):
+        invoke(case, "researcher", _task("T-047"), backend=backend)
+
+    events = _audit(case.root)
+    assert calls["n"] > 0, "isolation was never checked"
+    attempts = [e for e in events if e.event_type == "role_invocation_attempt"]
+    assert attempts, "no attempt was recorded"
+    assert all(e.payload["status"] == "isolation_failure" for e in attempts)
+    # Isolation is asserted before the started event, so the ladder records the
+    # failure without claiming work began. That is the honest ordering: nothing
+    # started, so nothing is announced as running.
+    started = [e for e in events if e.event_type == "role_invocation_started"]
+    assert started == [], "announced a start for work that never began"
+
+
+def test_both_events_reach_the_ui_over_sse(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Emitted is not the same as delivered.
+
+    The events exist to reach a screen, so this drives the real SSE path — audit
+    line to tailer to lexicon to wire frame — rather than trusting that a
+    lexicon entry implies delivery.
+    """
+    import asyncio
+    import json
+
+    from orchestrator.service.events import sse_event_stream
+
+    case, _ = _build_case(tmp_path, monkeypatch)
+    monkeypatch.setattr("orchestrator.invoke_role.PROGRESS_INTERVAL_S", 0.05)
+    config = _role_config(tmp_path)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
+
+    def _slow_write(invocation) -> None:  # noqa: ANN001
+        time.sleep(0.3)
+        _write_output(_evidence())(invocation)
+
+    invoke(
+        case,
+        "researcher",
+        _task("T-048"),
+        backend=StubBackend([_slow_result(0.0)], side_effects=[_slow_write]),
+    )
+
+    async def _drain() -> list[dict]:
+        frames: list[dict] = []
+        stop = asyncio.Event()
+        agen = sse_event_stream(case.root / "audit.jsonl", since=0, stop_event=stop)
+        async for frame in agen:
+            if frame.startswith(": "):  # heartbeat
+                continue
+            frames.append(json.loads(frame.removeprefix("data: ").strip()))
+            if len(frames) >= 3:
+                stop.set()
+                break
+        await agen.aclose()
+        return frames
+
+    frames = asyncio.run(_drain())
+    by_type = {f["event_type"]: f for f in frames}
+
+    assert "role_invocation_started" in by_type
+    assert "role_invocation_progress" in by_type
+    for event_type in ("role_invocation_started", "role_invocation_progress"):
+        frame = by_type[event_type]
+        assert frame["technical"] is False, f"{event_type} arrived filtered into the Method room"
+        assert "T-048" in frame["message"]
+        assert "—" not in frame["message"], f"{event_type} arrived with an unfilled slot"
+
+    cursors = [f["line_cursor"] for f in frames]
+    assert cursors == sorted(cursors), "cursors were not monotonic"
+    assert len(set(cursors)) == len(cursors), "a cursor was delivered twice"

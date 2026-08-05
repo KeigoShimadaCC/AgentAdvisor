@@ -121,6 +121,9 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"], colorScheme: "light" },
+      // The reduced-motion check asserts the preference is *applied*, so it is
+      // only meaningful in the project that applies it.
+      grepInvert: /reduced motion/,
     },
     {
       name: "chromium-dark",

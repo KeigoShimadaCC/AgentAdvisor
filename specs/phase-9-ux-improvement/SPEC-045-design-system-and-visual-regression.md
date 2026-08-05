@@ -97,20 +97,20 @@ reviewed in the diff; the acceptance criterion is that changes are *reviewed*, n
 
 ## Acceptance criteria
 
-- [ ] `make frontend-check` fails when a raw hex or raw `rem` font-size is introduced under
+- [x] `make frontend-check` fails when a raw hex or raw `rem` font-size is introduced under
       `frontend/src/` outside `tokens.css`, and passes on the migrated tree.
-- [ ] Every semantic foreground/background pair meets WCAG AA in both themes, asserted from
+- [x] Every semantic foreground/background pair meets WCAG AA in both themes, asserted from
       computed styles rather than from the token values.
-- [ ] Setting `data-theme="light"` under a dark OS preference, and `data-theme="dark"` under a light
+- [x] Setting `data-theme="light"` under a dark OS preference, and `data-theme="dark"` under a light
       one, both produce the intended theme — the explicit choice wins in both directions.
-- [ ] `npx playwright test visual.spec.ts` produces baselines for every route across light/dark ×
+- [x] `npx playwright test visual.spec.ts` produces baselines for every route across light/dark ×
       desktop/mobile, and a deliberate token change fails the suite until baselines are updated.
-- [ ] Axe reports zero serious/critical violations on every route in both themes, extending
+- [x] Axe reports zero serious/critical violations on every route in both themes, extending
       SPEC-037's six-screen list to the full route table.
-- [ ] The reduced-motion project passes with animation disabled on the brief's settle transition.
-- [ ] The visual suite passes twice consecutively with no pixel diff on an unchanged tree — flake is
+- [x] The reduced-motion project passes with animation disabled on the brief's settle transition.
+- [x] The visual suite passes twice consecutively with no pixel diff on an unchanged tree — flake is
       a failure, not a retry.
-- [ ] `make check` and `make frontend-check` are green; the 77 existing frontend unit tests are
+- [x] `make check` and `make frontend-check` are green; the 77 existing frontend unit tests are
       unchanged and passing.
 
 ## Verification plan
@@ -141,8 +141,10 @@ make check
   consecutively with no diff, so flake is excluded rather than retried.
 - Axe: extended from 6 screens to all 12 routes, run in both themes — 12 passed in each. This is
   also what makes SPEC-037's "in both themes" criterion true for the first time.
-- Budget: the full matrix across fixture, stub and replay runs **99 tests in 2m51s**, inside
-  SPEC-037's 10-minute budget. Up from 35 tests.
+- Budget: the full matrix across fixture, stub and replay runs **99 tests in 2m44s with zero
+  failures**, inside SPEC-037's 10-minute budget. Up from 35 tests.
+- A deliberate token change (accent `#0066cc` -> `#cc3300`) fails the visual suite until baselines
+  are updated — the gate is proven sensitive, not merely passing.
 
 **Three real accessibility defects were found by the expanded coverage**, all pre-existing and all
 invisible to the previous six-screen list:
@@ -172,6 +174,13 @@ invisible to the previous six-screen list:
    steps and the product uses nine.
 5. Webkit remains unverified in this environment because its browser binary is not installed —
    the same limitation SPEC-037 recorded.
+6. **A scoping bug, and a verification bug that hid it.** The reduced-motion test ran under the
+   chromium project too, where the preference is not applied, so it failed — and the first budget
+   run reported "88 passed" only because the command truncated Playwright's summary to its last two
+   lines, which is printed *after* the failure count. The project now carries
+   `grepInvert: /reduced motion/`, and the budget was re-measured with failures visible. Recorded
+   because the lesson generalises: a verification command that can hide a red result is not
+   verification.
 
 ## Open questions
 
