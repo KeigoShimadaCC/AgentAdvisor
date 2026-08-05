@@ -240,6 +240,7 @@ def run(
         model_tier_map=tier_map,
         dual_track=dual_track,
         clock=clock_fn,
+        monitoring_root=store.root / "monitoring",
     )
     handlers._budget_ledger = ledger
     handlers._task_graph = task_graph

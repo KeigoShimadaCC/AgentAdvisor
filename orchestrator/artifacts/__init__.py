@@ -86,6 +86,16 @@ from orchestrator.artifacts.memory import (
     RecurringAssumption,
     SourceReputation,
 )
+from orchestrator.artifacts.monitoring import (
+    IndicatorCheck,
+    IndicatorId,
+    IndicatorSource,
+    MitigationId,
+    MitigationStatus,
+    MonitoredIndicator,
+    MonitoringPlan,
+    TrackedMitigation,
+)
 from orchestrator.artifacts.objections import ObjectionBatch, ObjectionMode, ObjectionRecord
 from orchestrator.artifacts.premortem import MAX_FAILURE_MODES, FailureMode, PreMortemReport
 from orchestrator.artifacts.probability import ProbabilityAdjustment, ProbabilityEstimate
@@ -179,10 +189,17 @@ __all__ = [
     "FramingDecision",
     "IndependentReview",
     "IndependentVerdict",
+    "IndicatorCheck",
+    "IndicatorId",
+    "IndicatorSource",
     "IntakeField",
     "IntakeRecord",
     "Level",
+    "MitigationId",
+    "MitigationStatus",
     "ModelStability",
+    "MonitoredIndicator",
+    "MonitoringPlan",
     "NextAction",
     "ObjectionBatch",
     "ObjectionId",
@@ -223,6 +240,7 @@ __all__ = [
     "TaskRole",
     "TaskStatus",
     "ThesisRevision",
+    "TrackedMitigation",
     "ThesisTrigger",
     "TrackDivergence",
     "TrackPosition",

@@ -81,6 +81,7 @@ class TaskRole(StrEnum):
     ANALYST = "analyst"
     ASSUMPTION_ANALYST = "assumption_analyst"
     ACH_ANALYST = "ach"
+    MONITOR = "monitor"
     SYNTHESIZER = "synthesizer"
     REVIEWER = "reviewer"
     SPECIALIST = "specialist"

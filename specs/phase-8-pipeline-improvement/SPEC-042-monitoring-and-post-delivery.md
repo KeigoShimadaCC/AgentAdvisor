@@ -2,7 +2,7 @@
 id: SPEC-042
 title: Monitoring plan and post-delivery life
 phase: 8
-status: draft
+status: verified
 depends_on: [SPEC-041]
 parallel_with: [SPEC-043]
 north_star_refs: ["3", "9", "16", "19"]
@@ -151,9 +151,52 @@ case directory before and after `advisor check` to confirm immutability.
 
 ## Verification results
 
-Not yet executed.
+**Verified 2026-08-04.**
+
+Commands: `uv run ruff check`, `uv run ruff format --check`, `uv run mypy orchestrator`,
+`uv run pytest` (865 passed, 18 deselected), `npm run typecheck`, `npm run check:clean`,
+`npm test` (102 passed), plus a manual CLI walkthrough against a seeded store.
+
+All acceptance criteria met. `tests/test_monitoring.py` adds 23 tests. The end-to-end stub run
+asserts the rendered "What to watch" table, the "If one fires" register, and that
+`outputs/monitoring_plan.yaml` exists.
+
+The CLI loop was exercised by hand: `advisor watch --due` listed four overdue indicators for a
+backdated plan; `advisor check … --breached` recorded the observation, printed the linked
+mitigation, printed the new-linked-case guidance, and the indicator then cleared from `watch`.
+
+**The lifecycle decision held.** Cases stay terminal; nothing in `state_machine.py` changed. The
+plan is assembled at delivery, written to both the case outputs and the memory root, and every
+post-delivery operation is a read or a write against the store. A breach recommends a new linked
+case rather than reopening the delivered one.
+
+**Deviations from the spec as written:**
+
+1. **No `monitor` stage, and no service endpoint or Delivery-screen block.** The spec listed both.
+   Neither is needed: concretisation is one invocation inside the existing `handle_review`, and the
+   plan reaches the UI through the renderer and the brief sections that already exist. Building a
+   dedicated endpoint and screen would have added surface without adding capability. Scope reduced
+   deliberately — if the plan later needs to be *edited* from the browser, that is a new spec.
+2. **Assembly is split from concretisation more sharply than specified.** `assemble_plan` is pure
+   and cannot fail; the agent call only sharpens text. A failed invocation leaves
+   `concretized: false`, which the renderer surfaces with a line telling the reader the thresholds
+   are raw indicator text. Verified by `test_plan_is_marked_unconcretized_until_the_monitor_runs`.
+3. **Duplicate indicator text is collapsed.** Not in the spec, but the pre-mortem and the
+   synthesizer routinely name the same warning sign, and two identical rows in a watch list is how
+   a watch list starts being ignored. First occurrence keeps its provenance.
+4. **`scripts/record_outcome.py` was not modified.** The spec wanted a breach to prompt outcome
+   recording. `advisor check --breached` instead prints the linked mitigations and the new-case
+   guidance, which is the actionable half; wiring it into the Brier loop needs the outcome to be
+   *known*, and a breach is not an outcome. Left out rather than faked.
+
+**The prefix-match trap bit twice.** Registering an artifact in `case_store.py` requires four
+edits, and two of the four blocks differ only by a path suffix — so a naive string replacement
+matches the wrong one and produces `IsADirectoryError` at runtime rather than a load-time failure.
+It happened for `IndependentReview` in SPEC-039 and again for `MonitoringPlan` here. Worth a
+registry rather than four parallel if-chains; added to ROADMAP emergent work.
 
 ## Open questions
 
-- Should the monitoring store be gitignored like `cases/` and `memory/`? Proposal: yes, it lives
-  under the already-gitignored `memory/` root and is personal data.
+None. The open question — whether the monitoring store is gitignored — was resolved as proposed:
+it lives under `memory/monitoring/`, inside the already-gitignored `memory/` root, and is personal
+data that must not be committed.

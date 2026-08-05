@@ -44,6 +44,7 @@ from orchestrator.artifacts import (
     IssueTree,
     Level,
     ModelStability,
+    MonitoringPlan,
     ObjectionBatch,
     ObjectionMode,
     ObjectionRecord,
@@ -614,6 +615,38 @@ def _make_ach_matrix() -> ACHMatrix:
     )
 
 
+def _make_monitoring_plan(workspace: Path) -> MonitoringPlan:
+    """Concretise the assembled plan the orchestrator projected into the workspace.
+
+    Mirrors what the monitor role is asked to do: keep every id, sharpen the text.
+    Falls back to a minimal plan when the projection is absent so the stub never
+    depends on projection details.
+    """
+    projected = workspace / "inputs" / "monitoring_plan.yaml"
+    if projected.exists():
+        plan = load_model_from_yaml_text(MonitoringPlan, projected.read_text(encoding="utf-8"))
+        return plan.model_copy(
+            update={
+                "concretized": True,
+                "indicators": [
+                    indicator.model_copy(
+                        update={
+                            "threshold": f"Concretised threshold for {indicator.indicator_id}",
+                            "check_cadence_days": 90,
+                        }
+                    )
+                    for indicator in plan.indicators
+                ],
+            }
+        )
+    return MonitoringPlan(
+        case_id="case-001-stub-e2e",
+        delivered_at=date(2026, 8, 4),
+        horizon="24 months",
+        concretized=True,
+    )
+
+
 def _make_review_report(worksheet: VerificationWorksheet | None) -> ReviewReport:
     items = worksheet.items if worksheet is not None else []
     return ReviewReport(
@@ -779,6 +812,8 @@ class PipelineStubBackend:
         # Map schema to artifact factory
         if output_schema == "intake_record":
             artifact = _make_intake()
+        elif output_schema == "monitoring_plan":
+            artifact = _make_monitoring_plan(workspace)
         elif output_schema == "ach_matrix":
             artifact = _make_ach_matrix()
         elif output_schema == "independent_review":
@@ -891,6 +926,12 @@ def test_pipeline_stub_e2e(stub_env: Case, tmp_path: Path):
     # SPEC-038: the weighted ranking and weight sensitivity render when the
     # decision spec carries objective weights.
     # SPEC-040: the competing-hypotheses exhibit, including the zero-diagnosticity list.
+    # SPEC-042: the monitoring plan survives delivery, with its linked responses.
+    assert "## What to watch" in rendered
+    assert "| # | Watch | Breach threshold | Every | What it would mean |" in rendered
+    assert "### If one fires" in rendered
+    plan_path = case.root / "outputs" / "monitoring_plan.yaml"
+    assert plan_path.exists(), "monitoring plan was not written to the case"
     assert "## Competing hypotheses" in rendered
     assert "| Rank | Alternative | Disconfirming weight | Records against |" in rendered
     assert "could not have changed the ranking" in rendered

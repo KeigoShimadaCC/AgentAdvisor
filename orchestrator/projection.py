@@ -23,6 +23,7 @@ from orchestrator.artifacts import (
     IntakeRecord,
     IssueTree,
     Level,
+    MonitoringPlan,
     ObjectionRecord,
     PreliminaryRecommendation,
     PreMortemReport,
@@ -576,6 +577,11 @@ def _ach_matrix(case: Case) -> list[_Candidate]:
     ]
 
 
+def _monitoring_plan(case: Case) -> list[_Candidate]:
+    """The deterministically assembled plan, for the monitor role to concretise."""
+    return _singleton(case, MonitoringPlan, filename="monitoring_plan.yaml")
+
+
 _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "intake_record": _intake_record,
     "framing_approval": _framing_approval,
@@ -609,6 +615,7 @@ _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "evidence_critique": _evidence_critique,
     "independent_review_packet": _independent_review_packet,
     "ach_matrix": _ach_matrix,
+    "monitoring_plan": _monitoring_plan,
     "premortem_report": _premortem_report,
     "verification_worksheet": _verification_worksheet,
     "case_memory": _case_memory,

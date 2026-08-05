@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from orchestrator.ach import (
@@ -36,6 +37,7 @@ from orchestrator.artifacts import (
     IntakeRecord,
     IssueTree,
     Level,
+    MonitoringPlan,
     ObjectionBatch,
     ObjectionRecord,
     PreliminaryRecommendation,
@@ -58,6 +60,7 @@ from orchestrator.invoke_role import (
     invoke_read_only,
 )
 from orchestrator.issue_tree import compute_coverage
+from orchestrator.monitoring import MonitoringStore, assemble_plan
 from orchestrator.normalize import normalize_evidence_batch
 from orchestrator.planning import apply_planner_acceptance_filter
 from orchestrator.render import write_final_recommendation_markdown
@@ -267,6 +270,7 @@ class StageHandlers:
         model_tier_map: dict[str, str] | None = None,
         dual_track: bool = True,
         clock: Callable[[], datetime] | None = None,
+        monitoring_root: Path | None = None,
     ) -> None:
         self._backend = backend
         self._budget_config = budget_config
@@ -276,6 +280,8 @@ class StageHandlers:
         self._budget_ledger: BudgetLedger | None = None
         self._task_graph: TaskGraph | None = None
         self._clock: Callable[[], datetime] = clock or (lambda: datetime.now(UTC))
+        # SPEC-042: injectable so tests never touch the real memory root.
+        self._monitoring_root = monitoring_root
 
     @property
     def budget_ledger(self) -> BudgetLedger:
@@ -1159,6 +1165,82 @@ class StageHandlers:
         )
         return StepResult.ok()
 
+    def _write_monitoring_plan(self, case: Case, state: CaseState) -> None:
+        """SPEC-042 — assemble the plan at delivery and persist it outside the pipeline.
+
+        The case stays terminal. What survives delivery is a plan under the memory root,
+        which already outlives individual cases, plus a copy in the case outputs so the
+        delivered package is self-contained.
+
+        Assembly is deterministic and cannot fail; only concretisation is an agent call,
+        and a failed concretisation leaves a plan carrying the prose indicators with
+        ``concretized: false``. A degraded plan beats no plan, and the reader can tell
+        which they have.
+        """
+        try:
+            recommendation = case.read_artifact(FinalRecommendation)
+        except FileNotFoundError:
+            return
+        premortem: PreMortemReport | None = None
+        try:
+            premortem = case.read_artifact(PreMortemReport)
+        except FileNotFoundError:
+            pass
+        owner = "user"
+        try:
+            owner = case.read_artifact(DecisionSpec).owner
+        except FileNotFoundError:
+            pass
+
+        plan = assemble_plan(
+            case.root.name,
+            delivered_at=datetime.now(UTC).date(),
+            premortem=premortem,
+            recommendation=recommendation,
+            owner=owner,
+        )
+        if not plan.indicators:
+            _audit(case, "monitoring_plan_skipped", {"reason": "no indicators to track"})
+            return
+        case.write_artifact(plan)
+
+        # Concretise: turn prose indicators into observables with thresholds.
+        task = InvokeTask(
+            task_id="T-monitoring",
+            assignment=(
+                "Turn each indicator's prose into a concrete observable, threshold and "
+                "check cadence.\n"
+                "Do not add, remove or renumber indicators or mitigations; copy their ids "
+                "through unchanged.\n"
+                "Do not invent a threshold the evidence cannot support — say what is "
+                "unknown instead.\n"
+                "Set concretized: true."
+            ),
+            output_artifact_type="monitoring_plan",
+            timeout_s=DEFAULT_TIMEOUT_S,
+        )
+        try:
+            artifact = invoke(
+                case, "monitor", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
+        except RoleInvocationFailed as exc:
+            _audit(case, "monitoring_plan_not_concretized", {"reason": str(exc)})
+        else:
+            if isinstance(artifact, MonitoringPlan):
+                plan = artifact
+                case.write_artifact(plan)
+
+        MonitoringStore(self._monitoring_root).write_plan(plan)
+        _audit(
+            case,
+            "monitoring_plan_written",
+            {
+                "indicator_count": len(plan.indicators),
+                "mitigation_count": len(plan.mitigations),
+                "concretized": plan.concretized,
+            },
+        )
+
     def _run_independent_review(self, case: Case, state: CaseState) -> IndependentReview | None:
         """Invoke the independent reviewer; a failure degrades rather than blocks.
 
@@ -1277,6 +1359,9 @@ class StageHandlers:
                 state.review_accepted = False
                 save_case_state(case, state)
 
+        if accepted:
+            self._write_monitoring_plan(case, state)
+
         # Render unconditionally: if the retry budget is exhausted the state machine
         # advances to approval anyway, and an unrendered case would have no output.
         try:
@@ -1290,6 +1375,11 @@ class StageHandlers:
             premortem: PreMortemReport | None = None
             try:
                 premortem = case.read_artifact(PreMortemReport)
+            except FileNotFoundError:
+                pass
+            monitoring_plan: MonitoringPlan | None = None
+            try:
+                monitoring_plan = case.read_artifact(MonitoringPlan)
             except FileNotFoundError:
                 pass
             ach_matrix: ACHMatrix | None = None
@@ -1314,6 +1404,7 @@ class StageHandlers:
                 independent_review=independent,
                 unanswered_questions=_unanswered_issue_questions(case),
                 ach_matrix=ach_matrix,
+                monitoring_plan=monitoring_plan,
             )
         except FileNotFoundError as exc:
             return StepResult.error(f"Render failed: {exc}")

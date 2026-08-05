@@ -20,6 +20,7 @@ from orchestrator.artifacts.gates import GateReport
 from orchestrator.artifacts.intake import FramingApproval, IntakeRecord
 from orchestrator.artifacts.issue_tree import IssueTree
 from orchestrator.artifacts.memory import CaseMemoryDigest, PriorEvidenceDigest
+from orchestrator.artifacts.monitoring import MonitoringPlan
 from orchestrator.artifacts.objections import ObjectionBatch, ObjectionRecord
 from orchestrator.artifacts.premortem import PreMortemReport
 from orchestrator.artifacts.probability import ProbabilityAdjustment, ProbabilityEstimate
@@ -90,6 +91,7 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "gate_report": GateReport,
     "intake_record": IntakeRecord,
     "issue_tree": IssueTree,
+    "monitoring_plan": MonitoringPlan,
     "objection_record": ObjectionRecord,
     "objection_batch": ObjectionBatch,
     "premortem_report": PreMortemReport,

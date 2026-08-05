@@ -23,6 +23,7 @@ from orchestrator.artifacts import (
     EvidenceRecord,
     FramingApproval,
     FramingDecision,
+    IndicatorCheck,
     IntakeRecord,
     ObjectionRecord,
     TaskRecord,
@@ -31,6 +32,7 @@ from orchestrator.artifacts import (
 from orchestrator.backend import AgentBackend, BackendName, make_backend
 from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, create_case, default_cases_root, load_case
+from orchestrator.monitoring import MonitoringStore, due_checks, mitigations_for
 from orchestrator.pipeline import DEFAULT_BUDGET, SMALL_BUDGET
 from orchestrator.pipeline import run as run_pipeline
 from orchestrator.state_machine import CaseStage, CaseState, load_case_state, save_case_state
@@ -333,6 +335,92 @@ def cmd_report(args: argparse.Namespace, backend: AgentBackend | None = None) ->
     return EXIT_OK
 
 
+def cmd_watch(args: argparse.Namespace, backend: AgentBackend | None = None) -> int:
+    """Report which monitoring checks are due (SPEC-042).
+
+    A pure read over stored plans. Delivered cases are never touched: this is what
+    replaces reopening a terminal case.
+    """
+    del backend
+    store = MonitoringStore(args.monitoring_root)
+    plans = store.plans()
+    if args.case_id:
+        plans = [plan for plan in plans if plan.case_id == args.case_id]
+        if not plans:
+            raise UserError(f"No monitoring plan recorded for case {args.case_id}.")
+
+    if not plans:
+        print("No monitoring plans recorded yet.")
+        return EXIT_OK
+
+    any_due = False
+    for plan in plans:
+        due = due_checks(plan, store.checks(plan.case_id))
+        if args.due and not due:
+            continue
+        any_due = any_due or bool(due)
+        print(f"{plan.case_id}  (delivered {plan.delivered_at.isoformat()}, {plan.horizon})")
+        if not plan.concretized:
+            print("  ! indicators were never made concrete; thresholds are the raw text")
+        if not due:
+            print("  nothing due")
+        for item in due:
+            last = item.last_checked.date().isoformat() if item.last_checked else "never checked"
+            print(
+                f"  {item.indicator.indicator_id}  {item.indicator.observable}\n"
+                f"      breach: {item.indicator.threshold}\n"
+                f"      last: {last}, {item.days_overdue}d overdue "
+                f"(every {item.indicator.check_cadence_days}d)"
+            )
+        print()
+
+    if args.due and not any_due:
+        print("Nothing due.")
+    return EXIT_OK
+
+
+def cmd_check(args: argparse.Namespace, backend: AgentBackend | None = None) -> int:
+    """Record an observation against a monitored indicator (SPEC-042)."""
+    del backend
+    store = MonitoringStore(args.monitoring_root)
+    plan = store.read_plan(args.case_id)
+    if plan is None:
+        raise UserError(f"No monitoring plan recorded for case {args.case_id}.")
+
+    known = {indicator.indicator_id for indicator in plan.indicators}
+    if args.indicator_id not in known:
+        raise UserError(
+            f"Unknown indicator {args.indicator_id} for {args.case_id}. "
+            f"Known: {', '.join(sorted(known))}"
+        )
+
+    store.record_check(
+        args.case_id,
+        IndicatorCheck(
+            indicator_id=args.indicator_id,
+            checked_at=datetime.now(UTC),
+            observed=args.observed,
+            breached=args.breached,
+        ),
+    )
+    print(f"Recorded {args.indicator_id} for {args.case_id}.")
+
+    if not args.breached:
+        return EXIT_OK
+
+    responses = mitigations_for(plan, [args.indicator_id])
+    print("\nBreached. Prepared responses:")
+    for mitigation in responses or []:
+        print(f"  {mitigation.mitigation_id}  {mitigation.mitigation}  ({mitigation.owner})")
+    if not responses:
+        print("  (none were linked to this indicator)")
+    print(
+        "\nThis decision was made under different conditions. Open a new case rather than "
+        f"reopening {args.case_id}, which stays as the record of what was decided and why."
+    )
+    return EXIT_OK
+
+
 def cmd_list(args: argparse.Namespace, backend: AgentBackend | None = None) -> int:
     del backend
     root = _cases_root(args) or default_cases_root()
@@ -470,6 +558,20 @@ def build_parser() -> argparse.ArgumentParser:
     listing.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     add_common(listing)
     listing.set_defaults(func=cmd_list)
+
+    watch = subparsers.add_parser("watch", help="Show monitoring checks that are due")
+    watch.add_argument("case_id", nargs="?", default=None, help="Limit to one case")
+    watch.add_argument("--due", action="store_true", help="Only show cases with due checks")
+    watch.add_argument("--monitoring-root", type=Path, default=None)
+    watch.set_defaults(func=cmd_watch)
+
+    check = subparsers.add_parser("check", help="Record an observation for an indicator")
+    check.add_argument("case_id")
+    check.add_argument("indicator_id", help="e.g. M-001")
+    check.add_argument("--observed", required=True, help="What you saw")
+    check.add_argument("--breached", action="store_true", help="The threshold was crossed")
+    check.add_argument("--monitoring-root", type=Path, default=None)
+    check.set_defaults(func=cmd_check)
 
     ui = subparsers.add_parser("ui", help="Start the local web UI service")
     ui.add_argument("--port", type=int, default=8765, help="Port to bind (default: 8765)")

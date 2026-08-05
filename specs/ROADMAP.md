@@ -478,6 +478,8 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 
 - (2026-08-04, found implementing SPEC-039) **`max_high_tier_calls` is a vestigial cap.** The budget ledger counts high-tier calls by *model*, against `_DEFAULT_MODEL_TIER_MAP`, but no model any role actually resolves to maps to `high`: on cursor every role runs on `low` models (`composer-2.5`, `cursor-grok-4.5-low`), on droid on `medium` (`gpt-5.4`, `claude-sonnet-5`). Seven roles declare `model_tier: high` and none of them consume the counter, so the cap can never fire on the shipped configuration. North star Section 13 makes the escalation ladder's cost ceiling mandatory and orchestrator-enforced; right now it is enforced by a counter that never increments. Either map the role-declared tier onto the budget kind, or drop the cap and stop claiming it. Needs a spec.
 
+- (2026-08-04, found implementing SPEC-039 and again in SPEC-042) **Registering an artifact in `case_store.py` takes four parallel edits and fails at runtime when you miss one.** `_artifact_path` (by instance), `_artifact_path` (by type), `_artifact_dir`, and the `list_artifacts` dispatch are four independent if-chains over the same model set. Two of them differ only by a path suffix, so an edit that targets the wrong one yields `IsADirectoryError` when the artifact is first read rather than an error at import. Both new Phase 8 artifacts hit this. A single registry mapping model type to (directory, filename) would collapse all four and make a missing registration a load-time failure. Needs a spec.
+
 **Promoted**
 
 - Professional-practice gap analysis: five proposed changes → **Phase 8**, SPEC-038…SPEC-044 (2026-08-04, user-directed)

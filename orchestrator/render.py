@@ -14,6 +14,7 @@ from orchestrator.artifacts import (
     EvidenceRecord,
     FinalRecommendation,
     IndependentReview,
+    MonitoringPlan,
     PreMortemReport,
     ProbabilityEstimate,
 )
@@ -167,6 +168,55 @@ def _render_independent_review_section(review: IndependentReview | None) -> list
     return lines
 
 
+def _render_monitoring_section(plan: MonitoringPlan | None) -> list[str]:
+    """Render what to watch after delivery, and the prepared responses (SPEC-042).
+
+    Replaces the bare change-trigger list: an indicator without a cadence and a linked
+    response is a sentence, not a control.
+    """
+    if plan is None or not plan.indicators:
+        return []
+    lines = ["## What to watch"]
+    lines.append("")
+    if not plan.concretized:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] These indicators were not made concrete; "
+            "treat each one's text as the threshold and sharpen it yourself."
+        )
+        lines.append("")
+    lines.append("| # | Watch | Breach threshold | Every | What it would mean |")
+    lines.append("|---|---|---|---|---|")
+    for indicator in plan.indicators:
+        lines.append(
+            f"| {indicator.indicator_id} | {_escape_md_cell(indicator.observable)} "
+            f"| {_escape_md_cell(indicator.threshold)} "
+            f"| {indicator.check_cadence_days}d "
+            f"| {_escape_md_cell(indicator.would_imply)} |"
+        )
+    lines.append("")
+
+    if plan.mitigations:
+        lines.append("### If one fires")
+        lines.append("")
+        lines.append("| # | Failure mode | Prepared response | Owner | Triggered by |")
+        lines.append("|---|---|---|---|---|")
+        for mitigation in plan.mitigations:
+            triggers = ", ".join(mitigation.triggered_by) if mitigation.triggered_by else "—"
+            lines.append(
+                f"| {mitigation.mitigation_id} "
+                f"| {_escape_md_cell(mitigation.failure_mode)} "
+                f"| {_escape_md_cell(mitigation.mitigation)} "
+                f"| {_escape_md_cell(mitigation.owner)} | {triggers} |"
+            )
+        lines.append("")
+    lines.append(
+        f"- [{PROVENANCE_INTERPRETATION}] Run `advisor watch` to see which checks are due. "
+        "A breach opens a new linked decision rather than reopening this one."
+    )
+    lines.append("")
+    return lines
+
+
 def _render_ach_section(matrix: ACHMatrix | None) -> list[str]:
     """Render the competing-hypotheses exhibit (SPEC-040).
 
@@ -292,6 +342,7 @@ def render_final_recommendation_markdown(
     independent_review: IndependentReview | None = None,
     unanswered_questions: Sequence[str] = (),
     ach_matrix: ACHMatrix | None = None,
+    monitoring_plan: MonitoringPlan | None = None,
 ) -> str:
     validate_final_recommendation_citations(recommendation, evidence_records)
     evidence_by_id = {record.evidence_id: record for record in evidence_records}
@@ -414,6 +465,7 @@ def render_final_recommendation_markdown(
         )
     lines.append("")
     lines.extend(_render_independent_review_section(independent_review))
+    lines.extend(_render_monitoring_section(monitoring_plan))
     lines.append("## Next actions")
     lines.append("")
     lines.append("| # | Action | Owner | By | First step |")
@@ -492,6 +544,7 @@ def write_final_recommendation_markdown(
     independent_review: IndependentReview | None = None,
     unanswered_questions: Sequence[str] = (),
     ach_matrix: ACHMatrix | None = None,
+    monitoring_plan: MonitoringPlan | None = None,
 ) -> Path:
     markdown = render_final_recommendation_markdown(
         recommendation,
@@ -503,6 +556,7 @@ def write_final_recommendation_markdown(
         independent_review=independent_review,
         unanswered_questions=unanswered_questions,
         ach_matrix=ach_matrix,
+        monitoring_plan=monitoring_plan,
     )
     output_path = case_root / "outputs" / "final_recommendation.md"
     atomic_write_text(output_path, markdown)

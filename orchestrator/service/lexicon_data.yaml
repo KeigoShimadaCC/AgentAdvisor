@@ -169,3 +169,15 @@ ach_matrix_scored:
 ach_skipped:
   template: "Competing-hypotheses scoring skipped — {reason}"
   technical: false
+
+monitoring_plan_written:
+  template: "Monitoring plan written: {indicator_count} indicator(s), {mitigation_count} prepared response(s)"
+  technical: false
+
+monitoring_plan_not_concretized:
+  template: "Monitoring indicators left as prose — {reason}"
+  technical: false
+
+monitoring_plan_skipped:
+  template: "No monitoring plan written — {reason}"
+  technical: true

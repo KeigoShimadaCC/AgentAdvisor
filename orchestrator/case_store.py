@@ -46,6 +46,7 @@ from orchestrator.artifacts import (
     IndependentReview,
     IntakeRecord,
     IssueTree,
+    MonitoringPlan,
     ObjectionBatch,
     ObjectionRecord,
     PreliminaryRecommendation,
@@ -199,6 +200,8 @@ def _artifact_path_for_write(case_root: Path, model: BaseModel) -> Path:
         return case_root / "shared" / "audit_finding.yaml"
     if isinstance(model, ACHMatrix):
         return case_root / "shared" / "ach_matrix.yaml"
+    if isinstance(model, MonitoringPlan):
+        return case_root / "outputs" / "monitoring_plan.yaml"
     if isinstance(model, ReviewReport):
         return case_root / "outputs" / "review_report.yaml"
     if isinstance(model, IndependentReview):
@@ -263,6 +266,8 @@ def _artifact_path_for_read(
         return case_root / "shared" / "audit_finding.yaml"
     if issubclass(model_type, ACHMatrix):
         return case_root / "shared" / "ach_matrix.yaml"
+    if issubclass(model_type, MonitoringPlan):
+        return case_root / "outputs" / "monitoring_plan.yaml"
     if issubclass(model_type, ReviewReport):
         return case_root / "outputs" / "review_report.yaml"
     if issubclass(model_type, IndependentReview):
@@ -307,6 +312,8 @@ def _artifact_dir_for_list(case_root: Path, model_type: type[BaseModel]) -> Path
         return case_root / "shared"
     if issubclass(model_type, ACHMatrix):
         return case_root / "shared"
+    if issubclass(model_type, MonitoringPlan):
+        return case_root / "outputs"
     if issubclass(model_type, ReviewReport):
         return case_root / "outputs"
     if issubclass(model_type, IndependentReview):
@@ -416,6 +423,11 @@ class Case:
             if not finding_path.exists():
                 return []
             return [load_model_from_yaml_path(model_type, finding_path)]
+        if issubclass(model_type, MonitoringPlan):
+            plan_path = self.root / "outputs" / "monitoring_plan.yaml"
+            if not plan_path.exists():
+                return []
+            return [load_model_from_yaml_path(model_type, plan_path)]
         if issubclass(model_type, ACHMatrix):
             ach_path = self.root / "shared" / "ach_matrix.yaml"
             if not ach_path.exists():
