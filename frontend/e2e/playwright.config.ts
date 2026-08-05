@@ -64,7 +64,19 @@ if (E2E_MODE === "replay") {
 export default defineConfig({
   testDir: ".",
   timeout: 60_000,
-  expect: { timeout: 10_000 },
+  expect: {
+    timeout: 10_000,
+    // Screenshot determinism.  A flaky visual gate is worse than no visual
+    // gate: it gets muted rather than fixed, and then the harness has cost
+    // time and bought nothing.  Animations are frozen and a small per-pixel
+    // tolerance absorbs font antialiasing without hiding a layout change.
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+      scale: "css",
+      maxDiffPixelRatio: 0.01,
+    },
+  },
 
   // Determinism: single worker, no parallelism.
   fullyParallel: false,
@@ -87,15 +99,55 @@ export default defineConfig({
     video: "retain-on-failure",
   },
 
+  // SPEC-045: the verification matrix.
+  //
+  // Theme and viewport are projects rather than per-test loops so a run can be
+  // scoped to one dimension.  That scoping is load-bearing: the full
+  // cross-product multiplied against every route would blow SPEC-037's
+  // ten-minute budget, so the visual and axe sweeps run on the two theme
+  // projects and mobile covers layout only (see SPEC-055's budgets).
+  //
+  // `colorScheme` sets the OS preference and `data-theme` is stamped by the
+  // app's own control; both are exercised because an explicit choice has to
+  // beat the media query in both directions.
+  // Each project runs only the sweeps that dimension can actually falsify.
+  // The full cross-product (5 projects x 3 modes x every spec) would be four
+  // to six times SPEC-037's ten-minute budget, and a suite that slow gets
+  // skipped rather than fixed. Scoping is therefore part of the design, not an
+  // optimisation: dark repeats the presentation sweeps, mobile repeats layout
+  // only, reduced-motion runs one targeted check, and webkit stays on the
+  // functional journeys it has always covered.
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], colorScheme: "light" },
+    },
+    {
+      name: "chromium-dark",
+      use: { ...devices["Desktop Chrome"], colorScheme: "dark" },
+      grep: /visual baselines|token contrast|accessibility \(axe\)/,
+    },
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 7"], colorScheme: "light" },
+      grep: /visual baselines/,
+    },
+    {
+      name: "reduced-motion",
+      // Both styles.css and Brief.tsx branch on this and nothing tested it.
+      use: {
+        ...devices["Desktop Chrome"],
+        contextOptions: { reducedMotion: "reduce" },
+      },
+      grep: /reduced motion/,
     },
     {
       name: "webkit",
-      use: { ...devices["Desktop Safari"] },
+      use: { ...devices["Desktop Safari"], colorScheme: "light" },
       retries: 1, // reading-experience parity, allow one retry
+      // Screenshots are engine-specific; webkit would need its own baselines
+      // for no additional signal about the design system.
+      grepInvert: /visual baselines|token contrast/,
     },
   ],
 

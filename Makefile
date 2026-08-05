@@ -31,7 +31,7 @@ frontend-types:
 	cd frontend && npm install && npm run generate:types
 
 frontend-check:
-	cd frontend && npm run typecheck && npm run check:clean && npm test
+	cd frontend && npm run typecheck && npm run check:clean && npm run check:tokens && npm test
 
 frontend-build:
 	cd frontend && npm install && npm run build

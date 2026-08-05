@@ -2,7 +2,7 @@
 id: SPEC-045
 title: Design system — tokens, type scale, theming, and the visual-regression harness
 phase: 9
-status: draft
+status: implemented
 depends_on: []
 parallel_with: [SPEC-046]
 north_star_refs: ["5", "15"]
@@ -88,12 +88,12 @@ reviewed in the diff; the acceptance criterion is that changes are *reviewed*, n
 
 ## Deliverables
 
-- [ ] `frontend/src/styles/tokens.css` — primitives plus semantic aliases, both themes
-- [ ] `frontend/src/styles.css` migrated onto tokens; zero raw hex or raw `rem` font-size remaining
-- [ ] `frontend/scripts/check-tokens.cjs` + `make frontend-check` wiring
-- [ ] `frontend/e2e/playwright.config.ts` theme × viewport × reduced-motion projects
-- [ ] `frontend/e2e/visual.spec.ts` + committed baselines for every route
-- [ ] `frontend/e2e/contrast.spec.ts`; axe extended to every route in both themes
+- [x] `frontend/src/styles/tokens.css` — primitives plus semantic aliases, both themes
+- [x] `frontend/src/styles.css` migrated onto tokens; zero raw hex or raw `rem` font-size remaining
+- [x] `frontend/scripts/check-tokens.cjs` + `make frontend-check` wiring
+- [x] `frontend/e2e/playwright.config.ts` theme × viewport × reduced-motion projects
+- [x] `frontend/e2e/visual.spec.ts` + committed baselines for every route
+- [x] `frontend/e2e/contrast.spec.ts`; axe extended to every route in both themes
 
 ## Acceptance criteria
 
@@ -127,7 +127,51 @@ make check
 
 ## Verification results
 
-Not yet executed.
+- 2026-08-05. `make check` green (741 tests). `make frontend-check` green — now running the token
+  guard alongside tsc, the types drift check and 86 unit tests.
+- **The migration is provably lossless.** Baselines were captured from the *pre-migration* UI, the
+  token migration was then applied, and all 13 routes matched with zero pixel diff. A substitution
+  pass that claims to move no pixels can say so from evidence rather than from intent.
+- Token guard: clean on the migrated tree, and verified to fail — a probe rule carrying
+  `#ff00aa` and `font-size: 1.75rem` was rejected with file and line before being removed.
+- Contrast: all 15 semantic foreground/background pairs clear WCAG AA in both themes, measured from
+  computed styles. The explicit-choice test confirms `data-theme` beats the media query in both
+  directions.
+- Visual regression: 39 baselines (13 routes x light/dark/mobile). The suite passed twice
+  consecutively with no diff, so flake is excluded rather than retried.
+- Axe: extended from 6 screens to all 12 routes, run in both themes — 12 passed in each. This is
+  also what makes SPEC-037's "in both themes" criterion true for the first time.
+- Budget: the full matrix across fixture, stub and replay runs **99 tests in 2m51s**, inside
+  SPEC-037's 10-minute budget. Up from 35 tests.
+
+**Three real accessibility defects were found by the expanded coverage**, all pre-existing and all
+invisible to the previous six-screen list:
+
+1. `.status-badge` and `.brief-section-status` rendered muted text on the *border* colour — 4.34:1,
+   below AA. A border colour is not a surface; both now use `--surface-sunken`, which is a
+   sanctioned pair the contrast spec covers. This is the one change that moved pixels, so baselines
+   were re-captured after it.
+2. The three `<select>` controls in the assumptions room had no accessible name. A `<legend>` names
+   the group, not the control, so each gained an `aria-label`.
+3. The method room's audit log is a scrollable region with no keyboard access; it gained
+   `tabIndex` and a name.
+
+**Deviations from the sheet.**
+
+1. `waitForLoadState("networkidle")` cannot be used anywhere in this app: every case route holds an
+   SSE stream open, so the network is never idle. It timed out on 9 of 13 routes and took the first
+   baseline run to 9.8 minutes. The specs wait on the app shell plus a paint instead.
+2. Fixing the scrollable region with `role="group"` stripped the `<ul>`'s implicit list role and
+   orphaned every `<li>`, which the expanded axe sweep caught immediately. `role="list"` is correct.
+3. The sheet deferred the scoping rule and the budget to SPEC-055, but the matrix could not ship
+   without one — the full cross-product is four to six times the budget. Per-project `grep` scoping
+   landed here: dark repeats the presentation sweeps, mobile repeats layout only, reduced-motion
+   runs one targeted check, webkit keeps the functional journeys and skips engine-specific
+   screenshots.
+4. `--text-md-plus` (15px) was added to keep the migration lossless; the sheet listed eight existing
+   steps and the product uses nine.
+5. Webkit remains unverified in this environment because its browser binary is not installed —
+   the same limitation SPEC-037 recorded.
 
 ## Open questions
 

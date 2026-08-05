@@ -1,0 +1,326 @@
+/* Design tokens — SPEC-045.
+ *
+ * Two layers, and the separation is the whole point:
+ *
+ *   PRIMITIVES carry no meaning. They are a palette, a scale, a set of
+ *   durations. Components must never reference them.
+ *
+ *   SEMANTIC ALIASES carry meaning — "the raised surface", "the colour of a
+ *   thing that needs you". Components may reference only these.
+ *
+ * That split is what makes the second theme a redefinition of ~30 aliases
+ * rather than an audit of 1,364 lines, and it is what `scripts/check-tokens.cjs`
+ * enforces: a component rule that names a colour cannot be theme-correct, so
+ * the lint is the design rule rather than a style preference.
+ *
+ * Semantic colour (good / warning / critical) is deliberately separate from the
+ * accent. The accent is identity; the others are state, and a product whose
+ * subject is uncertainty cannot afford to conflate "this is a link" with "this
+ * is unresolved".
+ */
+
+:root {
+  /* ── Primitives: neutral ─────────────────────────────────────────────────
+     Cool-biased rather than pure grey. A pure mid-grey next to the blue accent
+     reads as unconsidered; these carry a few degrees toward it. */
+  --n-0:   #ffffff;
+  --n-25:  #fafafa;
+  --n-50:  #f5f5f5;
+  --n-100: #ebedef;
+  --n-200: #e0e0e0;
+  --n-300: #c8cdd2;
+  --n-400: #9aa2aa;
+  --n-500: #666666;
+  --n-700: #3d4348;
+  --n-800: #262b30;
+  --n-900: #1a1a1a;
+
+  /* ── Primitives: accent (identity) ─────────────────────────────────────── */
+  --a-50:  #f0f6ff;
+  --a-100: #e3f2fd;
+  --a-200: #b8d4ff;
+  --a-300: #bbdefb;
+  --a-400: #64b5f6;
+  --a-500: #1976d2;
+  --a-600: #1565c0;
+  --a-700: #0066cc;
+
+  /* ── Primitives: state ─────────────────────────────────────────────────── */
+  --good-50:  #f6f8f6;
+  --good-100: #e8f5e9;
+  --good-200: #a5d6a7;
+  --good-500: #2d8f2d;
+  --good-700: #1f6b23;
+
+  --warn-50:  #fff8e1;
+  --warn-100: #fff3e0;
+  --warn-200: #ffe082;
+  --warn-300: #ffcc80;
+  --warn-600: #b45309;
+  --warn-700: #8a6400;
+  --warn-800: #b34000;
+
+  --crit-50:  #ffebee;
+  --crit-600: #cc0000;
+
+  /* ── Primitives: space ─────────────────────────────────────────────────── */
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs:  0.375rem;
+  --space-sm:  0.5rem;
+  --space-md:  0.75rem;
+  --space-lg:  1rem;
+  --space-xl:  1.25rem;
+  --space-2xl: 1.5rem;
+  --space-3xl: 2rem;
+
+  /* ── Primitives: type scale ────────────────────────────────────────────────
+     The first eight steps reproduce what the product renders today, so the
+     migration changes no pixels. The last three are new: the scale had no top
+     end, which is why nothing could be emphasised — only shrunk — and why a
+     source-strength letter grade currently outranks the recommendation.
+     SPEC-048 applies them; this spec only makes them exist. */
+  --text-2xs:  0.6875rem;  /* 11px */
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.8125rem;  /* 13px */
+  --text-md:   0.875rem;   /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.25rem;    /* 20px */
+  --text-2xl:  1.5rem;     /* 24px */
+  --text-3xl:  2rem;       /* 32px  — the top end starts here */
+  --text-4xl:  2.5rem;     /* 40px */
+  --text-md-plus: 0.9375rem; /* 15px — an existing step, kept so the migration is lossless */
+  --text-display: clamp(2rem, 1.4rem + 2.2vw, 2.75rem);
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --leading-tight: 1.15;
+  --leading-snug:  1.35;
+  --leading-body:  1.5;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Primitives: radius, elevation, motion ─────────────────────────────── */
+  --radius-xs:   3px;
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-full: 999px;
+
+  --elevation-1: 0 1px 2px rgb(0 0 0 / 0.05);
+  --elevation-2: 0 2px 8px rgb(0 0 0 / 0.08);
+  --elevation-3: -2px 0 8px rgb(0 0 0 / 0.15);
+
+  --motion-fast: 0.15s;
+  --motion-base: 0.25s;
+  --motion-ease: ease;
+
+  /* ── Semantic aliases — the only layer components may use ──────────────── */
+  --surface:         var(--n-25);
+  --surface-raised:  var(--n-0);
+  --surface-sunken:  var(--n-50);
+  --surface-overlay: rgb(0 0 0 / 0.3);
+
+  --text:        var(--n-900);
+  --text-muted:  var(--n-500);
+
+  --border:        var(--n-200);
+  --border-strong: var(--n-300);
+
+  --accent:        var(--a-700);
+  --accent-on:     var(--n-0);
+  --accent-wash:   var(--a-50);
+  --accent-border: var(--a-200);
+  --accent-wash-alt: var(--a-100);
+
+  /* State. Named for what they mean to a reader, not for their hue. */
+  --state-good:        var(--good-500);
+  --state-good-text:   var(--good-700);
+  --state-good-wash:   var(--good-100);
+  --state-good-border: var(--good-200);
+  --state-good-subtle: var(--good-50);
+
+  --state-uncertain:        var(--warn-700);
+  --state-uncertain-wash:   var(--warn-50);
+  --state-uncertain-border: var(--warn-200);
+
+  --state-needs-you:        var(--warn-600);
+  --state-needs-you-wash:   var(--warn-100);
+  --state-needs-you-border: var(--warn-300);
+  --state-needs-you-text:   var(--warn-800);
+
+  --state-critical:      var(--crit-600);
+  --state-critical-wash: var(--crit-50);
+
+  /* Source-strength ramp: ordered, so it is a scale rather than five colours. */
+  --source-tier-1: var(--a-600);
+  --source-tier-2: var(--a-500);
+  --source-tier-3: var(--a-400);
+  --source-tier-4: var(--a-300);
+  --source-tier-5: var(--n-200);
+
+  /* Tells the UA to render form controls and scrollbars for the active theme. */
+  color-scheme: light dark;
+}
+
+/* ── Dark theme ────────────────────────────────────────────────────────────
+ * Designed rather than inverted. The ground is a cool near-black that keeps a
+ * few degrees of the accent's hue; accents and state colours are lifted and
+ * desaturated so they carry on a dark ground without glowing, and every wash is
+ * rebuilt as a dark tint rather than a lightened pastel — a pastel wash on a
+ * dark ground is the single most common way a "dark mode" reads as an
+ * afterthought.
+ *
+ * Only aliases are redefined. No component rule appears below this line. */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface:         #12161a;
+    --surface-raised:  #1a1f24;
+    --surface-sunken:  #0d1114;
+    --surface-overlay: rgb(0 0 0 / 0.55);
+
+    --text:        #e8edf2;
+    --text-muted:  #93a1ad;
+
+    --border:        #2a323a;
+    --border-strong: #3c464f;
+
+    --accent:        #5aa9f0;
+    --accent-on:     #06121f;
+    --accent-wash:   #14243a;
+    --accent-border: #2d4d70;
+    --accent-wash-alt: #16283f;
+
+    --state-good:        #6cc47a;
+    --state-good-text:   #8fd89a;
+    --state-good-wash:   #12291a;
+    --state-good-border: #2c5335;
+    --state-good-subtle: #101a13;
+
+    --state-uncertain:        #e0b055;
+    --state-uncertain-wash:   #2a2210;
+    --state-uncertain-border: #5a4620;
+
+    --state-needs-you:        #e59a4a;
+    --state-needs-you-wash:   #33240f;
+    --state-needs-you-border: #6b4a1f;
+    --state-needs-you-text:   #f0b070;
+
+    --state-critical:      #f0736a;
+    --state-critical-wash: #331512;
+
+    --source-tier-1: #7cc0f5;
+    --source-tier-2: #5aa9f0;
+    --source-tier-3: #3d7fb8;
+    --source-tier-4: #2d5878;
+    --source-tier-5: #2a323a;
+
+    --elevation-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --elevation-2: 0 2px 8px rgb(0 0 0 / 0.5);
+    --elevation-3: -2px 0 8px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* An explicit choice must beat the OS preference in *both* directions, which
+ * is why light is restated here rather than relying on the cascade: without
+ * this block, data-theme="light" under a dark OS preference would still be
+ * dark. */
+
+:root[data-theme="dark"] {
+  --surface:         #12161a;
+  --surface-raised:  #1a1f24;
+  --surface-sunken:  #0d1114;
+  --surface-overlay: rgb(0 0 0 / 0.55);
+
+  --text:        #e8edf2;
+  --text-muted:  #93a1ad;
+
+  --border:        #2a323a;
+  --border-strong: #3c464f;
+
+  --accent:        #5aa9f0;
+  --accent-on:     #06121f;
+  --accent-wash:   #14243a;
+  --accent-border: #2d4d70;
+  --accent-wash-alt: #16283f;
+
+  --state-good:        #6cc47a;
+  --state-good-text:   #8fd89a;
+  --state-good-wash:   #12291a;
+  --state-good-border: #2c5335;
+  --state-good-subtle: #101a13;
+
+  --state-uncertain:        #e0b055;
+  --state-uncertain-wash:   #2a2210;
+  --state-uncertain-border: #5a4620;
+
+  --state-needs-you:        #e59a4a;
+  --state-needs-you-wash:   #33240f;
+  --state-needs-you-border: #6b4a1f;
+  --state-needs-you-text:   #f0b070;
+
+  --state-critical:      #f0736a;
+  --state-critical-wash: #331512;
+
+  --source-tier-1: #7cc0f5;
+  --source-tier-2: #5aa9f0;
+  --source-tier-3: #3d7fb8;
+  --source-tier-4: #2d5878;
+  --source-tier-5: #2a323a;
+
+  --elevation-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --elevation-2: 0 2px 8px rgb(0 0 0 / 0.5);
+  --elevation-3: -2px 0 8px rgb(0 0 0 / 0.6);
+}
+
+:root[data-theme="light"] {
+  --surface:         var(--n-25);
+  --surface-raised:  var(--n-0);
+  --surface-sunken:  var(--n-50);
+  --surface-overlay: rgb(0 0 0 / 0.3);
+
+  --text:        var(--n-900);
+  --text-muted:  var(--n-500);
+
+  --border:        var(--n-200);
+  --border-strong: var(--n-300);
+
+  --accent:        var(--a-700);
+  --accent-on:     var(--n-0);
+  --accent-wash:   var(--a-50);
+  --accent-border: var(--a-200);
+  --accent-wash-alt: var(--a-100);
+
+  --state-good:        var(--good-500);
+  --state-good-text:   var(--good-700);
+  --state-good-wash:   var(--good-100);
+  --state-good-border: var(--good-200);
+  --state-good-subtle: var(--good-50);
+
+  --state-uncertain:        var(--warn-700);
+  --state-uncertain-wash:   var(--warn-50);
+  --state-uncertain-border: var(--warn-200);
+
+  --state-needs-you:        var(--warn-600);
+  --state-needs-you-wash:   var(--warn-100);
+  --state-needs-you-border: var(--warn-300);
+  --state-needs-you-text:   var(--warn-800);
+
+  --state-critical:      var(--crit-600);
+  --state-critical-wash: var(--crit-50);
+
+  --source-tier-1: var(--a-600);
+  --source-tier-2: var(--a-500);
+  --source-tier-3: var(--a-400);
+  --source-tier-4: var(--a-300);
+  --source-tier-5: var(--n-200);
+
+  --elevation-1: 0 1px 2px rgb(0 0 0 / 0.05);
+  --elevation-2: 0 2px 8px rgb(0 0 0 / 0.08);
+  --elevation-3: -2px 0 8px rgb(0 0 0 / 0.15);
+}

@@ -192,13 +192,22 @@ modeDescribe("fixture", "Fixture mode — scope checkpoint (parked case)", () =>
 });
 
 modeDescribe("fixture", "Fixture mode — accessibility (axe)", () => {
+  // SPEC-045: extended from six screens to the full route table, and run in
+  // whichever theme the project supplies — which is what finally makes
+  // SPEC-037's "in both themes" criterion true rather than aspirational.
   const axeScreens = [
     { name: "library", url: "/" },
+    { name: "new decision", url: "/new" },
+    { name: "case detail", url: `/cases/${FIXTURE_COMPLETED}` },
     { name: "scope sheet", url: `/cases/${FIXTURE_PARKED}/scope` },
     { name: "brief", url: `/cases/${FIXTURE_COMPLETED}/brief` },
     { name: "delivery", url: `/cases/${FIXTURE_COMPLETED}/delivery` },
     { name: "sources room", url: `/cases/${FIXTURE_COMPLETED}/rooms/sources` },
+    { name: "assumptions room", url: `/cases/${FIXTURE_COMPLETED}/rooms/assumptions` },
+    { name: "options room", url: `/cases/${FIXTURE_COMPLETED}/rooms/options` },
     { name: "challenges room", url: `/cases/${FIXTURE_COMPLETED}/rooms/challenges` },
+    { name: "plan room", url: `/cases/${FIXTURE_COMPLETED}/rooms/plan` },
+    { name: "method room", url: `/cases/${FIXTURE_COMPLETED}/rooms/method` },
   ];
 
   for (const screen of axeScreens) {

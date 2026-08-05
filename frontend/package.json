@@ -12,6 +12,7 @@
     "test": "vitest run",
     "generate:types": "node scripts/generate-types.cjs",
     "check:clean": "node scripts/generate-types.cjs --check",
+    "check:tokens": "node scripts/check-tokens.cjs",
     "e2e": "playwright test --config=e2e/playwright.config.ts",
     "e2e:typecheck": "tsc --noEmit --project e2e/tsconfig.json"
   },

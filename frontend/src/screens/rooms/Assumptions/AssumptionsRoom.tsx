@@ -85,6 +85,7 @@ function AssumptionsBody({ view }: { view: CaseView }) {
         <fieldset className="facet-group">
           <legend>Type</legend>
           <FacetSelect
+            label="Type"
             value={typeFilter}
             onChange={(v) => setTypeFilter(v as TypeFilter)}
             options={[
@@ -101,6 +102,7 @@ function AssumptionsBody({ view }: { view: CaseView }) {
         <fieldset className="facet-group">
           <legend>Status</legend>
           <FacetSelect
+            label="Status"
             value={statusFilter}
             onChange={(v) => setStatusFilter(v as StatusFilter)}
             options={[
@@ -115,6 +117,7 @@ function AssumptionsBody({ view }: { view: CaseView }) {
         <fieldset className="facet-group">
           <legend>Materiality</legend>
           <FacetSelect
+            label="Materiality"
             value={materialityFilter}
             onChange={(v) => setMaterialityFilter(v as MaterialityFilter)}
             options={[
@@ -141,14 +144,22 @@ function AssumptionsBody({ view }: { view: CaseView }) {
 }
 
 interface FacetSelectProps {
+  /** Accessible name for the control itself, not the group around it. */
+  label: string;
   value: string;
   onChange: (v: string) => void;
   options: [string, string][];
 }
 
-function FacetSelect({ value, onChange, options }: FacetSelectProps) {
+function FacetSelect({ label, value, onChange, options }: FacetSelectProps) {
   return (
-    <select className="facet-select" value={value} onChange={(e) => onChange(e.target.value)}>
+    <select
+      className="facet-select"
+      // The enclosing <legend> names the group; a control needs its own name.
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
       {options.map(([v, label]) => (
         <option key={v} value={v}>{label}</option>
       ))}
