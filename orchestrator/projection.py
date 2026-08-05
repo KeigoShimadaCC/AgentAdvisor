@@ -29,6 +29,7 @@ from orchestrator.artifacts import (
     PreMortemReport,
     PriorEvidenceDigest,
     ReviewReport,
+    SourceType,
     TaskProposalBatch,
     TaskRecord,
     ThesisRevision,
@@ -582,6 +583,41 @@ def _monitoring_plan(case: Case) -> list[_Candidate]:
     return _singleton(case, MonitoringPlan, filename="monitoring_plan.yaml")
 
 
+def _private_evidence(case: Case) -> list[_Candidate]:
+    """User-supplied evidence only (SPEC-043).
+
+    Wired into the roles that reason about the decision and deliberately not into the
+    roles that check the reasoning. Two reasons, and both matter: a reviewer anchored on
+    the decision owner's own material is not independent, and narrowing where personal
+    documents travel is worth doing by construction rather than by convention.
+    """
+    records = [
+        record
+        for record in case.list_artifacts(EvidenceRecord)
+        if record.source_type is SourceType.USER_DOCUMENT
+    ]
+    if not records:
+        return []
+    banner = (
+        "kind: private_evidence_notice\n"
+        f"record_count: {len(records)}\n"
+        "notice: >-\n"
+        "  These records were supplied by the decision owner. They are direct evidence\n"
+        "  about their own subject and carry no external verification. Two excerpts from\n"
+        "  one document are one source, never corroboration. Cite them like any other\n"
+        "  record, but do not describe them as independently confirmed.\n"
+    )
+    candidates = [_Candidate(filename="_private_evidence_notice.yaml", yaml_text=banner)]
+    candidates.extend(
+        _Candidate(
+            filename=f"private_evidence_{record.evidence_id}.yaml",
+            yaml_text=dump_model_to_yaml_text(record),
+        )
+        for record in records
+    )
+    return candidates
+
+
 _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "intake_record": _intake_record,
     "framing_approval": _framing_approval,
@@ -616,6 +652,7 @@ _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "independent_review_packet": _independent_review_packet,
     "ach_matrix": _ach_matrix,
     "monitoring_plan": _monitoring_plan,
+    "private_evidence": _private_evidence,
     "premortem_report": _premortem_report,
     "verification_worksheet": _verification_worksheet,
     "case_memory": _case_memory,

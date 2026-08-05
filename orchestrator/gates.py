@@ -31,6 +31,7 @@ from orchestrator.artifacts import (
     Level,
     ObjectionRecord,
     PreliminaryRecommendation,
+    SourceType,
     TaskRecord,
     TaskStatus,
     max_severity,
@@ -558,6 +559,46 @@ def _check_ach(case: Case) -> list[GateFinding]:
     return findings
 
 
+def _check_private_evidence(case: Case) -> list[GateFinding]:
+    """SPEC-043 — flag material claims resting only on the decision owner's own material.
+
+    Not a block. Private evidence is often the most decisive material in a personal case
+    — the offer letter really does state the salary — but a conclusion no external source
+    touches is a different kind of conclusion, and the reader should be told.
+    """
+    recs = case.list_artifacts(FinalRecommendation)
+    if not recs:
+        return []
+    private_ids = {
+        record.evidence_id
+        for record in case.list_artifacts(EvidenceRecord)
+        if record.source_type is SourceType.USER_DOCUMENT
+    }
+    if not private_ids:
+        return []
+
+    sole: list[str] = []
+    for index, reason in enumerate(recs[0].key_reasons):
+        cited = set(extract_reference_ids(reason))
+        evidence_cited = {ref for ref in cited if ref.startswith("E-")}
+        if evidence_cited and evidence_cited <= private_ids:
+            sole.append(f"final_recommendation.key_reasons[{index}]")
+
+    if not sole:
+        return []
+    return [
+        GateFinding(
+            check_id="evidence.sole_private_support",
+            severity=GateSeverity.WARN,
+            message=(
+                f"{len(sole)} material claim(s) rest only on user-supplied evidence, which "
+                "no external source confirms."
+            ),
+            target_ids=sole,
+        )
+    ]
+
+
 _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "investigation": ("task_health", "analysis_presence"),
     "evidence_critique": ("evidence_independence",),
@@ -574,6 +615,7 @@ _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
         "action_plan",
         "value_model",
         "review_disclosure",
+        "private_evidence",
     ),
 }
 
@@ -619,6 +661,8 @@ def run_stage_gate(
             findings.extend(_check_review_disclosure(case))
         elif check == "ach":
             findings.extend(_check_ach(case))
+        elif check == "private_evidence":
+            findings.extend(_check_private_evidence(case))
 
     cancelled: list[str] = []
     if cancellable and task_graph is not None:

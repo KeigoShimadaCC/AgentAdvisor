@@ -109,6 +109,10 @@ class SourceType(StrEnum):
     ORIGINAL_RESEARCH = "original_research"
     REPUTABLE_SECONDARY = "reputable_secondary"
     SPECIALIST_REPORTING = "specialist_reporting"
+    #: SPEC-043. Supplied by the decision owner: a document they dropped in `inputs/`,
+    #: or an answer to a substantive intake question. Direct and usually decisive, but
+    #: unverifiable and never independent corroboration for anything.
+    USER_DOCUMENT = "user_document"
     OTHER = "other"
 
 

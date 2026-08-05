@@ -69,6 +69,7 @@ from orchestrator.artifacts.gates import (
     max_severity,
 )
 from orchestrator.artifacts.intake import (
+    ClarificationKind,
     ClarificationQuestion,
     FramingApproval,
     FramingDecision,
@@ -159,6 +160,7 @@ __all__ = [
     "CitationCheckItem",
     "CitationVerdict",
     "ClarificationQuestion",
+    "ClarificationKind",
     "ConfidenceAssessment",
     "Counterargument",
     "DecisionSpec",

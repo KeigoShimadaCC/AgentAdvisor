@@ -121,6 +121,8 @@ Useful flags:
   approval, so the change is auditable rather than silent.
 - `--answers <file.yaml>` answers the clarification questions intake raised, as a
   mapping of `question_id` to answer.
+- `--input <file>` on `new` (repeatable) hands the case a document about the decision
+  itself — an offer letter, a term sheet, a vendor quote. See below.
 - `--cases-root <dir>` or `AGENTADVISOR_CASES_ROOT` puts case data somewhere else.
 
 Exit codes: `0` success, `2` your mistake (unknown case, wrong stage), `3` the pipeline
@@ -140,6 +142,29 @@ cd frontend && npm install && npm run dev   # SPA on http://localhost:5173
 
 See [`frontend/README.md`](frontend/README.md) for the dev setup, replay mode (re-watch
 a recorded case at scaled speed, zero tokens), and the Playwright e2e suite.
+
+## Your own documents
+
+Public research alone cannot see the decision's own paperwork, and the numbers that
+usually decide a personal case live there. Drop markdown or plain-text files into
+`cases/<case-id>/inputs/`, or pass them at creation:
+
+```bash
+uv run advisor new "Should I accept this offer?" --input ~/offer.md --slug offer
+```
+
+They are read at intake and become evidence records like any other, with three
+differences: their `source_type` is `user_document`, every excerpt from one file shares
+one independence group (so two quotes from your offer letter are never corroboration),
+and they are scored `unverifiable` rather than placed on the public-source authority
+ladder. A conclusion resting only on them is flagged in the report.
+
+Private evidence reaches the roles that reason about the decision and is withheld from
+the ones that check the reasoning — a reviewer anchored on your own material is not
+independent. It also stays inside its own case and never enters cross-case memory.
+
+**Supplied documents are sent to whichever agent CLI backend the case runs on.** Text
+formats only for now; other files are reported and skipped rather than silently ignored.
 
 ## After delivery
 

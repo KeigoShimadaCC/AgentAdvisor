@@ -59,7 +59,10 @@ export interface InterviewCardsProps {
  * declared assumption.
  */
 export function InterviewCards({ questions, onDone }: InterviewCardsProps) {
-  // answers keyed by resolves_field (the IntakeField name the engine expects).
+  // Answers keyed by question_id, which is what the engine's clarification_answers
+  // mapping expects. SPEC-043 made resolves_field optional (document and fact questions
+  // fill no framing slot), which surfaced that keying by it was wrong for every
+  // question, not just the new kinds.
   const [answers, setAnswers] = useState<Record<string, string>>({});
   // skipped question_ids
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
@@ -67,11 +70,11 @@ export function InterviewCards({ questions, onDone }: InterviewCardsProps) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
 
   const allResolved = questions.every(
-    (q) => answers[q.resolves_field] !== undefined || skipped.has(q.question_id),
+    (q) => answers[q.question_id] !== undefined || skipped.has(q.question_id),
   );
 
-  function setAnswer(field: string, value: string) {
-    setAnswers((prev) => ({ ...prev, [field]: value }));
+  function setAnswer(questionId: string, value: string) {
+    setAnswers((prev) => ({ ...prev, [questionId]: value }));
   }
 
   function skip(q: ClarificationQuestion) {
@@ -94,21 +97,25 @@ export function InterviewCards({ questions, onDone }: InterviewCardsProps) {
 
   function commitDraft(q: ClarificationQuestion) {
     const text = (drafts[q.question_id] ?? "").trim();
-    if (text) setAnswer(q.resolves_field, text);
+    if (text) setAnswer(q.question_id, text);
   }
 
   return (
     <ol className="interview-cards">
       {questions.map((q) => {
         const isSkipped = skipped.has(q.question_id);
-        const answered = answers[q.resolves_field];
-        const quick = quickAnswersForField(q.resolves_field);
+        const answered = answers[q.question_id];
+        // Only framing-field questions have canned answers or a field to name; a
+        // document or fact request is free-text by nature.
+        const quick = q.resolves_field ? quickAnswersForField(q.resolves_field) : [];
 
         return (
           <li key={q.question_id} className="interview-card">
             <h3 className="interview-question">{q.question}</h3>
             <p className="interview-materiality">
-              This matters because it shapes {intakeFieldLabel(q.resolves_field)}.
+              {q.resolves_field
+                ? `This matters because it shapes ${intakeFieldLabel(q.resolves_field)}.`
+                : "This matters because only you can answer it."}
               {q.materiality_reason ? ` ${q.materiality_reason}` : ""}
             </p>
 
@@ -131,7 +138,7 @@ export function InterviewCards({ questions, onDone }: InterviewCardsProps) {
                         type="button"
                         className={`quick-answer-chip${answered === opt.value ? " selected" : ""}`}
                         aria-pressed={answered === opt.value}
-                        onClick={() => setAnswer(q.resolves_field, opt.value)}
+                        onClick={() => setAnswer(q.question_id, opt.value)}
                       >
                         {opt.label}
                       </button>

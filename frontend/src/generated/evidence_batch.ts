@@ -21,6 +21,7 @@ export type SourceType =
   | 'original_research'
   | 'reputable_secondary'
   | 'specialist_reporting'
+  | 'user_document'
   | 'other';
 export type SourceUrl = string;
 export type Records = EvidenceRecord[];

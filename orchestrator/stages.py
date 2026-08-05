@@ -53,6 +53,7 @@ from orchestrator.budget import BudgetConfig, BudgetKind, BudgetLedger, StopEval
 from orchestrator.case_store import Case
 from orchestrator.evidence_critic import critique_case_evidence
 from orchestrator.gates import blocking_findings, run_stage_gate
+from orchestrator.ingest import ingest_case_inputs, unsupported_input_files
 from orchestrator.invoke_role import (
     InvokeTask,
     RoleInvocationFailed,
@@ -354,6 +355,27 @@ class StageHandlers:
             return StepResult.error(f"Intake failed: {exc}")
         assert isinstance(artifact, IntakeRecord)
         case.write_artifact(artifact)
+
+        # SPEC-043: ingest the decision's own documents before framing, since a term
+        # sheet or an offer letter frequently changes what the decision even is.
+        ingested = ingest_case_inputs(case)
+        if ingested:
+            _audit(
+                case,
+                "private_evidence_ingested",
+                {
+                    "record_count": len(ingested),
+                    "documents": sorted(
+                        {record.independence_group.split(":", 1)[-1] for record in ingested}
+                    ),
+                },
+            )
+        skipped = unsupported_input_files(case)
+        if skipped:
+            # Told rather than swallowed: a user who dropped a PDF in and saw nothing
+            # happen would reasonably assume it had been read.
+            _audit(case, "private_evidence_unsupported", {"files": skipped})
+
         _audit(case, "stage_completed", {"stage": "intake"})
         return StepResult.ok()
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -32,6 +33,7 @@ from orchestrator.artifacts import (
 from orchestrator.backend import AgentBackend, BackendName, make_backend
 from orchestrator.budget import BudgetConfig
 from orchestrator.case_store import Case, create_case, default_cases_root, load_case
+from orchestrator.ingest import INGEST_DIR, SUPPORTED_SUFFIXES
 from orchestrator.monitoring import MonitoringStore, due_checks, mitigations_for
 from orchestrator.pipeline import DEFAULT_BUDGET, SMALL_BUDGET
 from orchestrator.pipeline import run as run_pipeline
@@ -201,6 +203,21 @@ def _report_outcome(case: Case, state: CaseState) -> int:
     return EXIT_OK
 
 
+def _copy_inputs(case: Case, sources: list[Path]) -> list[str]:
+    """Copy user-supplied documents into the case's ``inputs/`` directory."""
+    if not sources:
+        return []
+    destination = case.root / INGEST_DIR
+    destination.mkdir(parents=True, exist_ok=True)
+    copied: list[str] = []
+    for source in sources:
+        if not source.is_file():
+            raise UserError(f"Input file not found: {source}")
+        shutil.copy2(source, destination / source.name)
+        copied.append(source.name)
+    return copied
+
+
 def cmd_new(args: argparse.Namespace, backend: AgentBackend | None = None) -> int:
     prompt = args.prompt.strip()
     if not prompt:
@@ -211,7 +228,19 @@ def cmd_new(args: argparse.Namespace, backend: AgentBackend | None = None) -> in
     except ValueError as exc:
         raise UserError(str(exc)) from exc
 
+    # SPEC-043: copy supplied documents in before the run, so intake ingests them.
+    copied = _copy_inputs(case, getattr(args, "input", None) or [])
     print(f"Created {case.root.name} at {case.root}")
+    if copied:
+        print(f"Copied {len(copied)} document(s) into {case.root / INGEST_DIR}")
+        unsupported = [
+            name for name in copied if Path(name).suffix.lower() not in SUPPORTED_SUFFIXES
+        ]
+        if unsupported:
+            print(
+                "  ! these will not be read — this version handles text formats only "
+                f"({', '.join(sorted(SUPPORTED_SUFFIXES))}): {', '.join(unsupported)}"
+            )
     state = _run(
         case,
         raw_prompt=prompt,
@@ -516,6 +545,17 @@ def build_parser() -> argparse.ArgumentParser:
         )
 
     new = subparsers.add_parser("new", help="Start a new decision case")
+    new.add_argument(
+        "--input",
+        type=Path,
+        action="append",
+        default=None,
+        metavar="FILE",
+        help=(
+            "A document about this decision to read alongside public research "
+            "(repeatable; markdown and plain text)"
+        ),
+    )
     new.add_argument("prompt", help="The decision, in your own words")
     new.add_argument("--slug", default="case", help="Short name used in the case directory")
     add_common(new)

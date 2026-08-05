@@ -19,6 +19,11 @@ class SourceTier(StrEnum):
     OFFICIAL = "official"
     REPUTABLE = "reputable"
     WEAK = "weak"
+    #: SPEC-043. User-supplied material. Deliberately outside the authority ordering:
+    #: an offer letter is the most direct possible evidence about its own terms and
+    #: carries no external authority at all. Scoring it on the public-source ladder
+    #: would be a category error in either direction.
+    UNVERIFIABLE = "unverifiable"
 
 
 class EvidenceFlag(StrEnum):
@@ -28,6 +33,7 @@ class EvidenceFlag(StrEnum):
     LOW_RELIABILITY = "low_reliability"
     MISSING_LIMITATIONS = "missing_limitations"
     WEAK_SOURCE_TIER = "weak_source_tier"
+    USER_SUPPLIED = "user_supplied"
 
 
 SOURCE_TIER_BY_TYPE: dict[SourceType, SourceTier] = {
@@ -37,6 +43,7 @@ SOURCE_TIER_BY_TYPE: dict[SourceType, SourceTier] = {
     SourceType.ORIGINAL_RESEARCH: SourceTier.OFFICIAL,
     SourceType.REPUTABLE_SECONDARY: SourceTier.REPUTABLE,
     SourceType.SPECIALIST_REPORTING: SourceTier.REPUTABLE,
+    SourceType.USER_DOCUMENT: SourceTier.UNVERIFIABLE,
     SourceType.OTHER: SourceTier.WEAK,
 }
 
@@ -45,6 +52,9 @@ SOURCE_TIER_WEIGHT: dict[SourceTier, float] = {
     SourceTier.OFFICIAL: 0.8,
     SourceTier.REPUTABLE: 0.55,
     SourceTier.WEAK: 0.25,
+    # Between reputable and weak: highly direct about its own subject, with no
+    # external check on it.
+    SourceTier.UNVERIFIABLE: 0.45,
 }
 
 

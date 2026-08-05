@@ -181,3 +181,11 @@ monitoring_plan_not_concretized:
 monitoring_plan_skipped:
   template: "No monitoring plan written — {reason}"
   technical: true
+
+private_evidence_ingested:
+  template: "Read {record_count} excerpt(s) from your supplied documents"
+  technical: false
+
+private_evidence_unsupported:
+  template: "Could not read these supplied files (text formats only): {files}"
+  technical: false
