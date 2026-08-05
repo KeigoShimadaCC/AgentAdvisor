@@ -53,6 +53,41 @@ async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
   return resp.json() as Promise<T>;
 }
 
+/** SPEC-042 — the delivered monitoring plan and which checks are overdue. */
+export interface MonitoringIndicator {
+  indicator_id: string;
+  observable: string;
+  threshold: string;
+  check_cadence_days: number;
+  would_imply: string;
+}
+
+export interface MonitoringMitigation {
+  mitigation_id: string;
+  mitigation: string;
+  owner: string;
+}
+
+export interface MonitoringDueCheck {
+  indicator_id: string;
+  observable: string;
+  threshold: string;
+  days_overdue: number;
+  last_checked: string | null;
+}
+
+export interface MonitoringResponse {
+  plan: {
+    case_id: string;
+    delivered_at: string;
+    horizon: string;
+    concretized: boolean;
+    indicators: MonitoringIndicator[];
+    mitigations: MonitoringMitigation[];
+  } | null;
+  due: MonitoringDueCheck[];
+}
+
 export const api = {
   listCases: () => fetchJSON<CaseSummary[]>("/cases"),
 
@@ -135,6 +170,9 @@ export const api = {
   /** Convenience: load the FinalRecommendation for a case. */
   getFinalRecommendation: (caseId: string) =>
     api.getTypedArtifact<FinalRecommendation>(caseId, "final_recommendation"),
+
+  getMonitoring: (caseId: string) =>
+    fetchJSON<MonitoringResponse>(`/cases/${encodeURIComponent(caseId)}/monitoring`),
 
   pauseCase: (caseId: string) =>
     fetchJSON<{ case_id: string; paused: boolean }>(

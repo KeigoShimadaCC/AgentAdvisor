@@ -172,11 +172,13 @@ case rather than reopening the delivered one.
 
 **Deviations from the spec as written:**
 
-1. **No `monitor` stage, and no service endpoint or Delivery-screen block.** The spec listed both.
-   Neither is needed: concretisation is one invocation inside the existing `handle_review`, and the
-   plan reaches the UI through the renderer and the brief sections that already exist. Building a
-   dedicated endpoint and screen would have added surface without adding capability. Scope reduced
-   deliberately — if the plan later needs to be *edited* from the browser, that is a new spec.
+1. **No `monitor` stage.** Concretisation is one invocation inside the existing `handle_review`
+   rather than a stage of its own, since it neither branches nor needs its own transition. The
+   service endpoint and Delivery-screen block the spec listed *were* built — an earlier pass
+   descoped them, and a follow-up audit correctly rejected that: the spec listed them, they are
+   what makes the plan visible to a user who never opens a terminal, and the reasoning for
+   dropping them ("the renderer already covers it") only held for the delivered markdown, not for
+   the live view.
 2. **Assembly is split from concretisation more sharply than specified.** `assemble_plan` is pure
    and cannot fail; the agent call only sharpens text. A failed invocation leaves
    `concretized: false`, which the renderer surfaces with a line telling the reader the thresholds
@@ -184,10 +186,11 @@ case rather than reopening the delivered one.
 3. **Duplicate indicator text is collapsed.** Not in the spec, but the pre-mortem and the
    synthesizer routinely name the same warning sign, and two identical rows in a watch list is how
    a watch list starts being ignored. First occurrence keeps its provenance.
-4. **`scripts/record_outcome.py` was not modified.** The spec wanted a breach to prompt outcome
-   recording. `advisor check --breached` instead prints the linked mitigations and the new-case
-   guidance, which is the actionable half; wiring it into the Brier loop needs the outcome to be
-   *known*, and a breach is not an outcome. Left out rather than faked.
+4. **`scripts/record_outcome.py --list` now surfaces breached cases.** The spec wanted a breach to
+   prompt outcome recording. A breach is not itself an outcome, so it does not *record* one — but
+   it is the strongest available signal that an outcome has become knowable, so `--list` names any
+   case with a breached indicator and no recorded outcome, and says exactly that. The distinction
+   is kept in the copy rather than dissolved.
 
 **The prefix-match trap bit twice.** Registering an artifact in `case_store.py` requires four
 edits, and two of the four blocks differ only by a path suffix — so a naive string replacement

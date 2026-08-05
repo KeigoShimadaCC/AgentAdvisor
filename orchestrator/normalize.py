@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 import yaml  # type: ignore[import-untyped]
 from pydantic import ValidationError
 
-from orchestrator.artifacts import EvidenceBatch, EvidenceRecord
+from orchestrator.artifacts import EvidenceBatch, EvidenceRecord, SourceType
 
 _TRACKING_QUERY_KEYS = frozenset(
     {
@@ -321,6 +321,14 @@ def _assign_conservative_independence_groups(
     grouped: list[EvidenceRecord] = []
     for candidate in candidates:
         record = candidate.record
+        # SPEC-043: user-supplied material already carries a per-document group set at
+        # ingestion. Regrouping it by publisher would merge every supplied file into one
+        # cluster (they all share the publisher "user-supplied"), turning two independent
+        # documents into one source. Not currently reachable — only `ingest.py` mints
+        # these — but the invariant is cheap to hold and expensive to lose.
+        if record.source_type is SourceType.USER_DOCUMENT:
+            grouped.append(record)
+            continue
         signatures = _independence_signatures(candidate)
         shared_groups = sorted(
             {

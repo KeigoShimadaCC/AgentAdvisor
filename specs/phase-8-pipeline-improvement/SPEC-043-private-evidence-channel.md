@@ -191,6 +191,13 @@ Every answer the interview screen collected therefore carried the wrong key. Mak
 `resolves_field` optional turned this from a silent mismatch into a type error, which is the only
 reason it was found. Now keyed by `question_id`, with three new tests covering the non-field kinds.
 
+**`normalize.py` carries a guard the spec asked for and the code did not initially need.**
+Ingestion sets `independence_group` directly and `normalize_evidence_batch` only runs on researcher
+batches, so nothing clobbers it today. But a `user_document` reaching the normalizer would be
+regrouped by publisher — and every supplied file shares the publisher `user-supplied`, so two
+independent documents would collapse into one source. The guard is unreachable now and cheap; the
+invariant it protects is not.
+
 **Chunking is heading-aware, which the spec asked for and is worth restating as a constraint:**
 a citation must point at a location a human can find. Records carry `offer.md#Offer letter >
 Compensation` rather than a chunk index.

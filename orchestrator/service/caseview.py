@@ -19,7 +19,9 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from orchestrator.ach import rank_by_disconfirmation, zero_diagnosticity_records
 from orchestrator.artifacts import (
+    ACHMatrix,
     AnalysisResult,
     AssumptionRecord,
     DecisionSpec,
@@ -268,6 +270,12 @@ class OptionView(BaseModel):
     objective_scores: dict[str, float] | None = None
     weighted_score: float | None = None
     weighted_rank: int | None = None
+    #: SPEC-040. Position under the competing-hypotheses matrix — ranked by weight of
+    #: disconfirming evidence, so rank 1 is the alternative the evidence fails to rule
+    #: out rather than the one with the most support.
+    disconfirmation_rank: int | None = None
+    disconfirming_weight: float | None = None
+    disconfirming_evidence_ids: list[str] = Field(default_factory=list)
     #: Whether this alternative was ruled out rather than ranked against the others.
     #: Derived here (see :func:`_is_eliminated`) so the presentation layer consumes a
     #: field instead of re-deriving it from prose.
@@ -346,6 +354,11 @@ class OptionsRoom(BaseModel):
 
     options: list[OptionView] = Field(default_factory=list)
     ev_table: dict[str, float] = Field(default_factory=dict)
+    #: SPEC-040. Present only when a competing-hypotheses matrix was built.
+    ach_scored: bool = False
+    #: Evidence that scored identically against every alternative, and so could not have
+    #: changed the ranking. Naming it is one of the more useful outputs of the technique.
+    ach_uninformative_evidence_ids: list[str] = Field(default_factory=list)
 
 
 class ChallengesRoom(BaseModel):
@@ -961,6 +974,7 @@ def _build_options_room(
     final: FinalRecommendation | None,
     analysis_results: list[AnalysisResult],
     spec: DecisionSpec | None = None,
+    ach_matrix: ACHMatrix | None = None,
 ) -> OptionsRoom:
     options: list[OptionView] = []
     if final is not None:
@@ -995,7 +1009,27 @@ def _build_options_room(
         for opt in options:
             opt.expected_value = ev_table.get(opt.alternative)
 
-    return OptionsRoom(options=options, ev_table=ev_table)
+    # SPEC-040: join the disconfirmation standings on, so the room shows both readings
+    # of the same option set — best supported and least ruled out.
+    ach_scored = False
+    uninformative: list[str] = []
+    if ach_matrix is not None:
+        ach_scored = True
+        uninformative = list(zero_diagnosticity_records(ach_matrix))
+        standings = {s.alternative: s for s in rank_by_disconfirmation(ach_matrix)}
+        for opt in options:
+            standing = standings.get(opt.alternative)
+            if standing is not None:
+                opt.disconfirmation_rank = standing.rank
+                opt.disconfirming_weight = round(standing.weighted_inconsistency, 3)
+                opt.disconfirming_evidence_ids = list(standing.disconfirming_evidence_ids)
+
+    return OptionsRoom(
+        options=options,
+        ev_table=ev_table,
+        ach_scored=ach_scored,
+        ach_uninformative_evidence_ids=uninformative,
+    )
 
 
 def _build_challenges_room(
@@ -1358,6 +1392,8 @@ def build_case_view(case: Case) -> CaseView:
 
     spec_list = case.list_artifacts(DecisionSpec)
     spec = spec_list[0] if spec_list else None
+    ach_list = case.list_artifacts(ACHMatrix)
+    ach_matrix = ach_list[0] if ach_list else None
 
     analysis_results = case.list_artifacts(AnalysisResult)
     tasks = case.list_artifacts(TaskRecord)
@@ -1374,7 +1410,7 @@ def build_case_view(case: Case) -> CaseView:
     rooms = RoomsView(
         sources=_build_sources_room(case, critique),
         assumptions=_build_assumptions_room(case),
-        options=_build_options_room(final, analysis_results, spec),
+        options=_build_options_room(final, analysis_results, spec, ach_matrix),
         challenges=_build_challenges_room(case, premortem, track_divergence),
         plan=_build_plan_view(issue_tree, tasks),
     )

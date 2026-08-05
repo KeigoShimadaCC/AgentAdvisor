@@ -212,6 +212,37 @@
           "title": "Alternative",
           "type": "string"
         },
+        "disconfirmation_rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disconfirmation Rank"
+        },
+        "disconfirming_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Disconfirming Evidence Ids",
+          "type": "array"
+        },
+        "disconfirming_weight": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disconfirming Weight"
+        },
         "eliminated": {
           "default": false,
           "title": "Eliminated",
@@ -288,6 +319,18 @@
     "OptionsRoom": {
       "additionalProperties": false,
       "properties": {
+        "ach_scored": {
+          "default": false,
+          "title": "Ach Scored",
+          "type": "boolean"
+        },
+        "ach_uninformative_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ach Uninformative Evidence Ids",
+          "type": "array"
+        },
         "ev_table": {
           "additionalProperties": {
             "type": "number"

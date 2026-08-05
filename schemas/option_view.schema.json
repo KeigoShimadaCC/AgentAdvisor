@@ -5,6 +5,37 @@
       "title": "Alternative",
       "type": "string"
     },
+    "disconfirmation_rank": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Disconfirmation Rank"
+    },
+    "disconfirming_evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Disconfirming Evidence Ids",
+      "type": "array"
+    },
+    "disconfirming_weight": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Disconfirming Weight"
+    },
     "eliminated": {
       "default": false,
       "title": "Eliminated",

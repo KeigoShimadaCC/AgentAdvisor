@@ -10,13 +10,14 @@ import { ConfidenceBands } from "../../uncertainty/ConfidenceBands";
 import { SourceStrengthGrade } from "../../uncertainty/SourceStrengthGrade";
 import { StabilityDots } from "../../uncertainty/StabilityDots";
 import { NotAssessedWidget } from "../../uncertainty/NotAssessedWidget";
-import { api } from "../../api/client";
+import { api, type MonitoringResponse } from "../../api/client";
 import {
   BRIEF_SECTION_TITLES,
   EMPTY_TRUTHS,
   FAILURE_COPY,
   TRIPWIRE_COPY,
   provenanceLabel,
+  ACTION_PLAN_COPY,
 } from "../../copy/terms";
 import type { FinalRecommendation } from "../../generated/final_recommendation";
 import type { CaseView, BriefSection } from "../../generated/case_view";
@@ -247,6 +248,83 @@ function Tripwires({ triggers }: { triggers?: string[] }) {
           <li key={i}><CitationText>{t}</CitationText></li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+/**
+ * SPEC-042 — what to watch after delivery, and the prepared responses.
+ *
+ * Replaces nothing: the tripwire list stays, because it is the recommendation's own
+ * statement of what would change it. This shows the *tracked* version — observables with
+ * thresholds and cadences — plus which checks are overdue right now.
+ */
+function MonitoringPanel({ caseId }: { caseId: string }) {
+  const [data, setData] = useState<MonitoringResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getMonitoring(caseId)
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch(() => {
+        // A missing plan is the normal case for an in-flight decision, not an error.
+        if (!cancelled) setData({ plan: null, due: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId]);
+
+  if (!data?.plan || data.plan.indicators.length === 0) return null;
+  const { plan, due } = data;
+  const dueIds = new Set(due.map((d) => d.indicator_id));
+
+  return (
+    <section className="monitoring-panel" aria-label={ACTION_PLAN_COPY.monitoringTitle}>
+      <h3>{ACTION_PLAN_COPY.monitoringTitle}</h3>
+      <p className="section-help">{ACTION_PLAN_COPY.monitoringHelp}</p>
+      {!plan.concretized && (
+        <p className="monitoring-warning">{ACTION_PLAN_COPY.notConcretized}</p>
+      )}
+      <ul className="monitoring-list">
+        {plan.indicators.map((indicator) => (
+          <li
+            key={indicator.indicator_id}
+            className={`monitoring-item${dueIds.has(indicator.indicator_id) ? " due" : ""}`}
+          >
+            <span className="monitoring-observable">{indicator.observable}</span>
+            {dueIds.has(indicator.indicator_id) && (
+              <span className="monitoring-due-badge">{ACTION_PLAN_COPY.dueLabel}</span>
+            )}
+            <dl className="monitoring-detail">
+              <dt>{ACTION_PLAN_COPY.thresholdLabel}</dt>
+              <dd>{indicator.threshold}</dd>
+              <dt>{ACTION_PLAN_COPY.cadenceLabel}</dt>
+              <dd>{indicator.check_cadence_days} days</dd>
+              <dt>{ACTION_PLAN_COPY.wouldImplyLabel}</dt>
+              <dd>{indicator.would_imply}</dd>
+            </dl>
+          </li>
+        ))}
+      </ul>
+      {plan.mitigations.length > 0 && (
+        <>
+          <h4>{ACTION_PLAN_COPY.mitigationsTitle}</h4>
+          <ul className="mitigation-list">
+            {plan.mitigations.map((m) => (
+              <li key={m.mitigation_id}>
+                <span className="mitigation-text">{m.mitigation}</span>
+                <span className="mitigation-owner">
+                  {ACTION_PLAN_COPY.ownerLabel}: {m.owner}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }

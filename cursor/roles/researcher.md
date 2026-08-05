@@ -122,3 +122,22 @@ Quality bar:
 - Quote/ground claims with a concrete excerpt from the cited source.
 - Keep limitations explicit (currency, scope, methodology, possible bias, or uncertainty).
 - Stop immediately after writing `outputs/evidence_batch.yaml`.
+
+## User-supplied evidence
+
+Some records in `inputs/` carry `source_type: user_document`. These are the decision
+owner's own material — a document they supplied, or an answer they gave at intake — and
+they behave differently from anything you find on the web:
+
+- **They are the most direct evidence about their own subject.** An offer letter states
+  its own terms better than any public source could. Use them for exactly that.
+- **Nothing external confirms them.** Never describe a claim resting on them as verified,
+  corroborated or independently confirmed. Say what it is: the decision owner's own
+  figure.
+- **Every excerpt from one document is one source.** Two quotes from the same offer letter
+  are not two sources, whatever their evidence ids suggest. They share one
+  `independence_group` for exactly this reason.
+- **Do not go looking for them.** They are supplied, not researched. Your job is the
+  public record; treat what is already in `inputs/` as given.
+
+Cite them by `E-` id like any other record.

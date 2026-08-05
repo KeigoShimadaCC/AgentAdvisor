@@ -30,7 +30,12 @@ export type Positions = {
 }[];
 export type ReconciledAlternative = string | null;
 export type Stage = string;
+export type AchScored = boolean;
+export type AchUninformativeEvidenceIds = string[];
 export type Alternative = string;
+export type DisconfirmationRank = number | null;
+export type DisconfirmingEvidenceIds = string[];
+export type DisconfirmingWeight = number | null;
 export type Eliminated = boolean;
 export type ExpectedValue = number | null;
 export type ObjectiveScores = {
@@ -120,6 +125,8 @@ export interface TrackDivergenceView {
   stage: Stage;
 }
 export interface OptionsRoom {
+  ach_scored?: AchScored;
+  ach_uninformative_evidence_ids?: AchUninformativeEvidenceIds;
   ev_table?: EvTable;
   options?: Options;
 }
@@ -128,6 +135,9 @@ export interface EvTable {
 }
 export interface OptionView {
   alternative: Alternative;
+  disconfirmation_rank?: DisconfirmationRank;
+  disconfirming_evidence_ids?: DisconfirmingEvidenceIds;
+  disconfirming_weight?: DisconfirmingWeight;
   eliminated?: Eliminated;
   expected_value?: ExpectedValue;
   objective_scores?: ObjectiveScores;

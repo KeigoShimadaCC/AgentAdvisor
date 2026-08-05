@@ -210,3 +210,7 @@ reproducibility_gate_error:
 wall_clock_exceeded:
   template: "Stopped on the wall-clock limit after {elapsed_s}s"
   technical: false
+
+value_model_ranked:
+  template: "Weighted ranking computed: {top_alternative} leads ({scored_alternatives} options scored)"
+  technical: false

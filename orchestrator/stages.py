@@ -73,6 +73,7 @@ from orchestrator.task_graph import TaskExecutionResult, TaskGraph
 from orchestrator.thesis import write_thesis
 from orchestrator.tracks import build_position, compare_tracks
 from orchestrator.unpack import unpack_assumption_batch, unpack_objection_batch
+from orchestrator.value_model import compute_ranking, rank_divergence
 from orchestrator.verification import build_verification_worksheet, review_is_acceptable
 
 DEFAULT_TIMEOUT_S = 300.0
@@ -1414,6 +1415,20 @@ class StageHandlers:
                 objective_weights = case.read_artifact(DecisionSpec).objective_weights
             except FileNotFoundError:
                 pass
+            if objective_weights:
+                ranked = compute_ranking(objective_weights, recommendation.alternatives_considered)
+                divergence = rank_divergence(
+                    objective_weights, recommendation.alternatives_considered
+                )
+                _audit(
+                    case,
+                    "value_model_ranked",
+                    {
+                        "top_alternative": ranked[0].alternative if ranked else None,
+                        "agrees_with_stated_rank": divergence.agrees,
+                        "scored_alternatives": len(ranked),
+                    },
+                )
 
             write_final_recommendation_markdown(
                 case.root,

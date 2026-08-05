@@ -378,3 +378,44 @@ def test_store_lists_plans_across_cases(tmp_path: Path) -> None:
     store.write_plan(_plan())
     store.write_plan(_plan().model_copy(update={"case_id": "case-002-other"}))
     assert {p.case_id for p in store.plans()} == {"case-001-monitor", "case-002-other"}
+
+
+# ── service endpoint and record_outcome prompting (SPEC-042 scope items) ─────
+
+
+def test_monitoring_endpoint_returns_the_plan_and_due_checks(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    from orchestrator.case_store import create_case
+    from orchestrator.service.app import create_app
+
+    cases_root = tmp_path / "cases"
+    case = create_case("watched", cases_root=cases_root)
+    plan = _plan().model_copy(
+        update={"case_id": case.root.name, "delivered_at": date(2026, 1, 1), "concretized": True}
+    )
+    MonitoringStore(tmp_path / "monitoring").write_plan(plan)
+
+    app = create_app(cases_root, monitoring_root=tmp_path / "monitoring")
+    with TestClient(app) as client:
+        response = client.get(f"/api/cases/{case.root.name}/monitoring")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["plan"]["case_id"] == case.root.name
+    # Delivered in January against a 30-day cadence, so everything is overdue.
+    assert len(body["due"]) == len(plan.indicators)
+
+
+def test_monitoring_endpoint_reports_no_plan_without_erroring(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    from orchestrator.case_store import create_case
+    from orchestrator.service.app import create_app
+
+    cases_root = tmp_path / "cases"
+    case = create_case("unwatched", cases_root=cases_root)
+    app = create_app(cases_root, monitoring_root=tmp_path / "monitoring")
+    with TestClient(app) as client:
+        response = client.get(f"/api/cases/{case.root.name}/monitoring")
+    assert response.status_code == 200
+    assert response.json() == {"plan": None, "due": []}
