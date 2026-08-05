@@ -60,6 +60,10 @@ can detect an unintended layout or colour change.
 - Axe coverage extended from the current 6 screens to every route, run in both themes.
 - `frontend/e2e/contrast.spec.ts` — computed-contrast assertions for every semantic
   foreground/background pair in both themes, at WCAG AA.
+- Deterministic capture: animations disabled, fonts pinned to the bundled stack, and a documented
+  pixel threshold, so the harness does not become a flaky gate the phase learns to ignore. The
+  matrix multiplies run time — projects × routes × visual × axe — so **SPEC-055 owns the scoping
+  rule and the 10-minute budget**; this spec ships the matrix and must not exceed it alone.
 
 ## Out of scope
 
@@ -79,7 +83,7 @@ rather than a style preference.
 
 The screenshot matrix is deliberately introduced before any visual work rather than alongside it.
 Baselines captured from the current UI make every subsequent phase-9 diff legible as an intentional
-change, and give SPEC-054 something to verify the phase against. Baseline churn is expected and is
+change, and give SPEC-056 something to verify the phase against. Baseline churn is expected and is
 reviewed in the diff; the acceptance criterion is that changes are *reviewed*, never blind-accepted.
 
 ## Deliverables
@@ -104,6 +108,8 @@ reviewed in the diff; the acceptance criterion is that changes are *reviewed*, n
 - [ ] Axe reports zero serious/critical violations on every route in both themes, extending
       SPEC-037's six-screen list to the full route table.
 - [ ] The reduced-motion project passes with animation disabled on the brief's settle transition.
+- [ ] The visual suite passes twice consecutively with no pixel diff on an unchanged tree — flake is
+      a failure, not a retry.
 - [ ] `make check` and `make frontend-check` are green; the 77 existing frontend unit tests are
       unchanged and passing.
 

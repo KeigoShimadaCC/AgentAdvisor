@@ -381,7 +381,9 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
 | SPEC-051 | Presence and engagement: notifications, away digest, reactions, calibration | draft |
 | SPEC-052 | Distribution: export, share, replay onboarding, library, mobile | draft |
 | SPEC-053 | Phase 8 made visible: projecting and rendering the pipeline improvements | draft |
-| SPEC-054 | Phase 9 re-evaluation | draft |
+| SPEC-054 | The calibration language: one uncertainty vocabulary at every altitude | draft |
+| SPEC-055 | Resilience: degraded states, storage failure, announcement policy, budgets | draft |
+| SPEC-056 | Phase 9 re-evaluation | draft |
 
 **Findings**
 
@@ -401,6 +403,15 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
   Playwright projects are desktop), a reduced-motion test despite `styles.css` and `Brief.tsx`
   branching on it, and axe coverage beyond 6 of ~13 routes. That harness lands in SPEC-045, and a
   six-point testing contract binds every sheet in the phase.
+- (2026-08-05) **Auditing the drafted sheets back against the review found two categories of gap.**
+  Four discussed items were in no sheet: the calibration language (the review's single
+  "spend the design budget here" recommendation), expand-in-place "why" on a claim, the output-shape
+  question at commissioning, and a settings surface that SPEC-052 referenced and nobody owned.
+  Reliability had been specified only as SSE reconnect, while the code showed four new
+  `localStorage` dependencies in a frontend with zero today, an unbounded event array copied on
+  every append that SPEC-046's heartbeats would feed, and exactly one `role="status"` in the whole
+  frontend against a narrator that rewrites in place. SPEC-054 and SPEC-055 close them; the sheet
+  count went from ten to twelve.
 - (2026-08-05) **Spec sizing was corrected by measurement.** A first plan proposed 17 sheets.
   Phases 6-7 run 104-192 lines with 3-6 deliverables and 3-7 acceptance criteria, and breadth per
   sheet is far wider than assumed: SPEC-035 alone covers the whole Brief route, the whole Delivery

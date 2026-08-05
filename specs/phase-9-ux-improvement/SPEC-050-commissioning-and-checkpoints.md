@@ -38,8 +38,10 @@ presenting all of it at once with nothing ranked.
   - draft-persist the prompt and effort selection to `localStorage` on every keystroke, cleared on
     successful creation;
   - narrate intake and framing as the first demonstration of the method, using SPEC-047's narrator;
-  - a watch-or-notify question — sit with the deliberation, or be pinged — stored as the user
-    preference SPEC-051 consumes.
+  - two questions that route the whole experience and nothing else: **what should I hand you** — a
+    one-page answer or a full advisory brief, which sets SPEC-048's default altitude — and **watch
+    or notify**, sit with the deliberation or be pinged, which SPEC-051 consumes. Both are
+    preferences, not case data: neither is written into the case.
 - `frontend/src/copy/effort.ts` — effort profiles whose time ranges are computed from recorded
   history via `MemoryStore.prior_cases()` (p50–p90 per profile), served through a small addition to
   the existing calibration read, and labelled as measured. With no history, honest fallback copy
@@ -88,7 +90,7 @@ documented component boundary and avoids restructuring the same two screens twic
 ## Deliverables
 
 - [ ] `NewDecision.tsx` — immediate routing on 202, draft persistence, intake/framing narration,
-      watch-or-notify preference
+      output-shape and watch-or-notify preferences
 - [ ] `frontend/src/copy/effort.ts` + the history-derived estimate read; hardcoded ranges removed
       from `terms.ts`
 - [ ] `ScopeCheckpoint.tsx` — restatement-first disclosure, consequence subhead, objective-weight slot
@@ -103,6 +105,8 @@ documented component boundary and avoids restructuring the same two screens twic
       `framing_approval.yaml` and `final_approval.yaml`**, asserted in stub mode against disk.
 - [ ] Reloading mid-commission restores the prompt and effort selection; a successful creation
       clears the draft.
+- [ ] Choosing "one-page answer" lands the case on the Answer altitude and "full advisory brief" on
+      Reasoning; neither preference is written into the case directory.
 - [ ] After `POST /api/cases` the case surface renders and narrates intake before framing completes;
       no disabled-button wait remains.
 - [ ] No hardcoded minute range remains in `frontend/src/copy/`; ranges render as measured p50–p90

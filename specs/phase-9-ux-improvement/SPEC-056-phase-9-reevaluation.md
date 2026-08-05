@@ -1,15 +1,15 @@
 ---
-id: SPEC-054
+id: SPEC-056
 title: Phase 9 re-evaluation — visual regression, full e2e, and a real case on the new surface
 phase: 9
 status: draft
-depends_on: [SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-050, SPEC-051, SPEC-052, SPEC-053]
+depends_on: [SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-050, SPEC-051, SPEC-052, SPEC-053, SPEC-054, SPEC-055]
 parallel_with: []
 north_star_refs: ["15", "18"]
 last_updated: 2026-08-05
 ---
 
-# SPEC-054 — Phase 9 re-evaluation: visual regression, full e2e, and a real case on the new surface
+# SPEC-056 — Phase 9 re-evaluation: visual regression, full e2e, and a real case on the new surface
 
 ## Summary
 
@@ -43,7 +43,9 @@ SPEC-037 the browser verification, each with a dated report in `report-and-findi
   - proportion of run wall-clock during which the interface shows an accurate current activity
     (was: near zero between invocation completions);
   - whether a second challenge round is distinguishable from a stall (was: no);
-  - count of phase 8 artifact types reachable from a screen (was: zero).
+  - count of phase 8 artifact types reachable from a screen (was: zero);
+  - behaviour when the service dies mid-run: does the interface say it is stale, or keep presenting
+    a frozen brief as current (was: presents it as current, indistinguishably from a finished one).
 - A backend-surface audit: `git diff` against the phase 9 base restricted to `orchestrator/`,
   confirming it contains only the additions listed in the phase README and nothing else.
 - `report-and-findings/2026-XX-XX-phase-9-before-after.md` and the ROADMAP phase 9 findings entry.
@@ -86,6 +88,8 @@ read or an emit.
 - [ ] Visual regression passes across light/dark × desktop/mobile with no unreviewed baseline
       changes; axe reports zero serious/critical on every route in both themes.
 - [ ] `coverage.spec.ts` passes: every phase 8 artifact type is reachable from a screen.
+- [ ] The full e2e matrix stays inside SPEC-037's 10-minute budget and the visual suite passes twice
+      consecutively with no pixel diff, per SPEC-055's budgets.
 - [ ] The real case completes on the new surface with both checkpoints signed through the UI, and
       its artifacts validate — asserted from disk, not from the screen.
 - [ ] All four measured claims are recorded with their method, including any that did not improve.

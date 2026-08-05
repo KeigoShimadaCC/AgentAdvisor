@@ -45,6 +45,10 @@ a phone, which no Playwright project has ever exercised.
   - grouped by SPEC-046's server-supplied `needs_you` — waiting on you, running, done — which
     **deletes** the duplicated client-side stage-string derivation at `CaseLibrary.tsx:7`;
   - search over case questions, and a command-K palette across cases, evidence and assumptions.
+- `frontend/src/screens/Settings/` — the surface the phase's preferences have been accumulating with
+  nowhere to live: default effort, output shape and watch-or-notify from SPEC-050, default altitude
+  from SPEC-048, theme from SPEC-045, notification permission state from SPEC-051, and re-running
+  the onboarding tour. Preferences only; no case data.
 - Responsive: SPEC-048's three-region shell collapses to one column with the context panel as a
   sheet; the two checkpoints and the answer are fully usable at 390 px; no horizontal body scroll at
   360 px.
@@ -80,6 +84,7 @@ already implements. Deleting `needsYouFromStage` is an acceptance criterion, not
 - [ ] Read-only share route reusing the replay-mode POST guarantee
 - [ ] `frontend/src/screens/Onboarding/` — replay-driven first-run tour over a committed fixture
 - [ ] `frontend/src/pages/CaseLibrary.tsx` — cards, grouping on server `needs_you`, search, command-K
+- [ ] `frontend/src/screens/Settings/` — one home for every preference the phase introduces
 - [ ] Responsive collapse of the shell; checkpoints and answer usable at 390 px
 - [ ] Tests: `export.test.ts`, library component tests, mobile-viewport e2e
 
@@ -95,6 +100,8 @@ already implements. Deleting `needsYouFromStage` is an acceptance criterion, not
       and one dissent, and is skippable and re-runnable.
 - [ ] The library groups by the server's `needs_you`; `needsYouFromStage` is deleted from
       `CaseLibrary.tsx` and no client-side stage-string derivation remains.
+- [ ] Every preference introduced anywhere in phase 9 is readable and changeable from Settings, and
+      changing one takes effect without a reload.
 - [ ] At the 390 px viewport both checkpoints and the answer are fully operable, and no page in the
       suite scrolls horizontally at 360 px.
 - [ ] Axe clean in both themes at both viewports, visual baselines updated for mobile, terminology

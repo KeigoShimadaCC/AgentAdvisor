@@ -1,7 +1,7 @@
 # Phase 9 — UX Improvement
 
-**Status:** all ten sheets written and `draft`; none approved. This document is the plan they were cut from.
-**Spec range:** SPEC-045 → SPEC-054 (10 specs). SPEC-038–044 are phase 8 (pipeline improvement), `in_progress`.
+**Status:** all twelve sheets written and `draft`; none approved. This document is the plan and the rationale; the sheets are the contract.
+**Spec range:** SPEC-045 → SPEC-056 (12 specs). SPEC-038–044 are phase 8 (pipeline improvement), `in_progress`.
 **Source:** the UX review at `report-and-findings/2026-08-04-ux-review.md` (11 areas, 19 sequenced recommendations),
 reconciled against phase 8 at `d179f2b`.
 
@@ -79,7 +79,7 @@ service endpoints, so SPEC-045 and SPEC-046 can start immediately and in paralle
 SPEC-053 hard-depends on phase 8 being verified — the dependency risk is deliberately isolated in
 one spec so a phase 8 slip blocks one sheet rather than three.
 
-## Sizing: why 10 and not 17
+## Sizing: why 12 and not 17
 
 A first pass at this plan proposed 17 specs. Measuring the existing sheets showed that was roughly
 2.5× too fragmented for this repo's conventions.
@@ -98,8 +98,11 @@ permission handling and an in-app fallback, and three failure-path renderings �
 deliverables, 7 acceptance criteria.
 
 Six of the 17 proposed specs fitted inside that single sheet's footprint. Phase 7 delivered the
-whole web product in 11 specs; phase 9 is a smaller body of work, so 9 was the proportionate number
-— plus SPEC-053 for phase 8's rendering, giving 10.
+whole web product in 11 specs, so nine was the proportionate number for the review's own findings.
+Three sheets were then added for work the compression did not cover — SPEC-053 for phase 8's
+rendering, and SPEC-054 and SPEC-055 for two gaps found by auditing the drafted sheets back against
+the discussion (see Audit below). Twelve is the result: fewer sheets than the first plan, more work
+than it covered.
 
 Compression applied:
 
@@ -168,7 +171,8 @@ standard the sheets will be written against, not a per-spec choice:
 
 ## Sheets
 
-All ten written 2026-08-05, status `draft`, awaiting approval.
+Written 2026-08-05, all `draft`, none approved. Each is 118–140 lines with 6 deliverables
+and 7 acceptance criteria.
 
 | Spec | Title |
 |---|---|
@@ -181,7 +185,9 @@ All ten written 2026-08-05, status `draft`, awaiting approval.
 | [SPEC-051](SPEC-051-presence-and-engagement.md) | Presence and engagement — notifications, the away digest, reactions, calibration |
 | [SPEC-052](SPEC-052-distribution.md) | Distribution — export, share, replay onboarding, the library workspace, and mobile |
 | [SPEC-053](SPEC-053-phase-8-made-visible.md) | Phase 8 made visible — projecting and rendering the pipeline improvements |
-| [SPEC-054](SPEC-054-phase-9-reevaluation.md) | Phase 9 re-evaluation — visual regression, full e2e, and a real case on the new surface |
+| [SPEC-054](SPEC-054-calibration-language.md) | The calibration language — one uncertainty vocabulary at every altitude |
+| [SPEC-055](SPEC-055-resilience-and-budgets.md) | Resilience — degraded states, storage failure, live-region announcement, and budgets |
+| [SPEC-056](SPEC-056-phase-9-reevaluation.md) | Phase 9 re-evaluation — visual regression, full e2e, and a real case on the new surface |
 
 ## Sequencing
 
@@ -192,266 +198,44 @@ Four waves. Within a wave, specs are `parallel_with` each other; waves are seque
 | A — Foundation | 045, 046 | Design system + test harness; the backend additions | none — can start now |
 | B — Truth and form | 047, 048 | Say what is happening; rank the information | none |
 | C — Substance | 049, 050 | The deliberation; the three human moments | extension slots only |
-| D — Reach | 051, 052 | Absence, engagement, distribution | 051 renders SPEC-042's outputs |
+| C — Substance | 055 | The uncertainty vocabulary at every altitude | none |
+| D — Reach | 051, 052, 056 | Absence, engagement, distribution, resilience | 051 renders SPEC-042's outputs |
 | E — Phase 8 made visible | 053 | Project and render everything phase 8 built | **hard: phase 8 verified** |
-| F — Close | 054 | Verification | all |
+| F — Close | 057 | Verification | all |
 
----
 
-### SPEC-045 — Design system: tokens, type scale, theming, and the visual-regression harness
+## Audit against the discussion (2026-08-05)
 
-**Includes.** The token layer, the second theme, and the test harness the rest of the phase is
-verified against. Deliberately no layout or component restructuring — this is a substitution pass,
-so its diff stays reviewable.
+After the first ten sheets were written they were checked back against everything raised in the
+review and the discussion that followed. Four items had been discussed and were in no sheet, and
+reliability had been specified only as SSE reconnect. Both are now closed.
 
-**Implements.** `frontend/src/styles/tokens.css` with color, space, type, radius, elevation and
-motion primitives plus semantic aliases (`--surface-raised`, `--state-needs-you`,
-`--state-uncertain`). A type scale with a real top end — display sizes for the recommendation, which
-today has none. A dark theme via `prefers-color-scheme` with a `data-theme` override. Migration of
-the 28 raw hex values and 9 ad-hoc font sizes now inline in `styles.css`. Playwright projects for the
-theme × viewport matrix (light/dark × desktop/mobile), a reduced-motion project, and screenshot
-baselines for every route.
+**Coverage gaps found and closed**
 
-**Tests.** A token lint that fails on any raw hex or raw `rem` font-size outside `tokens.css`,
-wired into `make frontend-check` beside the existing drift check. Contrast assertions for every
-semantic foreground/background pair in both themes. Baseline screenshots for all ~13 routes across
-the matrix. Axe extended from 6 screens to every route, in both themes — which also makes
-SPEC-037's existing "both themes" criterion true for the first time.
+| Missing | Where it went |
+|---|---|
+| The calibration language — one uncertainty vocabulary at every altitude, the review's single "spend the design budget here" recommendation | **SPEC-054** (new) |
+| Expand-in-place "why" on any claim | **SPEC-054** |
+| The output-shape question at commissioning (one-page answer vs full advisory brief) | SPEC-050 |
+| A settings surface — SPEC-052 referenced one that no sheet owned | SPEC-052 |
 
-**Depends on.** Nothing. Parallel with 046.
+**Reliability gaps found and closed** — all in **SPEC-055** (new), and all grounded in the current code:
 
----
-
-### SPEC-046 — Service additions: progress events and projection reads
-
-**Includes.** Every backend change phase 9 needs except the note artifact, gathered into one spec so
-the backend is opened once, reviewed once, and closed.
-
-**Implements.** `role_invocation_started` emitted before the backend call and
-`role_invocation_progress` on a ~20 s timer while an invocation runs, both carrying role, task,
-model and elapsed; two rows in `lexicon_data.yaml`. `new_case` returning immediately via the
-`spawn_worker_background` runner that `approve_framing` already uses. `needs_you` on `CaseSummary`.
-`GET /api/calibration` over `MemoryStore.calibration()`.
-
-**Tests.** Unit: both events emitted with correct payloads on a stub backend, including on failure
-and retry paths; the progress timer stops when the invocation returns and cannot outlive it.
-Contract: the SSE stream carries both new types translated through the lexicon; `POST /api/cases`
-returns before the worker reaches its halt; the list endpoint's `needs_you` matches the projection's
-value for the same case; the calibration endpoint returns the honest small-sample copy under five
-outcomes. Regression: **zero diff in `state_machine.py` transitions and handlers**, asserted as a
-test — the no-flow-change guarantee.
-
-**Depends on.** Nothing. Parallel with 045.
-
----
-
-### SPEC-047 — The live case: streaming truth, the narrator, and the case map
-
-**Includes.** Everything that makes the interface report what is actually happening. Today the
-projection is fetched once per mount and never again, so the living brief is frozen at page load;
-the stream carries no event during the longest wait; and the phase strip cannot express a loop.
-
-**Implements.** Debounced `/view` refetch in `useCaseView` on non-technical events. Reconnect with
-exponential backoff in `SSEClient`, resuming from `since=<cursor>`, with the last-seen cursor
-persisted per case. A pure event→narration reducer and the narrator component that rewrites one
-present-tense line in place, with a collapsed transcript. Plain-language loop announcements when
-`stop_decision` routes to repair or `review` routes back to `synthesis`. The case map replacing
-`MethodStrip`: stages grouped under their phase, return brackets for the four intra-phase cycles,
-and live round counters from `repair_cycle`, `synthesis_retries`, `framing_revisions` and
-`final_revisions`. Removal of the `[line_cursor]` event list.
-
-**Tests.** Unit: the narration reducer over recorded audit fixtures; refetch debounce coalesces
-bursts; reconnect resumes at the right cursor with no duplicates. Component: the map renders each of
-the four cycles from fixtures, and `repair_cycle=2` reads "round 2 of 2". E2E (replay): the narrator
-line changes as a recorded case advances, and a brief section appears without a page reload; the
-regression the old strip had — a second challenge round rendering identically to the first — is
-asserted against. Terminology guard extended so no raw `event_type` or `line_cursor` reaches the DOM.
-
-**Depends on.** 046.
-
----
-
-### SPEC-048 — The reading room: shell, chrome, hierarchy, and altitudes
-
-**Includes.** The visual restructure. The largest spec in the phase and the natural split point if
-it does not fit one session.
-
-**Implements.** The three-region shell (rail / content / context panel). Persistent case chrome
-carrying the decision question — replacing `view.case_id`, which today renders a slug like
-`case-014-should-i-take-the-ser` as the page heading — plus phase and live spend. Removal of the ten
-`← back` links and the second tab bar, and consolidation of the two competing case surfaces
-(`CaseDetail` and `Brief`) into one. Prose treatment for brief sections with hanging labels rather
-than a card per paragraph; the answer at display scale; borders reserved for two meanings only —
-needs your action, or expresses uncertainty. Content-shaped skeletons replacing `<p>Loading…</p>`,
-and a toast system for control actions. An Answer / Reasoning / Method altitude control persisted
-per user, with rooms rendered into the context panel instead of as routes.
-
-**Tests.** A **density guard**: bordered elements per rendered screen must not exceed a documented
-budget, and the computed font-size of the recommendation must exceed every metric element on the
-same screen — permanently preventing the current inversion where `.answer-recommendation` renders at
-18 px and `.source-strength-grade` at 24 px in the accent color. The page heading equals the decision
-question for every fixture and never matches the `case-\d+-` slug pattern; zero `.back-link`
-occurrences remain. Altitude persists across cases and reloads; each altitude renders its required
-elements and omits the others; opening a citation preserves scroll position; every existing room deep
-link still resolves. Full visual-regression and axe passes across the matrix.
-
-**Depends on.** 045, 047.
-
----
-
-### SPEC-049 — The cast: attribution, margin objections, and dissent
-
-**Includes.** Making the multi-agent deliberation visible. Thirteen agents work a case and two
-Directors run on deliberately different model families; today an agent is named in exactly two
-places in the whole UI, and the second opinion sits in a room most users never open.
-
-**Implements.** Objections rendered against their `target_section` as margin notes carrying
-resolution status — the field is already in the projection and is currently used only to print a
-grey subtitle. A dissent surface above the answer, built for **three voices, not two**: the two
-Directors' `track_divergence`, plus phase 8 SPEC-039's independent reviewer, whose dissent *blocks
-delivery* and so must read as a harder state than disagreement. Voice attribution derived from
-`BriefBlock.provenance` ("The Challenger raised this" rather than `provenance: challenge`), extended
-to cover SPEC-043's `source_type: user_document` — §15 explicitly requires the interface to
-distinguish user-supplied information from agent interpretation, and today it cannot. Agent-aware
-narrator strings naming who is speaking and what they are contesting.
-
-**Tests.** An objection with `target_section=X` renders adjacent to section X. `agreement=false`
-renders the dissent surface; `true` does not. A blocking reviewer dissent renders distinctly from a
-non-blocking Director split, and delivery cannot be signed while one is open. A **never-averaged
-invariant**: the UI never displays a blended or midpoint position between tracks. Every `provenance`
-value in the schema maps to a voice label, so a newly added value cannot silently render as a raw
-enum — this is the test that keeps phase 8's new provenances from regressing the UI.
-
-**Depends on.** 047, 048. Voice coverage for reviewer dissent and user documents lands here as a
-slot; SPEC-053 verifies it against the real artifacts.
-
----
-
-### SPEC-050 — Commissioning and checkpoints
-
-**Includes.** The three moments a human is actually in the loop: starting a case, signing the scope,
-and signing the delivery.
-
-**Implements.** The non-blocking creation flow consuming 046's immediate response, with draft
-persistence to `localStorage` and intake/framing narrated as the first demonstration of the method.
-Effort estimates derived from recorded history in `memory/` — today the chips promise "roughly 10–20
-minutes" while the first verified real case took 191 minutes. A scope sheet led by the restatement as
-a binary question, with the other four sections collapsed under "Adjust scope" and a count of what
-each contains. Delivery led by one synthesized honest sentence, with the four uncertainty encodings
-moved one click down under "How sure is this?". The consequence-of-doing-nothing copy promoted into
-both subheads, and a send-back confirmation naming what it spends.
-
-**Tests.** The critical invariant: the signed `FramingApproval` / `FinalApproval` artifact is
-**identical whether the user signs immediately or expands every section** — asserted in stub mode
-against disk state, which the existing lifecycle test already does for gates. Reload mid-commission
-preserves the prompt; the case shell renders before framing completes. A guard test that no hardcoded
-minute range remains in `terms.ts`, and that an empty history yields honest fallback copy rather than
-a fabricated number. Send-back requires explicit confirmation; delivery renders key reasons above the
-uncertainty grid.
-
-**Depends on.** 046, 048.
-
----
-
-### SPEC-051 — Presence, engagement, and the outcome loop
-
-**Includes.** Everything about the user when they are not reading the screen. Runs reach 191 minutes
-and nothing currently tells anyone to come back. **SPEC-035 already scoped the Notification API and
-it was never built** (see Findings below) — this spec completes that scope rather than opening new
-ground.
-
-**Implements.** Tab title as a progress channel; the Notification API with permission requested at
-first run start, two classes (needs-you, ready) and an in-app fallback when denied — as SPEC-035
-specified. A "while you were away" digest computed from the cursor persisted in 047. Live spend in
-the chrome. Reactions on assumptions and objections as they appear, collected client-side to pre-fill
-the delivery revision note. A calibration screen consuming 046's endpoint.
-
-**Superseded by phase 8, deliberately not built here.** The standing note channel — SPEC-043's
-private evidence channel is the better version and produces real evidence records. The outcome loop
-— SPEC-042 closes it into the Brier machinery; this spec renders it and drives the prompt, and the
-`advisor watch` due-checks surface moves to SPEC-053.
-
-**Out of scope, deliberately.** Showing the issue tree *at* the scope gate. The tree is produced by
-`structuring`/`planning`, which run after `awaiting_framing_approval`; moving it earlier is a stage
-reordering and the phase constraint forbids it. The tree is instead surfaced with reactions when it
-is produced. Flagged for a later phase.
-
-**Tests.** The digest computed from a cursor-gap fixture matches expected counts, and is suppressed
-rather than rendered empty when nothing happened. No notification without permission. Reactions
-survive reload. Under five outcomes the calibration screen renders the "this is noise, not a
-calibration estimate" copy verbatim, and the case view never reads calibration.
-
-**Depends on.** 046, 047, 048.
-
----
-
-### SPEC-052 — Distribution: export, share, replay onboarding, library, and mobile
-
-**Includes.** Making the brief an object that can leave the tool, and the library a workspace.
-**SPEC-035 already scoped Markdown export and a print stylesheet and neither was built** — this
-completes that too.
-
-**Implements.** Brief export (deterministic Markdown download and print stylesheet for PDF) and a
-read-only share link with citations intact. Replay mode — which exists, takes a speed factor, and is
-used only by tests — promoted into first-run onboarding: a recorded case at 60×, showing a full
-deliberation with its loops and dissent in ninety seconds. Case cards with phase ring, elapsed
-against estimate, spend against cap and the current narrator line, grouped by 046's `needs_you`
-field, which deletes the duplicated client-side derivation in `CaseLibrary.tsx`. Search and
-command-K. Responsive breakpoints so the two checkpoints and the answer work on a phone.
-
-**Tests.** The exported brief contains every citation id present in the projection. The share link
-renders read-only and rejects control POSTs — replay mode already enforces this, so the test extends
-an existing guarantee. The tour completes over a recorded fixture. The library consumes the server's
-`needs_you` and the client-side stage-string derivation is gone. Mobile-viewport e2e for both
-checkpoints and the answer, with no horizontal body scroll at 360 px.
-
-**Depends on.** 045, 048, 049.
-
----
-
-### SPEC-053 — Phase 8 made visible: projection and rendering
-
-**Includes.** The read model and the screens for everything phase 8 built and never surfaced. This
-is the one spec that hard-depends on phase 8, so the dependency risk is contained here rather than
-spread across three sheets.
-
-**Implements.** `caseview.py` extended to project phase 8's artifacts into `CaseView`, with the
-generated TypeScript types following automatically through the existing drift check. Then the
-screens: objective weights and the deterministic ranking on the scope sheet, filling SPEC-050's
-extension slot, including the gate finding when computed and stated rank disagree — a disagreement a
-user must be able to see, not just an auditor. The diagnosticity matrix from SPEC-040 as an
-evidence × alternatives grid in the context panel, ranked by disconfirming evidence, reachable from
-any alternative. The typed `NextAction` plan on delivery — owner, date, first step, cost,
-dependencies, urgency — replacing the current string list. The monitoring plan and risk register
-from SPEC-042, with an `advisor watch` equivalent showing which checks are due. The
-"what could not be assessed" limitations statement from SPEC-039 in the integrity slip. Private
-evidence from SPEC-043 rendered with `user_document` provenance in its own voice.
-
-**Tests.** Every phase 8 artifact type has a projection test and a rendering test — the acceptance
-criterion is that **no phase 8 output is reachable only by reading YAML**, asserted by enumerating
-phase 8's artifact types and failing on any that no screen consumes. Rank disagreement renders
-visibly rather than silently. A blocking limitation or reviewer dissent prevents signing. Axe,
-visual-regression and terminology-guard passes for every new surface, per the phase testing
-contract. Fixtures extended with a phase 8 case so the suite covers the new shapes.
-
-**Depends on.** Phase 8 verified (SPEC-044); and 048, 049, 050, 051.
-
----
-
-### SPEC-054 — Phase 9 verification
-
-**Includes.** No new functionality. Closes the phase the way phases 4, 5 and 7 were closed.
-
-**Tests.** Full visual regression across the theme × viewport matrix against 045's baselines. The
-complete e2e suite across fixture, stub and replay, matching SPEC-037's structure and runtime
-budget. Axe clean on every route in both themes. One real case run end to end on the new UI —
-exercising phase 8's pipeline so the run covers both phases — written up in `report-and-findings/`
-as SPEC-020 and SPEC-022 did. A final audit that the backend surface matches the table at the top of
-this document and nothing else changed, and that every phase 8 artifact type reaches a screen.
-
-**Depends on.** All of 045–053.
-
----
+- The frontend has **zero `localStorage` usage today**, and phase 9 introduced four separate
+  dependencies on it (cursor, altitude, draft, reactions) with no sheet handling it being
+  unavailable, disabled or full.
+- `useCaseView` accumulates events in an **unbounded array copied on every append**
+  (`setEvents(prev => [...prev, event])`), and SPEC-046's progress heartbeats add thousands more to
+  a 191-minute case.
+- The only live-region markup in the entire frontend is **one `role="status"`** on the scope sheet.
+  A narrator that rewrites in place would be either silent to a screen reader or would announce its
+  elapsed timer every second.
+- No sheet said what the user sees when the stream dies, when reconnect exhausts, or when the
+  service is down — and a frozen brief is indistinguishable from a finished one.
+- Non-blocking creation (SPEC-046) opens a new gap: a case that exists but whose worker never
+  started.
+- The theme × viewport matrix multiplies e2e run time against SPEC-037's 10-minute budget, and
+  flaky screenshot tests would make SPEC-045's harness worse than useless.
 
 ## Traceability
 
@@ -476,6 +260,8 @@ this document and nothing else changed, and that every phase 8 artifact type rea
 | 17 | Export / share; replay as onboarding | 052 |
 | 18 | Standing note channel | 051 |
 | 19 | Library cards, grouping, command-K, mobile | 052 |
+| — | Calibration language; expand-in-place (review area 07, area 04) | 055 |
+| — | Resilience, announcement policy, budgets (audit) | 056 |
 
 Plus the work phase 8 creates and does not render, which the review could not have anticipated:
 
