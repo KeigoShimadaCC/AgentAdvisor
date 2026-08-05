@@ -1,6 +1,6 @@
 # Phase 9 — UX Improvement
 
-**Status:** planning. No spec sheets written yet — this document is the big picture they will be cut from.
+**Status:** all ten sheets written and `draft`; none approved. This document is the plan they were cut from.
 **Spec range:** SPEC-045 → SPEC-054 (10 specs). SPEC-038–044 are phase 8 (pipeline improvement), `in_progress`.
 **Source:** the UX review at `report-and-findings/2026-08-04-ux-review.md` (11 areas, 19 sequenced recommendations),
 reconciled against phase 8 at `d179f2b`.
@@ -165,6 +165,23 @@ standard the sheets will be written against, not a per-spec choice:
 6. **Terminology guard extended** to any new screen.
 
 ---
+
+## Sheets
+
+All ten written 2026-08-05, status `draft`, awaiting approval.
+
+| Spec | Title |
+|---|---|
+| [SPEC-045](SPEC-045-design-system-and-visual-regression.md) | Design system — tokens, type scale, theming, and the visual-regression harness |
+| [SPEC-046](SPEC-046-service-additions.md) | Service additions — progress events, non-blocking creation, projection reads |
+| [SPEC-047](SPEC-047-live-case-narrator-and-map.md) | The live case — streaming truth, the narrator, and the case map |
+| [SPEC-048](SPEC-048-reading-room.md) | The reading room — shell, persistent chrome, hierarchy, and altitudes |
+| [SPEC-049](SPEC-049-the-cast.md) | The cast — voice attribution, margin objections, and dissent |
+| [SPEC-050](SPEC-050-commissioning-and-checkpoints.md) | Commissioning and checkpoints — the first five minutes and the two signatures |
+| [SPEC-051](SPEC-051-presence-and-engagement.md) | Presence and engagement — notifications, the away digest, reactions, calibration |
+| [SPEC-052](SPEC-052-distribution.md) | Distribution — export, share, replay onboarding, the library workspace, and mobile |
+| [SPEC-053](SPEC-053-phase-8-made-visible.md) | Phase 8 made visible — projecting and rendering the pipeline improvements |
+| [SPEC-054](SPEC-054-phase-9-reevaluation.md) | Phase 9 re-evaluation — visual regression, full e2e, and a real case on the new surface |
 
 ## Sequencing
 
