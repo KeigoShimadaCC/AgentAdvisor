@@ -17,7 +17,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 5 | Evaluation and hardening | done | 4 |
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | done | 4, 6 |
-| 8 | Pipeline improvement | in_progress | 6, 7 |
+| 8 | Pipeline improvement | in_progress (SPEC-044 awaits a live sweep) | 6, 7 |
 
 **Current position (2026-08-03).** Phase 7 is done: all eleven specs (027-037) verified. The web
 product (FastAPI + SSE service, React SPA with commissioning, scope checkpoint, living brief,
@@ -36,9 +36,13 @@ checked; reports at `report-and-findings/2026-08-03-evaluation.md` and `dod-audi
 tests, plus 18 live tests deselected by default. `make frontend-check` passes (tsc, the
 type-generation drift check, and 77 frontend unit tests).
 
-**(2026-08-04) Phase 8 opened** from the professional-practice gap analysis at
-`../report-and-findings/2026-08-04-consulting-practice-gap-analysis.md`. Seven specs (038-044), all
-`draft` and awaiting approval. Nothing is implemented yet.
+**(2026-08-04) Phase 8 implemented.** Six of seven specs verified (038-043); SPEC-044 is
+`implemented` and cannot reach `verified` without a live benchmark sweep (authenticated CLI, hours
+of wall clock, ~7M tokens). `make check` is green: lint, mypy, **917 unit tests**, plus 18 live
+tests deselected. `make frontend-check` passes (tsc, the type-generation drift check, **105**
+frontend tests). The pipeline gained one stage (`competing_hypotheses`), three roles (`reviewer-b`,
+`ach`, `monitor`), four deterministic modules (`value_model`, `ach`, `monitoring`, `ingest`),
+eleven gate checks and four projection keys.
 
 ---
 
@@ -366,13 +370,13 @@ establishes a third model family in the role table. SPEC-038, SPEC-039 and SPEC-
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-038 | Objective weights and a bound value model | draft |
-| SPEC-039 | Independent review with blocking authority, and a limitations statement | draft |
-| SPEC-040 | Analysis of Competing Hypotheses stage | draft |
-| SPEC-041 | Typed action plan | draft |
-| SPEC-042 | Monitoring plan and post-delivery life | draft |
-| SPEC-043 | Private evidence channel (text first cut) | draft |
-| SPEC-044 | Phase 8 re-evaluation | draft |
+| SPEC-041 | Typed action plan | verified |
+| SPEC-038 | Objective weights and a bound value model | verified |
+| SPEC-039 | Independent review with blocking authority, and a limitations statement | verified |
+| SPEC-040 | Analysis of Competing Hypotheses stage | verified |
+| SPEC-042 | Monitoring plan and post-delivery life | verified |
+| SPEC-043 | Private evidence channel (text first cut) | verified |
+| SPEC-044 | Phase 8 re-evaluation | implemented (live sweep outstanding) |
 
 **Findings**
 
@@ -411,6 +415,13 @@ establishes a third model family in the role table. SPEC-038, SPEC-039 and SPEC-
   have rendered through the unknown-event fallback; SPEC-040 now cites Heuer/Pherson and ICD 203.
   The lesson worth keeping: a report that asserts "closes gaps X, Y, Z" is a claim to verify against
   the specs, not a summary to trust.
+- (2026-08-04, found in the Phase 8 gap check) **Five audit events had no lexicon narration** —
+  `dual_track_skipped`, `pre_mortem_skipped`, `reproducibility_gate_failed`,
+  `reproducibility_gate_error`, `wall_clock_exceeded`. All pre-date Phase 8, and all rendered
+  through the unknown-event fallback, so a user watching a case that skipped its pre-mortem or hit
+  the wall clock saw generic noise rather than the reason. Entries added, plus
+  `tests/test_lexicon.py`, which greps every `_audit` call in `orchestrator/` and fails on any
+  event without narration. Closed rather than promoted.
 - (2026-08-04) **Two open questions block approval.** SPEC-043 asks whether the user accepts private
   documents being written into agent workspaces and sent to the configured third-party CLI backend —
   that is a posture decision, not an implementation detail. SPEC-039 may require raising the

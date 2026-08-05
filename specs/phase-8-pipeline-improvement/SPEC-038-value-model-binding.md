@@ -96,30 +96,30 @@ both new fields rather than assuming coverage.
 
 ## Deliverables
 
-- [ ] `orchestrator/value_model.py` — ranking, divergence and weight-sensitivity functions
-- [ ] `DecisionSpec.objective_weights` and `AlternativeAssessment.objective_scores`
-- [ ] `orchestrator/gates.py` — `value_model.rank_divergence` check
-- [ ] `cursor/roles/director-framing.md`, `cursor/roles/synthesizer.md` — contracts and worked examples
-- [ ] `frontend/src/screens/ScopeCheckpoint/` — weight allocation control
-- [ ] `orchestrator/render.py` — weighted ranking table and weight-sensitivity line
-- [ ] `tests/test_value_model.py` — unit tests for all five functions
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `orchestrator/value_model.py` — ranking, divergence and weight-sensitivity functions
+- [x] `DecisionSpec.objective_weights` and `AlternativeAssessment.objective_scores`
+- [x] `orchestrator/gates.py` — `value_model.rank_divergence` check
+- [x] `cursor/roles/director-framing.md`, `cursor/roles/synthesizer.md` — contracts and worked examples
+- [x] `frontend/src/screens/ScopeCheckpoint/` — weight allocation control
+- [x] `orchestrator/render.py` — weighted ranking table and weight-sensitivity line
+- [x] `tests/test_value_model.py` — unit tests for all five functions
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] A case with no weights produces byte-identical artifacts to the pre-change pipeline
+- [x] `make check` and `make frontend-check` are green.
+- [x] A case with no weights produces byte-identical artifacts to the pre-change pipeline
       (verified against a committed fixture case).
-- [ ] `compute_ranking` unit tests cover: unnormalized weights, a tie, a missing score, and an
+- [x] `compute_ranking` unit tests cover: unnormalized weights, a tie, a missing score, and an
       objective present in weights but absent from scores.
-- [ ] The stub pipeline run produces a `FinalRecommendation` whose stated ranks match the computed
+- [x] The stub pipeline run produces a `FinalRecommendation` whose stated ranks match the computed
       ranks, and the gate emits no `value_model.rank_divergence` finding.
-- [ ] A deliberately mis-ranked fixture triggers exactly one `value_model.rank_divergence` finding.
-- [ ] The coercion property tests include `objective_weights` and `objective_scores`; a test
+- [x] A deliberately mis-ranked fixture triggers exactly one `value_model.rank_divergence` finding.
+- [x] The coercion property tests include `objective_weights` and `objective_scores`; a test
       asserts a `dict[str, float]` field is reached by the coercion layer.
-- [ ] The scope checkpoint allocates 100 points across objectives, rejects a total ≠ 100, and the
+- [x] The scope checkpoint allocates 100 points across objectives, rejects a total ≠ 100, and the
       submitted weights appear in `decision_spec.yaml`.
-- [ ] `advisor report` renders the weighted ranking table and the weight-sensitivity figure.
+- [x] `advisor report` renders the weighted ranking table and the weight-sensitivity figure.
 
 ## Verification plan
 

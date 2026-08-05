@@ -189,3 +189,24 @@ private_evidence_ingested:
 private_evidence_unsupported:
   template: "Could not read these supplied files (text formats only): {files}"
   technical: false
+
+# Pre-existing events that had no narration until the Phase 8 lexicon audit.
+dual_track_skipped:
+  template: "Second independent thesis skipped — {reason}"
+  technical: false
+
+pre_mortem_skipped:
+  template: "Pre-mortem skipped — {reason}"
+  technical: false
+
+reproducibility_gate_failed:
+  template: "Analysis for task {task_id} did not reproduce; its numbers are not trusted"
+  technical: false
+
+reproducibility_gate_error:
+  template: "Could not re-run the analysis for task {task_id} — {error}"
+  technical: true
+
+wall_clock_exceeded:
+  template: "Stopped on the wall-clock limit after {elapsed_s}s"
+  technical: false

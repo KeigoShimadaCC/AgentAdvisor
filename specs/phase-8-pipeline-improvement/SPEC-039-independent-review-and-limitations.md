@@ -97,29 +97,32 @@ the prose is new.
 
 ## Deliverables
 
-- [ ] `cursor/roles/reviewer-b.{md,yaml}` and the two `models.yaml` entries
-- [ ] `independent_review_packet` projection key with an exclusion test
-- [ ] `IndependentVerdict` and `IndependentReview` artifacts
-- [ ] `handle_review` wiring, blocking finding, and disclosure-on-exhaustion path
-- [ ] `FinalRecommendation.limitations` plus renderer section
-- [ ] Two new gate checks
-- [ ] `tests/test_independent_review.py`
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `cursor/roles/reviewer-b.{md,yaml}` and the two `models.yaml` entries
+- [x] `independent_review_packet` projection key with an exclusion test
+- [x] `IndependentVerdict` and `IndependentReview` artifacts
+- [x] `handle_review` wiring, blocking finding, and disclosure-on-exhaustion path
+- [x] `FinalRecommendation.limitations` plus renderer section
+- [x] Two new gate checks
+- [x] `tests/test_independent_review.py`
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] A test asserts the `independent_review_packet` projection contains the evidence ledger and
+- [x] `make check` and `make frontend-check` are green.
+- [x] A test asserts the `independent_review_packet` projection contains the evidence ledger and
       contains **none** of: thesis history, track divergence, objections, pre-mortem, gate reports.
-- [ ] `reviewer-b` resolves to a model family different from both `director` and `challenger` on
+- [~] `reviewer-b` resolves to a model family different from both `director` and `challenger` on
       both backends, asserted by a test over the model tables.
-- [ ] A stub `dissent` verdict produces a blocking finding and triggers exactly one synthesis retry.
-- [ ] A stub `dissent` with the retry budget exhausted reaches `done` with the dissent text present
+      **Not met, and unsatisfiable as written** — only two model families are reachable on either
+      backend. Replaced by the binding constraint from north star Section 12: `reviewer-b` never
+      shares the *Synthesizer's* family, asserted over both backends. See the verification results.
+- [x] A stub `dissent` verdict produces a blocking finding and triggers exactly one synthesis retry.
+- [x] A stub `dissent` with the retry budget exhausted reaches `done` with the dissent text present
       in `final_recommendation.md`.
-- [ ] A `FinalRecommendation` with empty `limitations` produces exactly one
+- [x] A `FinalRecommendation` with empty `limitations` produces exactly one
       `review.empty_limitations` finding.
-- [ ] The rendered report contains a Limitations section listing unanswered issue-tree leaves.
-- [ ] `tests/test_role_contracts.py` passes for both `reviewer-b.md` and the updated
+- [x] The rendered report contains a Limitations section listing unanswered issue-tree leaves.
+- [x] `tests/test_role_contracts.py` passes for both `reviewer-b.md` and the updated
       `synthesizer.md`.
 
 ## Verification plan

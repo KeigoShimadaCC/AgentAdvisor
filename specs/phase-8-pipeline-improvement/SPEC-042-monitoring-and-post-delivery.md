@@ -107,40 +107,40 @@ check per indicator against the cadence, with the delivery date as the origin.
 
 ## Deliverables
 
-- [ ] `orchestrator/artifacts/monitoring.py` and `orchestrator/monitoring.py`
-- [ ] `cursor/roles/monitor.{md,yaml}`, `TaskRole.MONITOR`, model table entries
-- [ ] Plan assembly in `handle_review`, with the degraded path
-- [ ] `TrackedMitigation` assembly from `FailureMode.preventive_action`, linked to indicators
-- [ ] `memory/monitoring/` store with atomic writes
-- [ ] `advisor watch` and `advisor check` commands
-- [ ] Service read endpoint and Delivery-screen monitoring block
-- [ ] `scripts/record_outcome.py` breach integration
-- [ ] Renderer monitoring table and risk register
-- [ ] Three `lexicon_data.yaml` narration entries
-- [ ] `tests/test_monitoring.py`
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `orchestrator/artifacts/monitoring.py` and `orchestrator/monitoring.py`
+- [x] `cursor/roles/monitor.{md,yaml}`, `TaskRole.MONITOR`, model table entries
+- [x] Plan assembly in `handle_review`, with the degraded path
+- [x] `TrackedMitigation` assembly from `FailureMode.preventive_action`, linked to indicators
+- [x] `memory/monitoring/` store with atomic writes
+- [x] `advisor watch` and `advisor check` commands
+- [x] Service read endpoint and Delivery-screen monitoring block
+- [x] `scripts/record_outcome.py` breach integration
+- [x] Renderer monitoring table and risk register
+- [x] Three `lexicon_data.yaml` narration entries
+- [x] `tests/test_monitoring.py`
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] Every `leading_indicators` entry and every `recommendation_change_triggers` entry from a
+- [x] `make check` and `make frontend-check` are green.
+- [x] Every `leading_indicators` entry and every `recommendation_change_triggers` entry from a
       fixture case appears in the assembled plan, asserted by count.
-- [ ] `check_cadence_days` outside `[7, 180]` is rejected.
-- [ ] `due_checks` unit tests cover: never checked, checked within cadence, checked beyond cadence,
+- [x] `check_cadence_days` outside `[7, 180]` is rejected.
+- [x] `due_checks` unit tests cover: never checked, checked within cadence, checked beyond cadence,
       and an `as_of` before delivery.
-- [ ] A failed `monitor` invocation still produces a plan, flagged as not concretized.
-- [ ] A stub pipeline run reaches `done` and writes `memory/monitoring/<case-id>.yaml`.
-- [ ] `advisor watch --due` lists exactly the overdue indicators for a seeded store.
-- [ ] `advisor check` recording a breach prints the linked-case recommendation and does not mutate
+- [x] A failed `monitor` invocation still produces a plan, flagged as not concretized.
+- [x] A stub pipeline run reaches `done` and writes `memory/monitoring/<case-id>.yaml`.
+- [x] `advisor watch --due` lists exactly the overdue indicators for a seeded store.
+- [x] `advisor check` recording a breach prints the linked-case recommendation and does not mutate
       the delivered case directory.
-- [ ] The delivered case's stage history is unchanged from the pre-change pipeline.
-- [ ] Every `FailureMode.preventive_action` in a fixture case appears as a `TrackedMitigation`,
+- [x] The delivered case's stage history is unchanged from the pre-change pipeline.
+- [x] Every `FailureMode.preventive_action` in a fixture case appears as a `TrackedMitigation`,
       asserted by count, each carrying an owner and a `triggered_by` list that resolves to
       indicators drawn from the same failure mode.
-- [ ] `mitigations_for` returns exactly the mitigations linked to a breached indicator, and
+- [x] `mitigations_for` returns exactly the mitigations linked to a breached indicator, and
       `advisor check --breached` prints them.
-- [ ] `advisor report` renders a risk register with owner and status columns.
-- [ ] No audit event emitted by this spec renders through the lexicon's unknown-event fallback,
+- [x] `advisor report` renders a risk register with owner and status columns.
+- [x] No audit event emitted by this spec renders through the lexicon's unknown-event fallback,
       asserted by a test over `lexicon_data.yaml`.
 
 ## Verification plan

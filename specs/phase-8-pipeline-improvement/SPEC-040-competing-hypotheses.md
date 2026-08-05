@@ -101,32 +101,32 @@ SPEC-044 and reduce the cap if it is material.
 
 ## Deliverables
 
-- [ ] `orchestrator/artifacts/ach.py` with validators
-- [ ] `orchestrator/ach.py` deterministic scoring module
-- [ ] `cursor/roles/ach.{md,yaml}`, `TaskRole.ACH_ANALYST`, model table entries
-- [ ] `CaseStage.COMPETING_HYPOTHESES` and its stage handler
-- [ ] `ach_matrix` projection key and role wiring
-- [ ] Two gate checks
-- [ ] Renderer exhibit and Options-room panel
-- [ ] `orchestrator/stub_backend.py` fixture
-- [ ] `tests/test_ach.py`
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `orchestrator/artifacts/ach.py` with validators
+- [x] `orchestrator/ach.py` deterministic scoring module
+- [x] `cursor/roles/ach.{md,yaml}`, `TaskRole.ACH_ANALYST`, model table entries
+- [x] `CaseStage.COMPETING_HYPOTHESES` and its stage handler
+- [x] `ach_matrix` projection key and role wiring
+- [x] Two gate checks
+- [x] Renderer exhibit and Options-room panel
+- [x] `orchestrator/stub_backend.py` fixture
+- [x] `tests/test_ach.py`
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] `ACHMatrix` rejects an incomplete matrix, a duplicate cell, and an alternative absent from the
+- [x] `make check` and `make frontend-check` are green.
+- [x] `ACHMatrix` rejects an incomplete matrix, a duplicate cell, and an alternative absent from the
       decision spec.
-- [ ] A record scored identically across all alternatives has diagnosticity `0.0` and appears in
+- [x] A record scored identically across all alternatives has diagnosticity `0.0` and appears in
       `zero_diagnosticity_records`.
-- [ ] `rank_by_disconfirmation` unit tests cover a clear winner, a tie, and a case where the
+- [x] `rank_by_disconfirmation` unit tests cover a clear winner, a tie, and a case where the
       least-disconfirmed alternative differs from the most-supported one.
-- [ ] The matrix never exceeds 20 evidence records; a case with more produces a populated
+- [x] The matrix never exceeds 20 evidence records; a case with more produces a populated
       `excluded_evidence_ids` with reasons.
-- [ ] A stub pipeline run reaches `done` with `COMPETING_HYPOTHESES` in the stage history and an
+- [x] A stub pipeline run reaches `done` with `COMPETING_HYPOTHESES` in the stage history and an
       `ach_matrix.yaml` on disk.
-- [ ] `tests/test_role_contracts.py` passes for `ach.md`.
-- [ ] `advisor report` renders the ACH exhibit including the zero-diagnosticity list.
+- [x] `tests/test_role_contracts.py` passes for `ach.md`.
+- [x] `advisor report` renders the ACH exhibit including the zero-diagnosticity list.
 
 ## Verification plan
 

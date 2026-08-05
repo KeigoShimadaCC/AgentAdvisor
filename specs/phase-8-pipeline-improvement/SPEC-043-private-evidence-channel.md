@@ -115,39 +115,39 @@ buried.
 
 ## Deliverables
 
-- [ ] `SourceType.USER_DOCUMENT`, `IntakeField.INTERNAL_INFORMATION`, `ClarificationKind`
-- [ ] `orchestrator/ingest.py` with chunking and id minting
-- [ ] `evidence_critic.py` and `memory.py` special cases
-- [ ] `private_evidence` projection key with role allow-list
-- [ ] `workspace.py` isolation assertion
-- [ ] `evidence.sole_private_support` gate check
-- [ ] `advisor new --input` and README documentation
-- [ ] `tests/test_ingest.py` and an isolation test
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `SourceType.USER_DOCUMENT`, `IntakeField.INTERNAL_INFORMATION`, `ClarificationKind`
+- [x] `orchestrator/ingest.py` with chunking and id minting
+- [x] `evidence_critic.py` and `memory.py` special cases
+- [x] `private_evidence` projection key with role allow-list
+- [x] `workspace.py` isolation assertion
+- [x] `evidence.sole_private_support` gate check
+- [x] `advisor new --input` and README documentation
+- [x] `tests/test_ingest.py` and an isolation test
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] A markdown file in `inputs/` produces evidence records with `source_type: user_document`,
+- [x] `make check` and `make frontend-check` are green.
+- [x] A markdown file in `inputs/` produces evidence records with `source_type: user_document`,
       `file://` URLs, and an `independence_group` shared across all chunks of that file.
-- [ ] Two chunks from one document do not count as two independent sources, asserted against the
+- [x] Two chunks from one document do not count as two independent sources, asserted against the
       independence-clustering output.
-- [ ] The evidence critique scores a user document as `unverifiable` authority and does not count it
+- [x] The evidence critique scores a user document as `unverifiable` authority and does not count it
       toward corroboration.
-- [ ] `memory.py` records no source reputation entry for a `file://` URL.
-- [ ] A test asserts the reviewer, reviewer-b and auditor workspaces contain no private evidence,
+- [x] `memory.py` records no source reputation entry for a `file://` URL.
+- [x] A test asserts the reviewer, reviewer-b and auditor workspaces contain no private evidence,
       and the analyst and director workspaces do.
-- [ ] A material claim supported only by a user document produces exactly one
+- [x] A material claim supported only by a user document produces exactly one
       `evidence.sole_private_support` finding.
-- [ ] A case with an empty `inputs/` directory and no clarification answers behaves identically to
+- [x] A case with an empty `inputs/` directory and no clarification answers behaves identically to
       the pre-change pipeline.
-- [ ] `advisor new --input <file>` copies the file and the run cites it.
-- [ ] A `field` clarification without `resolves_field` is rejected; a `fact` or `document`
+- [x] `advisor new --input <file>` copies the file and the run cites it.
+- [x] A `field` clarification without `resolves_field` is rejected; a `fact` or `document`
       clarification without it is accepted.
-- [ ] An answered `fact` clarification produces an evidence record with `source_type:
+- [x] An answered `fact` clarification produces an evidence record with `source_type:
       user_document` and a `user://` URL, scored `unverifiable` by the evidence critique.
-- [ ] `IntakeRecord` accepts 8 clarification questions and rejects 9.
-- [ ] Existing intake fixtures, which carry no `kind`, still validate — `kind` defaults to `field`.
+- [x] `IntakeRecord` accepts 8 clarification questions and rejects 9.
+- [x] Existing intake fixtures, which carry no `kind`, still validate — `kind` defaults to `field`.
 
 ## Verification plan
 

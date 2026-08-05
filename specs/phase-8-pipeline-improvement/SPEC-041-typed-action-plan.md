@@ -17,8 +17,9 @@ Replaces `FinalRecommendation.next_actions: list[NonEmptyStr]` with a typed `Nex
 owner, date, first step, cost, dependencies and urgency rationale. This is the smaller half of the
 mobilization work; SPEC-042 builds the post-delivery lifecycle on top of it.
 
-`depends_on: [SPEC-039]` is file-level sequencing — SPEC-038, SPEC-039 and this spec all extend
-`orchestrator/artifacts/recommendations.py`.
+SPEC-038, SPEC-039 and this spec all extend `orchestrator/artifacts/recommendations.py`, so they
+are sequenced rather than parallelized. This spec was moved to the front of that chain and ran
+first in the phase, as the canary for the cost model, so it carries no `depends_on`.
 
 ## Motivation
 
@@ -84,26 +85,26 @@ migrate the nine fixture and test sites, update the synthesizer contract, then r
 
 ## Deliverables
 
-- [ ] `NextAction` model with dependency validation, and `ActionId` in `common.py`
-- [ ] Renderer action table and caseview blocks
-- [ ] Two gate checks
-- [ ] `cursor/roles/synthesizer.md` contract and worked example
-- [ ] Delivery screen rendering and updated frontend test
-- [ ] All nine fixture and test sites migrated
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `NextAction` model with dependency validation, and `ActionId` in `common.py`
+- [x] Renderer action table and caseview blocks
+- [x] Two gate checks
+- [x] `cursor/roles/synthesizer.md` contract and worked example
+- [x] Delivery screen rendering and updated frontend test
+- [x] All nine fixture and test sites migrated
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] `NextAction` rejects a cyclic `depends_on` graph and an unresolvable `depends_on` id.
-- [ ] A `FinalRecommendation` with an action missing an owner produces exactly one
+- [x] `make check` and `make frontend-check` are green.
+- [x] `NextAction` rejects a cyclic `depends_on` graph and an unresolvable `depends_on` id.
+- [x] A `FinalRecommendation` with an action missing an owner produces exactly one
       `action_plan.missing_owner` finding.
-- [ ] A plan whose earliest `by_date` is more than 30 days out produces
+- [x] A plan whose earliest `by_date` is more than 30 days out produces
       `action_plan.no_near_term_action`.
-- [ ] A stub pipeline run reaches `done` and `final_recommendation.md` contains an action table with
+- [x] A stub pipeline run reaches `done` and `final_recommendation.md` contains an action table with
       owner, date and first step columns.
-- [ ] `tests/test_role_contracts.py` passes for `synthesizer.md`.
-- [ ] The Delivery screen shows owner and date for each action, asserted in `Delivery.test.tsx`.
+- [x] `tests/test_role_contracts.py` passes for `synthesizer.md`.
+- [x] The Delivery screen shows owner and date for each action, asserted in `Delivery.test.tsx`.
 
 ## Verification plan
 
