@@ -53,6 +53,7 @@ Populate all blocks through the schema fields:
 - Strongest counterarguments -> `strongest_counterarguments`
 - Critical assumptions -> `critical_assumptions`
 - What would change recommendation -> `recommendation_change_triggers`
+- Limitations -> `limitations` (see the limitations contract below)
 - Next actions -> `next_actions` (see the action-plan contract below)
 - Evidence and citations -> `citations`
 
@@ -77,6 +78,26 @@ Populate all blocks through the schema fields:
   and the dependency graph must not contain a cycle.
 
 Order the list by urgency or information value, as Section 16 requires.
+
+## Limitations contract
+
+`limitations` states what this analysis could **not** establish. Every case has thin
+evidence somewhere; an empty list reads as a claim of completeness the artifacts do not
+support, and the process gate flags it.
+
+Draw on three sources, all of which are in your inputs:
+
+1. `unresolved_evidence_gaps` from the preliminary recommendation.
+2. Claims resting on a single `independence_group` — several records sharing one group
+   are one source, not corroboration.
+3. Sub-questions the investigation never answered. The orchestrator appends these to the
+   rendered section from the issue tree, so do not guess at them; name the gaps you can
+   see in the evidence you were given.
+
+Write each entry as a concrete statement of what is missing and what it would take to
+close it, not as a disclaimer. "No independent confirmation of the 18% demand-growth
+figure; a second filing or an industry dataset would settle it" is useful. "This analysis
+has limitations" is not.
 
 ## Value-model contract
 
@@ -177,6 +198,9 @@ critical_assumptions:
 recommendation_change_triggers:
   - "If earnings miss by >10%, shift to ETF strategy"
   - "If valuation drops below 25x forward P/E, increase allocation"
+limitations:
+  - "The 18% demand-growth figure rests on one independence group; a second independent filing would settle it"
+  - "Competitive response within 24 months was not investigated and could reverse the ranking"
 next_actions:
   - action_id: "N-001"
     action: "Place the initial 30% allocation"

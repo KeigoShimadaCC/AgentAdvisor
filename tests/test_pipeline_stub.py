@@ -33,6 +33,8 @@ from orchestrator.artifacts import (
     FailureMode,
     FinalRecommendation,
     GateReport,
+    IndependentReview,
+    IndependentVerdict,
     IntakeRecord,
     IssueNode,
     IssueNodeType,
@@ -518,6 +520,10 @@ def _make_final_recommendation() -> FinalRecommendation:
         ],
         critical_assumptions=["A-001"],
         recommendation_change_triggers=["If earnings miss by >10%, shift to ETF strategy"],
+        limitations=[
+            "Valuation evidence rests on a single independence group",
+            "Competitive response within 24 months was not investigated",
+        ],
         next_actions=[
             {
                 "action_id": "N-001",
@@ -550,6 +556,19 @@ def _make_final_recommendation() -> FinalRecommendation:
             runs_total=2,
             runs_supporting=1,
         ),
+    )
+
+
+def _make_independent_review() -> IndependentReview:
+    return IndependentReview(
+        verdict=IndependentVerdict.CONCUR_WITH_RESERVATIONS,
+        reasoning=(
+            "The evidence supports a staged entry over a full allocation. I reach the same "
+            "action. My reservation is that the demand-growth claim rests on one "
+            "independence group."
+        ),
+        unsupported_claims=["Demand growth is independently corroborated"],
+        evidence_ids=["E-001", "E-002"],
     )
 
 
@@ -718,6 +737,8 @@ class PipelineStubBackend:
         # Map schema to artifact factory
         if output_schema == "intake_record":
             artifact = _make_intake()
+        elif output_schema == "independent_review":
+            artifact = _make_independent_review()
         elif output_schema == "decision_spec":
             artifact = _make_decision_spec()
         elif output_schema == "preliminary_recommendation":

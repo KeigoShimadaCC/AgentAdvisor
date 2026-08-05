@@ -2,7 +2,7 @@
 id: SPEC-039
 title: Independent review with blocking authority, and a limitations statement
 phase: 8
-status: draft
+status: verified
 depends_on: [SPEC-038]
 parallel_with: [SPEC-043]
 north_star_refs: ["5.3", "6.9", "9", "12", "18"]
@@ -130,9 +130,67 @@ verdict appears in the Method room and the limitations in the delivered report.
 
 ## Verification results
 
-Not yet executed.
+**Verified 2026-08-04.**
+
+Commands: `uv run ruff check`, `uv run ruff format --check`, `uv run mypy orchestrator`,
+`uv run pytest` (792 passed, 18 deselected), `npm run typecheck`, `npm run check:clean`,
+`npm test` (102 passed).
+
+All acceptance criteria met except one, which the implementation proved unsatisfiable as written —
+see below. `tests/test_independent_review.py` adds 17 tests, including the exclusion assertion that
+is the point of the design: the packet is checked both by filename and by content, so the
+pre-mortem narrative and the provisional rationale must appear nowhere in the projected text.
+
+**One acceptance criterion could not be met as written, and the spec was wrong.**
+
+The spec required `reviewer-b` to resolve to "a model family different from both `director` and
+`challenger` on both backends". That is impossible: **only two model families are reachable on
+either backend** — `xai`/`cursor-composer` on cursor, `openai`/`anthropic` on droid. A third does
+not exist to configure.
+
+Resolved by picking the binding constraint rather than pretending: north star Section 12 names
+"recommendation synthesis and citation/calibration review" as a diversity boundary, and this role
+re-derives the *Synthesizer's* conclusion. So the guarantee delivered — and asserted by
+`validate_independent_review_family_diversity` plus a parametrized test over both backends — is
+that `reviewer-b` never shares the **Synthesizer's** family. It does share the Director's on both
+backends. That collision is mitigated structurally instead: the packet withholds every trace of the
+Director's reasoning, which is the anchoring vector a shared family would otherwise amplify. The
+mitigation is documented in the role yaml, the validator docstring and the model table.
+
+**The `high_tier_calls` budget concern was a false alarm, and something more interesting sits
+underneath it.** The spec flagged that `max_high_tier_calls` (6) might need raising. It does not:
+the budget counts by *model*, not by declared role tier, and no model any role actually resolves to
+maps to the high tier. On cursor every role runs on `low` models; on droid, `medium`. Seven roles
+declare `model_tier: high` and not one of them consumes the high-tier counter.
+**The cap is currently vestigial** — a guardrail that cannot fire on the shipped configuration.
+That is not this spec's problem to fix, but it should be recorded: it means the escalation ladder's
+cost ceiling is not being enforced by the mechanism that claims to enforce it. Added to ROADMAP
+emergent work.
+
+What the review does cost is one additional `agent_invocations` per case against a cap of 40. With
+SPEC-040 and SPEC-042 also adding one each, the three together add three invocations; the first
+real case used 45 against a raised cap. SPEC-044 must report invocation counts against the cap
+rather than assuming headroom.
+
+**Other deviations:**
+
+1. **`IndependentReview` needed registering in `case_store.py` in four places**, not the two the
+   spec implied — `_artifact_path` (write), `_artifact_path` (read by type), `_artifact_dir`, and
+   the `list_artifacts` dispatch. Missing any one produces a `TypeError` or an `IsADirectoryError`
+   rather than a clean failure.
+2. **A third gate check** was added: `review.independent_reservations`, resolving the open question
+   below.
+3. **The invocation degrades rather than blocks.** A failed `reviewer-b` invocation audits
+   `independent_review_skipped` and lets the case proceed without a second opinion. Dying at the
+   last gate because the optional reviewer timed out would be worse than shipping without it, and
+   the absence is visible in the audit trail rather than passing silently as a concur.
+4. **`limitations` renders unconditionally**, with an explicit "no limitations were stated — treat
+   that as an omission rather than a claim of completeness" line when the list is empty. A missing
+   section would read as an absence of limitations.
 
 ## Open questions
 
-- Should `concur_with_reservations` produce a non-blocking finding, or only appear in the report?
-  Proposal: non-blocking finding, so it is visible in the integrity view without costing a retry.
+None. The open question — whether `concur_with_reservations` blocks or is merely reported — was
+resolved as proposed: a **non-blocking** `review.independent_reservations` finding, so it surfaces
+in the integrity view without costing a synthesis retry. Covered by
+`test_reservations_produce_a_non_blocking_finding`.

@@ -476,6 +476,8 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 
   **Promoted to Phase 8 on 2026-08-04** as SPEC-038 to SPEC-044. The two hard items were each split at their natural seam: the typed action plan (SPEC-041) separated from the post-delivery lifecycle (SPEC-042), and the private-evidence text first cut (SPEC-043) separated from the binary-format work, which is deliberately not specced until the seam is proven.
 
+- (2026-08-04, found implementing SPEC-039) **`max_high_tier_calls` is a vestigial cap.** The budget ledger counts high-tier calls by *model*, against `_DEFAULT_MODEL_TIER_MAP`, but no model any role actually resolves to maps to `high`: on cursor every role runs on `low` models (`composer-2.5`, `cursor-grok-4.5-low`), on droid on `medium` (`gpt-5.4`, `claude-sonnet-5`). Seven roles declare `model_tier: high` and none of them consume the counter, so the cap can never fire on the shipped configuration. North star Section 13 makes the escalation ladder's cost ceiling mandatory and orchestrator-enforced; right now it is enforced by a counter that never increments. Either map the role-declared tier onto the budget kind, or drop the cap and stop claiming it. Needs a spec.
+
 **Promoted**
 
 - Professional-practice gap analysis: five proposed changes → **Phase 8**, SPEC-038…SPEC-044 (2026-08-04, user-directed)

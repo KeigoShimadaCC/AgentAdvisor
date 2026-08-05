@@ -433,6 +433,14 @@
       "title": "Key Reasons",
       "type": "array"
     },
+    "limitations": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
     "model_stability": {
       "$ref": "#/$defs/ModelStability"
     },

@@ -23,6 +23,8 @@ from orchestrator.artifacts import (
     GateFinding,
     GateReport,
     GateSeverity,
+    IndependentReview,
+    IndependentVerdict,
     IssueTree,
     Level,
     ObjectionRecord,
@@ -463,6 +465,56 @@ def _check_value_model(case: Case) -> list[GateFinding]:
     return findings
 
 
+def _check_review_disclosure(case: Case) -> list[GateFinding]:
+    """SPEC-039 — the deliverable must say what it could not assess, and an
+    unresolved dissent must reach the reader."""
+    recs = case.list_artifacts(FinalRecommendation)
+    if not recs:
+        return []
+    findings: list[GateFinding] = []
+
+    if not recs[0].limitations:
+        findings.append(
+            GateFinding(
+                check_id="review.empty_limitations",
+                severity=GateSeverity.WARN,
+                message=(
+                    "The final recommendation states no limitations. Every case has "
+                    "thin evidence somewhere; an empty list reads as a claim of "
+                    "completeness the artifacts do not support."
+                ),
+                target_ids=[],
+            )
+        )
+
+    reviews = case.list_artifacts(IndependentReview)
+    if reviews and reviews[0].verdict is IndependentVerdict.DISSENT:
+        findings.append(
+            GateFinding(
+                check_id="review.unaddressed_dissent",
+                severity=GateSeverity.BLOCK,
+                message=(
+                    "The independent reviewer dissents from the recommendation: "
+                    f"{reviews[0].divergent_conclusion}"
+                ),
+                target_ids=[],
+            )
+        )
+    elif reviews and reviews[0].verdict is IndependentVerdict.CONCUR_WITH_RESERVATIONS:
+        findings.append(
+            GateFinding(
+                check_id="review.independent_reservations",
+                severity=GateSeverity.WARN,
+                message=(
+                    f"The independent reviewer concurs with {len(reviews[0].unsupported_claims)} "
+                    "reservation(s) about claims the evidence does not carry."
+                ),
+                target_ids=[],
+            )
+        )
+    return findings
+
+
 _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "investigation": ("task_health", "analysis_presence"),
     "evidence_critique": ("evidence_independence",),
@@ -477,6 +529,7 @@ _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
         "missing_critical_assumptions",
         "action_plan",
         "value_model",
+        "review_disclosure",
     ),
 }
 
@@ -518,6 +571,8 @@ def run_stage_gate(
             findings.extend(_check_action_plan(case, as_of or datetime.now(UTC).date()))
         elif check == "value_model":
             findings.extend(_check_value_model(case))
+        elif check == "review_disclosure":
+            findings.extend(_check_review_disclosure(case))
 
     cancelled: list[str] = []
     if cancellable and task_graph is not None:

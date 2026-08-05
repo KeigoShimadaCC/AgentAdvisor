@@ -7,6 +7,7 @@ from orchestrator.artifacts import (
     DisclosureRecord,
     EvidenceRecord,
     FinalRecommendation,
+    IndependentReview,
     PreMortemReport,
     ProbabilityEstimate,
 )
@@ -130,6 +131,36 @@ def _render_premortem_section(report: PreMortemReport) -> list[str]:
     return lines
 
 
+def _render_independent_review_section(review: IndependentReview | None) -> list[str]:
+    """Render the independent reviewer's verdict (SPEC-039).
+
+    A dissent that survived to delivery is reported verbatim rather than dropped:
+    disclosing disagreement the system could not resolve beats suppressing it.
+    """
+    if review is None:
+        return []
+    lines = ["## Independent review"]
+    lines.append("")
+    lines.append(
+        f"- [{PROVENANCE_INTERPRETATION}] Verdict: {review.verdict.value.replace('_', ' ')}."
+    )
+    lines.append(
+        f"- [{PROVENANCE_INTERPRETATION}] {_ensure_terminal_punctuation(review.reasoning)}"
+    )
+    if review.divergent_conclusion:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] The independent reviewer would instead "
+            f"recommend: {_ensure_terminal_punctuation(review.divergent_conclusion)}"
+        )
+    for claim in review.unsupported_claims:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] Flagged as unsupported by the evidence: "
+            f"{_ensure_terminal_punctuation(claim)}"
+        )
+    lines.append("")
+    return lines
+
+
 def _render_value_model_section(
     recommendation: FinalRecommendation,
     objective_weights: Mapping[str, float] | None,
@@ -193,6 +224,8 @@ def render_final_recommendation_markdown(
     user_supplied_inputs: Sequence[str] = (),
     premortem_report: PreMortemReport | None = None,
     objective_weights: Mapping[str, float] | None = None,
+    independent_review: IndependentReview | None = None,
+    unanswered_questions: Sequence[str] = (),
 ) -> str:
     validate_final_recommendation_citations(recommendation, evidence_records)
     evidence_by_id = {record.evidence_id: record for record in evidence_records}
@@ -296,6 +329,24 @@ def render_final_recommendation_markdown(
     else:
         lines.append("- [interpretation] No explicit recommendation-change triggers were provided.")
     lines.append("")
+    lines.append("## Limitations")
+    if recommendation.limitations:
+        for limitation in recommendation.limitations:
+            lines.append(
+                f"- [{PROVENANCE_INTERPRETATION}] {_ensure_terminal_punctuation(limitation)}"
+            )
+    else:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] No limitations were stated. Treat that as an "
+            "omission rather than as a claim of completeness."
+        )
+    if unanswered_questions:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] Questions the investigation did not answer: "
+            f"{'; '.join(unanswered_questions)}."
+        )
+    lines.append("")
+    lines.extend(_render_independent_review_section(independent_review))
     lines.append("## Next actions")
     lines.append("")
     lines.append("| # | Action | Owner | By | First step |")
@@ -371,6 +422,8 @@ def write_final_recommendation_markdown(
     user_supplied_inputs: Sequence[str] = (),
     premortem_report: PreMortemReport | None = None,
     objective_weights: Mapping[str, float] | None = None,
+    independent_review: IndependentReview | None = None,
+    unanswered_questions: Sequence[str] = (),
 ) -> Path:
     markdown = render_final_recommendation_markdown(
         recommendation,
@@ -379,6 +432,8 @@ def write_final_recommendation_markdown(
         user_supplied_inputs=user_supplied_inputs,
         premortem_report=premortem_report,
         objective_weights=objective_weights,
+        independent_review=independent_review,
+        unanswered_questions=unanswered_questions,
     )
     output_path = case_root / "outputs" / "final_recommendation.md"
     atomic_write_text(output_path, markdown)

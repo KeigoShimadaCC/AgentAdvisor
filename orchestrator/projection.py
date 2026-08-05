@@ -518,6 +518,28 @@ def _budget_snapshot(case: Case) -> list[_Candidate]:
     ]
 
 
+def _independent_review_packet(case: Case) -> list[_Candidate]:
+    """SPEC-039 — everything the independent reviewer needs, and nothing that anchors it.
+
+    Included: the decision spec, the final recommendation, the full evidence ledger,
+    the assumption ledger and the evidence critique.
+
+    Deliberately excluded: thesis history, track divergence, objections, the pre-mortem,
+    gate reports and any prior reviewer output.  A reviewer that reads the reasoning
+    inherits its anchoring, and the anchoring is what this role exists to detect.  The
+    exclusion is enforced by construction — this handler names what it includes rather
+    than filtering a wider set — and asserted by
+    ``tests/test_independent_review.py::test_packet_excludes_the_reasoning_trail``.
+    """
+    candidates: list[_Candidate] = []
+    candidates.extend(_decision_spec(case))
+    candidates.extend(_final_recommendation(case))
+    candidates.extend(_evidence(case))
+    candidates.extend(_assumptions(case))
+    candidates.extend(_evidence_critique(case))
+    return candidates
+
+
 _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "intake_record": _intake_record,
     "framing_approval": _framing_approval,
@@ -549,6 +571,7 @@ _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "budget_snapshot": _budget_snapshot,
     "issue_tree": _issue_tree,
     "evidence_critique": _evidence_critique,
+    "independent_review_packet": _independent_review_packet,
     "premortem_report": _premortem_report,
     "verification_worksheet": _verification_worksheet,
     "case_memory": _case_memory,

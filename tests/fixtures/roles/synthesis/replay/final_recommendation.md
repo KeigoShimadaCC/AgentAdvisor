@@ -40,6 +40,9 @@
 - [interpretation] If retention drops below 110% for two consecutive quarters, switch to wait_for_milestone.
 - [interpretation] If independent benchmark data contradicts filing-based retention durability, pause follow-on.
 
+## Limitations
+- [interpretation] No limitations were stated. Treat that as an omission rather than as a claim of completeness.
+
 ## Next actions
 
 | # | Action | Owner | By | First step |

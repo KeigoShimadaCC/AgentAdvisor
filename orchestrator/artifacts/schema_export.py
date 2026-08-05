@@ -29,7 +29,7 @@ from orchestrator.artifacts.recommendations import (
     PreliminaryRecommendation,
     ScenarioAssessment,
 )
-from orchestrator.artifacts.review import ReviewReport
+from orchestrator.artifacts.review import IndependentReview, ReviewReport
 from orchestrator.artifacts.stability import ModelStability
 from orchestrator.artifacts.task_proposals import TaskProposalBatch
 from orchestrator.artifacts.tasks import TaskRecord
@@ -96,6 +96,7 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "probability_adjustment": ProbabilityAdjustment,
     "probability_estimate": ProbabilityEstimate,
     "review_report": ReviewReport,
+    "independent_review": IndependentReview,
     "scenario_assessment": ScenarioAssessment,
     "task_proposal_batch": TaskProposalBatch,
     "task_record": TaskRecord,

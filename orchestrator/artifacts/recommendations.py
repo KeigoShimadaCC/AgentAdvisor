@@ -92,6 +92,11 @@ class FinalRecommendation(ArtifactModel):
     strongest_counterarguments: list[Counterargument] = Field(default_factory=list)
     critical_assumptions: list[AssumptionId] = Field(default_factory=list)
     recommendation_change_triggers: list[NonEmptyStr] = Field(default_factory=list)
+    #: SPEC-039. What could not be assessed: thin or single-sourced evidence, questions
+    #: the investigation never reached, and what a deeper engagement would have done.
+    #: Defaulted rather than required so existing cases keep validating; the process
+    #: gate flags an empty list.
+    limitations: list[NonEmptyStr] = Field(default_factory=list)
     next_actions: list[NextAction] = Field(min_length=1)
     citations: list[EvidenceId] = Field(default_factory=list)
     outcome_probabilities: dict[NonEmptyStr, ProbabilityEstimate] = Field(min_length=1)

@@ -165,6 +165,35 @@ def validate_director_challenger_family_diversity(
         )
 
 
+def validate_independent_review_family_diversity(backend: str = CURSOR_BACKEND) -> None:
+    """Startup guard: the independent reviewer must not share the Synthesizer's family.
+
+    North star Section 12 names "recommendation synthesis and citation/calibration
+    review" as a boundary where correlated reasoning errors are dangerous.  The
+    independent reviewer re-derives the Synthesizer's conclusion, so that is the
+    binding constraint.
+
+    It is deliberately *not* asserted against the Director. Only two model families
+    are reachable on either backend, so a reviewer differing from both does not exist;
+    the Director collision is instead mitigated by the projection, which withholds
+    every trace of the Director's reasoning (see ``_independent_review_packet``).
+    """
+
+    synthesizer_model = models_for(load_role_config(TaskRole.SYNTHESIZER), backend).default_model
+    reviewer_b_model = models_for(load_role_config(TaskRole.REVIEWER, "b"), backend).default_model
+    synthesizer_family = family(synthesizer_model, canonical=True)
+    reviewer_b_family = family(reviewer_b_model, canonical=True)
+
+    if synthesizer_family == reviewer_b_family:
+        raise RoleConfigError(
+            "Independent review family diversity guard failed: "
+            f"synthesizer={synthesizer_model} ({synthesizer_family}), "
+            f"reviewer-b={reviewer_b_model} ({reviewer_b_family}). "
+            "An independent review on the same family as the work it reviews is not "
+            "independent. Configure different model families."
+        )
+
+
 def load_role_config(role: TaskRole | str, variant: str | None = None) -> RoleConfig:
     role_enum = _coerce_role(role)
     config_path = _role_config_path(role_enum, variant)

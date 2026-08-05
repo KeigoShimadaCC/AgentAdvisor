@@ -153,3 +153,11 @@ render_skipped:
 objective_weights_recorded:
   template: "Objective weights recorded ({objective_count} objectives, {source})"
   technical: false
+
+independent_review_recorded:
+  template: "Independent review: {verdict} ({unsupported_claim_count} claim(s) flagged)"
+  technical: false
+
+independent_review_skipped:
+  template: "Independent review skipped — {reason}"
+  technical: false

@@ -21,6 +21,7 @@ evidence_confidence:
 key_reasons:
 - Asymmetric downside risk is still meaningful.
 - Staged or smaller allocation preserves option value.
+limitations: []
 model_stability:
   runs_supporting: 19
   runs_total: 25

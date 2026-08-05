@@ -31,6 +31,7 @@ from orchestrator.artifacts import (
     FramingApproval,
     GateReport,
     GateSeverity,
+    IndependentReview,
     IntakeRecord,
     IssueTree,
     ObjectionRecord,
@@ -128,6 +129,8 @@ BRIEF_SECTION_ORDER: tuple[str, ...] = (
     "premortem",
     "critical_assumptions",
     "recommendation_change_triggers",
+    "limitations",
+    "independent_review",
     "next_actions",
     "user_supplied_inputs",
     "budget_depth_stop_disclosure",
@@ -517,6 +520,7 @@ def _build_brief_sections(
     premortem: PreMortemReport | None,
     disclosure: DisclosureRecord | None,
     intake: IntakeRecord | None,
+    independent_review: IndependentReview | None = None,
 ) -> list[BriefSection]:
     sections: list[BriefSection] = []
     if final is None:
@@ -702,6 +706,52 @@ def _build_brief_sections(
                 ],
             )
         )
+
+    # limitations (SPEC-039)
+    if final.limitations:
+        sections.append(
+            BriefSection(
+                key="limitations",
+                status="final",
+                blocks=[_block(PROVENANCE_INTERPRETATION, text) for text in final.limitations],
+            )
+        )
+    else:
+        sections.append(
+            BriefSection(
+                key="limitations",
+                status="not_assessed",
+                blocks=[
+                    _block(
+                        PROVENANCE_INTERPRETATION,
+                        "No limitations were stated. Treat that as an omission rather than "
+                        "as a claim of completeness.",
+                    )
+                ],
+            )
+        )
+
+    # independent_review (SPEC-039)
+    if independent_review is not None:
+        blocks = [
+            _block(
+                PROVENANCE_INTERPRETATION,
+                f"Verdict: {independent_review.verdict.value.replace('_', ' ')}",
+            ),
+            _block(PROVENANCE_INTERPRETATION, independent_review.reasoning),
+        ]
+        if independent_review.divergent_conclusion:
+            blocks.append(
+                _block(
+                    PROVENANCE_INTERPRETATION,
+                    f"Would instead recommend: {independent_review.divergent_conclusion}",
+                )
+            )
+        blocks.extend(
+            _block(PROVENANCE_INTERPRETATION, f"Flagged as unsupported: {claim}")
+            for claim in independent_review.unsupported_claims
+        )
+        sections.append(BriefSection(key="independent_review", status="final", blocks=blocks))
 
     # next_actions
     sections.append(
@@ -1313,7 +1363,12 @@ def build_case_view(case: Case) -> CaseView:
     tasks = case.list_artifacts(TaskRecord)
 
     # Assemble sections.
-    brief_sections = _build_brief_sections(case, final, premortem, disclosure, intake)
+    independent_review_list = case.list_artifacts(IndependentReview)
+    independent_review = independent_review_list[0] if independent_review_list else None
+
+    brief_sections = _build_brief_sections(
+        case, final, premortem, disclosure, intake, independent_review
+    )
     uncertainty = _build_uncertainty(final, prelim)
 
     rooms = RoomsView(

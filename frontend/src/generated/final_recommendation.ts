@@ -21,6 +21,7 @@ export type Value = number;
  * @minItems 1
  */
 export type KeyReasons = [string, ...string[]];
+export type Limitations = string[];
 export type RunsSupporting = number;
 export type RunsTotal = number;
 export type SchemaVersion2 = number;
@@ -78,6 +79,7 @@ export interface FinalRecommendation {
   decision_confidence_summary: DecisionConfidenceSummary;
   evidence_confidence: ConfidenceAssessment;
   key_reasons: KeyReasons;
+  limitations?: Limitations;
   model_stability: ModelStability;
   next_actions: NextActions;
   outcome_probabilities: OutcomeProbabilities;

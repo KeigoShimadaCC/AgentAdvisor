@@ -22,6 +22,8 @@ from orchestrator.artifacts import (
     EvidenceRecord,
     FinalApproval,
     FinalRecommendation,
+    IndependentReview,
+    IndependentVerdict,
     IntakeRecord,
     IssueTree,
     Level,
@@ -77,6 +79,22 @@ def _role_timeout(backend: AgentBackend, role: str) -> float:
     if getattr(backend, "name", "") == "droid":
         return base * _DROID_TIMEOUT_SCALE
     return base
+
+
+def _unanswered_issue_questions(case: Case) -> list[str]:
+    """Issue-tree leaves with no completed task, for the Limitations section.
+
+    ``compute_coverage`` already computes the leaf/completed-task join; this reuses it
+    so the limitations statement names real gaps rather than inviting the synthesizer
+    to invent plausible ones.
+    """
+    try:
+        tree = case.read_artifact(IssueTree)
+    except FileNotFoundError:
+        return []
+    coverage = compute_coverage(tree, case.list_artifacts(TaskRecord))
+    by_id = {node.node_id: node for node in tree.nodes}
+    return [by_id[node_id].question for node_id in coverage.uncovered_node_ids if node_id in by_id]
 
 
 def _audit(case: Case, event_type: str, payload: dict[str, Any]) -> None:
@@ -1037,6 +1055,55 @@ class StageHandlers:
         )
         return StepResult.ok()
 
+    def _run_independent_review(self, case: Case, state: CaseState) -> IndependentReview | None:
+        """Invoke the independent reviewer; a failure degrades rather than blocks.
+
+        The reviewer sees the conclusion and the raw evidence but never the reasoning
+        trail (see ``_independent_review_packet``).  If the invocation fails, the case
+        proceeds without a second opinion rather than dying at the last gate — the
+        absence is audited, and the reviewer's own gate check records nothing, so the
+        omission is visible instead of silently passing as a concur.
+        """
+        task = InvokeTask(
+            task_id=f"T-independent-review-{state.synthesis_retries}",
+            assignment=(
+                "You are the independent second opinion on this recommendation.\n"
+                "You have the decision spec, the final recommendation, the evidence "
+                "ledger, the assumption ledger and the evidence critique. You do NOT "
+                "have the thesis history, objections, dual-track comparison or "
+                "pre-mortem; that exclusion is deliberate.\n"
+                "Answer one question: reading this evidence, would you reach this "
+                "conclusion?\n"
+                "Output an IndependentReview. Dissent only if you would reach a "
+                "different conclusion, and name it."
+            ),
+            output_artifact_type="independent_review",
+            timeout_s=_role_timeout(self._backend, "reviewer"),
+        )
+        try:
+            artifact = invoke(
+                case,
+                "reviewer",
+                task,
+                backend=self._backend,
+                variant="b",
+                budget_ledger=self.budget_ledger,
+            )
+        except RoleInvocationFailed as exc:
+            _audit(case, "independent_review_skipped", {"reason": str(exc)})
+            return None
+        assert isinstance(artifact, IndependentReview)
+        case.write_artifact(artifact)
+        _audit(
+            case,
+            "independent_review_recorded",
+            {
+                "verdict": artifact.verdict.value,
+                "unsupported_claim_count": len(artifact.unsupported_claims),
+            },
+        )
+        return artifact
+
     def handle_review(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
         from orchestrator.state_machine import StepOutcome
 
@@ -1095,6 +1162,17 @@ class StageHandlers:
             },
         )
 
+        # SPEC-039 — independent review. Runs only once the conformance reviewer has
+        # passed: there is no point asking a second opinion about a package whose
+        # citations do not resolve, and it would burn a high-tier invocation per retry.
+        independent: IndependentReview | None = None
+        if accepted:
+            independent = self._run_independent_review(case, state)
+            if independent is not None and independent.verdict is IndependentVerdict.DISSENT:
+                accepted = False
+                state.review_accepted = False
+                save_case_state(case, state)
+
         # Render unconditionally: if the retry budget is exhausted the state machine
         # advances to approval anyway, and an unrendered case would have no output.
         try:
@@ -1124,6 +1202,8 @@ class StageHandlers:
                 user_supplied_inputs=[self._raw_prompt],
                 premortem_report=premortem,
                 objective_weights=objective_weights,
+                independent_review=independent,
+                unanswered_questions=_unanswered_issue_questions(case),
             )
         except FileNotFoundError as exc:
             return StepResult.error(f"Render failed: {exc}")

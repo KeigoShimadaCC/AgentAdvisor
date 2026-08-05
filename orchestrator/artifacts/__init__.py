@@ -91,6 +91,8 @@ from orchestrator.artifacts.recommendations import (
     ScenarioAssessment,
 )
 from orchestrator.artifacts.review import (
+    IndependentReview,
+    IndependentVerdict,
     ReviewDefect,
     ReviewDefectType,
     ReviewOutcome,
@@ -163,6 +165,8 @@ __all__ = [
     "FinalRecommendation",
     "FramingApproval",
     "FramingDecision",
+    "IndependentReview",
+    "IndependentVerdict",
     "IntakeField",
     "IntakeRecord",
     "Level",
