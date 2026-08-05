@@ -191,6 +191,23 @@ rather than assuming headroom.
    that as an omission rather than a claim of completeness" line when the list is empty. A missing
    section would read as an absence of limitations.
 
+**Amended 2026-08-05 (Phase 8 final sweep): deviation 4 shipped a serious accessibility
+regression.** Rendering `limitations` unconditionally means the fixture case's brief now carries a
+`not_assessed` status pill — the first brief section to take that status — and that exposed a latent
+contrast bug the CSS had carried since the screen was written. `.brief-section-status` paired
+`--color-muted` with `--color-border` at 4.34:1; the pill sits inside an `<h3>`, so it inherits bold
+at 12px, which is below axe's large-text threshold and therefore held to 4.5:1. `.status-partial`
+and `.status-final` had each been given their own accessible pair; the fallback used by `pending`
+and `not_assessed` never had one. Fixed at the base rule so both uncovered statuses are covered,
+rather than only the status that happened to fire.
+
+Two things are worth recording about how this was found. It was not found by `make check` or
+`make frontend-check` — neither runs the e2e suite, so both were green across the three commits
+that carried the defect. It was found by hand-running `E2E_MODE=fixture` after the fact, and
+confirmed as *this branch's* regression rather than an inherited one by running the same axe test
+against `origin/main` in a worktree, where it passes. The gap that let a UI regression through a
+green build is recorded in ROADMAP emergent work; it is the more important of the two findings.
+
 ## Open questions
 
 None. The open question — whether `concur_with_reservations` blocks or is merely reported — was

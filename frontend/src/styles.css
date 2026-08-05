@@ -747,12 +747,17 @@ table.case-list th { font-weight: 600; color: var(--color-muted); font-size: 0.8
   margin-bottom: 0.5rem;
 }
 
+/* The pill sits inside an <h3>, so it inherits bold at 12px — below axe's
+   large-text threshold, which means the 4.5:1 AA ratio applies. --color-muted
+   on --color-border is 4.34:1, so this darkens the text rather than reusing the
+   token. Covers the statuses with no override of their own (pending,
+   not_assessed); .status-partial and .status-final set their own pair below. */
 .brief-section-status {
   font-size: 0.75rem;
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
   background: var(--color-border);
-  color: var(--color-muted);
+  color: #595959;
   text-transform: capitalize;
 }
 

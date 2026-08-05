@@ -89,8 +89,17 @@ export default defineConfig({
 
   projects: [
     {
+      // PW_CHROME overrides the browser binary. Playwright resolves a build
+      // keyed to the pinned @playwright/test version, so an environment that
+      // ships a different chromium (a container image, a distro package)
+      // cannot launch the suite at all. Unset, this is exactly the default
+      // resolution — the escape hatch costs nothing and is the difference
+      // between the suite running somewhere and not running there.
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: { executablePath: process.env.PW_CHROME || undefined },
+      },
     },
     {
       name: "webkit",
