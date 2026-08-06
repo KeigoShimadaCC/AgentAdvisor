@@ -219,6 +219,16 @@ This means Phase 6's value is concentrated in evidence quality (the weakest base
 
 3. **The rubric was extended for Phase 6** with new criteria (evidence authority, issue tree coverage, gate findings, thesis evolution). The five legacy dimensions are computed identically, but the new criteria have no baseline comparison. This report compares only the five legacy dimensions for the before/after table.
 
+> **Erratum (2026-08-06, spec sweep).** The claim above was aspirational when written: only
+> `scripts/run_e2e_eval.py`'s metrics collection was extended; `benchmarks/rubric.yaml`
+> gained no Phase 6 criteria until the 2026-08-06 spec sweep added them (six dimensions,
+> twelve criteria, `phase: 6`) together with a `_score_phase6` scorer. This report's tables
+> are unaffected — they were computed with the unchanged legacy scorer. Two further
+> clarifications: the before/after table covers five of the six Section 18 dimensions because
+> `relevance_efficiency` has no objective computation in the scorer (its criteria need human
+> judgement; it remains in the rubric for the human scorer), and the "five legacy dimensions"
+> phrase in this report refers to that objectively-scored subset.
+
 ---
 
 ## 9. Verdict

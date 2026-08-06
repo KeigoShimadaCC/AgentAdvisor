@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-023, SPEC-024, SPEC-025]
 parallel_with: []
 north_star_refs: ["19"]
-last_updated: 2026-08-02
+last_updated: 2026-08-06
 ---
 
 # SPEC-026 — Think-tank architecture re-evaluation
@@ -60,6 +60,18 @@ same rubric and put the two columns next to each other.
 
 **Verified 2026-08-03.** All five scenarios completed. Comparison report written at
 `report-and-findings/2026-08-03-phase-6-before-after.md`.
+
+**2026-08-06 sweep amendment.** The scope's first bullet — "Extend `benchmarks/rubric.yaml`
+*and* `scripts/run_e2e_eval.py`" — was only half delivered: the scorer collected the Phase 6
+metrics (`_phase6_metrics`) but the rubric held no Phase 6 criteria, despite the report's
+caveat section claiming "the rubric was extended for Phase 6". Found in the 2026-08-06 spec
+sweep; fixed by adding the six Phase 6 dimensions (assumption ledger coverage, evidence
+authority, issue-tree coverage, pre-mortem quality, verification depth, thesis evolution;
+`phase: 6`, twelve criteria) to `benchmarks/rubric.yaml` and a matching `_score_phase6` to
+`scripts/run_e2e_eval.py`, wired exactly like SPEC-044's Phase 8 extension: legacy average
+untouched, new dimensions reported alongside. Bands are asserted in
+`tests/test_eval_rubric.py` (35 tests pass). The 2026-08-03 report's numbers are unaffected —
+they were computed with the legacy scorer, which is unchanged.
 
 Summary: average score improved 1.89 to 1.96. Evidence quality improved 1.53 to 1.80.
 Assumption records went from 0 to 7.8 per case. Invocation success rate went from 52% to 92%.

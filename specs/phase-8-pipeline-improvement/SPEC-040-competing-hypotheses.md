@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-038]
 parallel_with: []
 north_star_refs: ["5.3", "6.3", "9", "10", "18"]
-last_updated: 2026-08-04
+last_updated: 2026-08-06
 ---
 
 # SPEC-040 — Analysis of Competing Hypotheses stage
@@ -182,6 +182,17 @@ matrix is capped at 20 records and the role md pushes hard on `neutral`, but not
 model can fill an N×M matrix at an acceptable rate — that needs a live invocation, which this
 environment cannot run. SPEC-044 must report the `ach` role's coercion and failure rates
 separately, and the cap should drop to 10 if they are material.
+
+**2026-08-06 sweep amendment.** The deliverable "Renderer exhibit and Options-room panel" was
+half delivered: `render.py`'s exhibit existed, but the Options room never rendered the matrix —
+the projection (`ach_scored`, `ach_uninformative_evidence_ids`, per-option
+`disconfirmation_rank` / `disconfirming_weight` / `disconfirming_evidence_ids`) and the
+generated TS types carried the data with no consumer. Found in the 2026-08-06 spec sweep; fixed
+in `OptionsRoom.tsx`: a "Competing hypotheses" exhibit (standings table least-disconfirmed
+first, records-against as `CitationLink`s, the zero-diagnosticity list named with citation
+links, gated on `ach_scored`) plus a "least disconfirmed" badge on the rank-1 option, mirroring
+the report exhibit's language. Covered by four new tests in `OptionsRoom.test.tsx` over a new
+`makeOptionsACHFixture` (11/11 pass); typecheck clean.
 
 ## Open questions
 

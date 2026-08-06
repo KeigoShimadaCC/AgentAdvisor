@@ -27,6 +27,14 @@ LEGACY_DIMENSIONS = {
     "adversarial_robustness",
     "traceability",
 }
+PHASE6_DIMENSIONS = {
+    "assumption_ledger_coverage",
+    "evidence_authority",
+    "issue_tree_coverage",
+    "premortem_quality",
+    "verification_depth",
+    "thesis_evolution",
+}
 PHASE8_DIMENSIONS = {
     "value_model_binding",
     "independent_review",
@@ -49,6 +57,12 @@ def test_legacy_dimensions_are_untouched(rubric: dict[str, Any]) -> None:
     for name in LEGACY_DIMENSIONS:
         assert name in dimensions
         assert "phase" not in dimensions[name], f"{name} must stay a legacy dimension"
+
+
+def test_phase6_dimensions_are_marked(rubric: dict[str, Any]) -> None:
+    dimensions = rubric["dimensions"]
+    for name in PHASE6_DIMENSIONS:
+        assert dimensions[name]["phase"] == 6
 
 
 def test_phase8_dimensions_are_marked(rubric: dict[str, Any]) -> None:
@@ -223,3 +237,147 @@ def test_unconcretized_monitoring_scores_one(tmp_path: Path) -> None:
 def test_absent_monitoring_scores_zero(tmp_path: Path) -> None:
     case = _case(tmp_path)
     assert evaluator._score_phase8(case, _metrics(monitoring_indicators=0))["ca-2"] == 0
+
+
+# ── Phase 6 scoring ──────────────────────────────────────────────────────────
+#
+# The metrics these bands consume are the ones _phase6_metrics always collected;
+# SPEC-026's rubric half was added in the 2026-08-06 sweep.
+
+
+def _phase6_metrics(**overrides: Any) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "assumption_records": 6,
+        "evidence_authority_mean": 0.72,
+        "evidence_max_cluster_share": 0.35,
+        "issue_tree_leaves": 4,
+        "premortem_failure_modes": 3,
+        "verification_worksheet_items": 8,
+        "gate_reports": 4,
+        "thesis_revisions": 3,
+        "track_agreement": False,
+    }
+    base.update(overrides)
+    return base
+
+
+def _well_equipped_phase6_case(tmp_path: Path) -> Any:
+    return _case(
+        tmp_path,
+        {
+            "shared/assumptions/A-1.yaml": {"materiality": "high"},
+            "shared/assumptions/A-2.yaml": {"materiality": "low"},
+            "shared/tasks/T-1.yaml": {"issue_node_id": "Q-1.1"},
+            "shared/tasks/T-2.yaml": {"issue_node_id": "Q-1.2"},
+            "shared/premortem_report.yaml": {
+                "failure_modes": [
+                    {"failure_mode": "a", "leading_indicators": ["x"]},
+                    {"failure_mode": "b", "leading_indicators": ["y"]},
+                    {"failure_mode": "c", "leading_indicators": ["z"]},
+                ]
+            },
+            "shared/track_divergence.yaml": {"agreement": False},
+        },
+    )
+
+
+def test_a_fully_equipped_case_scores_two_everywhere_phase6(tmp_path: Path) -> None:
+    case = _well_equipped_phase6_case(tmp_path)
+    scores = evaluator._score_phase6(case, _phase6_metrics())
+    assert scores == {
+        "al-1": 2,
+        "al-2": 2,
+        "ea-1": 2,
+        "ea-2": 2,
+        "it-1": 2,
+        "it-2": 2,
+        "pm-1": 2,
+        "pm-2": 2,
+        "vd-1": 2,
+        "vd-2": 2,
+        "te-1": 2,
+        "te-2": 2,
+    }
+
+
+def test_an_empty_case_scores_zero_everywhere_phase6(tmp_path: Path) -> None:
+    case = _case(tmp_path)
+    scores = evaluator._score_phase6(
+        case,
+        _phase6_metrics(
+            assumption_records=0,
+            evidence_authority_mean=None,
+            evidence_max_cluster_share=None,
+            issue_tree_leaves=0,
+            premortem_failure_modes=0,
+            verification_worksheet_items=0,
+            gate_reports=0,
+            thesis_revisions=0,
+            track_agreement=None,
+        ),
+    )
+    assert all(value == 0 for value in scores.values())
+    assert len(scores) == 12
+
+
+def test_thin_assumption_ledger_scores_one(tmp_path: Path) -> None:
+    case = _case(tmp_path, {"shared/assumptions/A-1.yaml": {"materiality": "high"}})
+    scores = evaluator._score_phase6(case, _phase6_metrics(assumption_records=3))
+    assert scores["al-1"] == 1
+    # One of one record rated -> full materiality coverage.
+    assert scores["al-2"] == 2
+
+
+def test_unrated_assumption_scores_downgrade(tmp_path: Path) -> None:
+    case = _case(
+        tmp_path,
+        {
+            "shared/assumptions/A-1.yaml": {"materiality": "high"},
+            "shared/assumptions/A-2.yaml": {"note": "no rating"},
+        },
+    )
+    assert evaluator._score_phase6(case, _phase6_metrics())["al-2"] == 1
+
+
+def test_authority_and_cluster_bands(tmp_path: Path) -> None:
+    case = _case(tmp_path)
+    assert evaluator._score_phase6(case, _phase6_metrics(evidence_authority_mean=0.5))["ea-1"] == 1
+    assert (
+        evaluator._score_phase6(case, _phase6_metrics(evidence_max_cluster_share=0.5))["ea-2"] == 1
+    )
+    # The SPEC-023 design threshold: a cluster at exactly 40% carries no penalty.
+    assert (
+        evaluator._score_phase6(case, _phase6_metrics(evidence_max_cluster_share=0.4))["ea-2"] == 2
+    )
+
+
+def test_partial_task_linkage_scores_one(tmp_path: Path) -> None:
+    case = _case(
+        tmp_path,
+        {
+            "shared/tasks/T-1.yaml": {"issue_node_id": "Q-1.1"},
+            "shared/tasks/T-2.yaml": {"issue_node_id": None},
+            "shared/tasks/T-3.yaml": {"title": "unlinked"},
+        },
+    )
+    assert evaluator._score_phase6(case, _phase6_metrics())["it-2"] == 1
+
+
+def test_premortem_with_unwatched_failure_mode_scores_one(tmp_path: Path) -> None:
+    case = _case(
+        tmp_path,
+        {
+            "shared/premortem_report.yaml": {
+                "failure_modes": [
+                    {"failure_mode": "a", "leading_indicators": ["x"]},
+                    {"failure_mode": "b", "leading_indicators": []},
+                ]
+            }
+        },
+    )
+    assert evaluator._score_phase6(case, _phase6_metrics())["pm-2"] == 1
+
+
+def test_divergence_record_without_verdict_scores_one(tmp_path: Path) -> None:
+    case = _case(tmp_path, {"shared/track_divergence.yaml": {"agreement": None}})
+    assert evaluator._score_phase6(case, _phase6_metrics(track_agreement=None))["te-2"] == 1

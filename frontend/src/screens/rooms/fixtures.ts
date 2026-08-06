@@ -179,6 +179,29 @@ export function makeOptionsFixture(): CaseView {
   };
 }
 
+/**
+ * The options fixture with a SPEC-040 competing-hypotheses matrix joined on:
+ * the same options carry their disconfirmation standings, and the room names
+ * the evidence that could not have changed the reading.
+ */
+export function makeOptionsACHFixture(): CaseView {
+  const base = makeOptionsFixture();
+  const room = base.rooms!.options!;
+  const byName = Object.fromEntries(room.options!.map((o) => [o.alternative, o]));
+  byName["Buy the ETF"].disconfirmation_rank = 1;
+  byName["Buy the ETF"].disconfirming_weight = 0.15;
+  byName["Buy the ETF"].disconfirming_evidence_ids = ["E-2"];
+  byName["Wait for earnings"].disconfirmation_rank = 2;
+  byName["Wait for earnings"].disconfirming_weight = 0.4;
+  byName["Wait for earnings"].disconfirming_evidence_ids = ["E-1"];
+  byName["Buy the single stock"].disconfirmation_rank = 3;
+  byName["Buy the single stock"].disconfirming_weight = 0.8;
+  byName["Buy the single stock"].disconfirming_evidence_ids = ["E-1", "E-2"];
+  room.ach_scored = true;
+  room.ach_uninformative_evidence_ids = ["E-3"];
+  return base;
+}
+
 export function makeChallengesFixture(): CaseView {
   return {
     case_id: "case-1",

@@ -6,7 +6,7 @@ status: draft
 depends_on: [SPEC-044, SPEC-048, SPEC-049, SPEC-050, SPEC-051]
 parallel_with: []
 north_star_refs: ["7", "15", "16"]
-last_updated: 2026-08-05
+last_updated: 2026-08-06
 ---
 
 # SPEC-053 — Phase 8 made visible: projecting and rendering the pipeline improvements
@@ -15,10 +15,17 @@ last_updated: 2026-08-05
 
 Phase 8 builds objective weights and a deterministic ranking, an independent reviewer whose dissent
 blocks delivery, a diagnosticity matrix, a typed action plan, a monitoring plan with a risk register,
-and a private evidence channel — and **not one of SPEC-038 through SPEC-044 mentions the frontend,
-`CaseView`, or the UI anywhere**. Without this spec, every one of those is reachable only by reading
-YAML in `cases/`. This spec extends the projection to carry them and builds the screens that show
-them. It is the one sheet in phase 9 that hard-depends on phase 8, so the dependency risk is
+and a private evidence channel — and renders almost none of it. *(This summary originally claimed
+not one of SPEC-038–044 mentions the frontend, `CaseView`, or the UI anywhere. **Corrected
+2026-08-06:** that was never quite true — SPEC-038's objective scores and SPEC-040's ACH standings
+were projected into `CaseView` from the start, and SPEC-042 shipped its own service endpoint and
+Delivery-screen monitoring block. What is true, and what this spec exists for: the projections were
+left partial and in one case entirely unconsumed — the Options room never rendered the ACH fields
+until the 2026-08-06 spec sweep added the panel — and the ranking UI, the dissent surface, the
+limitations statement, the typed action plan, the risk register screen and the user-document
+provenance have no home at all.)* Without this spec, most of phase 8 is reachable only by reading
+YAML in `cases/`. This spec extends the projection to carry the rest and builds the screens that
+show them. It is the one sheet in phase 9 that hard-depends on phase 8, so the dependency risk is
 contained here rather than spread across four sheets.
 
 ## Motivation

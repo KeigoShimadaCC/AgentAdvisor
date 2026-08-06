@@ -4,7 +4,7 @@ title: Distribution — export, share, replay onboarding, the library workspace,
 phase: 9
 status: draft
 depends_on: [SPEC-045, SPEC-048, SPEC-049]
-parallel_with: [SPEC-051]
+parallel_with: [SPEC-051, SPEC-055]
 north_star_refs: ["15", "16"]
 last_updated: 2026-08-05
 ---

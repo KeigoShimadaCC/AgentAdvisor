@@ -6,7 +6,7 @@ status: draft
 depends_on: []
 parallel_with: [SPEC-045]
 north_star_refs: ["13", "15"]
-last_updated: 2026-08-05
+last_updated: 2026-08-06
 ---
 
 # SPEC-046 — Service additions: progress events, non-blocking creation, projection reads
@@ -50,7 +50,13 @@ reach it.
     `{case_id, stage}` — without waiting for intake or framing;
   - `CaseSummary` gains `needs_you`, computed by the same helper the projection uses, so
     `CaseLibrary.tsx`'s duplicated stage-string derivation can be deleted in SPEC-052;
-  - `GET /api/calibration` → `CalibrationSummary` over `MemoryStore(root=memory_root())`.
+  - `GET /api/calibration` → `CalibrationSummary` over `MemoryStore(root=memory_root())`;
+  - `GET /api/effort-history` → per-effort-profile p50–p90 wall-clock ranges computed from
+    `MemoryStore.prior_cases()`, with an explicit empty-history response so the client renders
+    its honest fallback rather than a fabricated number. SPEC-050 consumes this; it is a
+    sibling of `/api/calibration`, not an extension, so that endpoint's contract stays
+    single-purpose. *(Added 2026-08-06: SPEC-050's effort estimates need a history read and
+    no sheet owned it — this sheet is where phase 9's backend changes live.)*
 - `schemas/` + `frontend/src/generated/` — `CalibrationSummary` exported and its TypeScript type
   regenerated through the existing drift gate. `CaseSummary` is a service model, not an artifact
   schema, and changes in place.
@@ -89,8 +95,8 @@ so a UI spec that quietly reaches into the pipeline breaks a test rather than a 
 - [ ] `orchestrator/invoke_role.py` — `role_invocation_started`, `role_invocation_progress`, timer
 - [ ] `orchestrator/service/lexicon_data.yaml` — two narration templates
 - [ ] `orchestrator/control.py` + `app.py` — non-blocking `new_case` returning 202
-- [ ] `app.py` — `needs_you` on `CaseSummary`; `GET /api/calibration`; `CalibrationSummary` schema
-      and regenerated TS type
+- [ ] `app.py` — `needs_you` on `CaseSummary`; `GET /api/calibration`; `GET /api/effort-history`;
+      `CalibrationSummary` schema and regenerated TS type
 - [ ] `tests/test_pipeline_invariants.py` — transitions/handlers snapshot guard
 - [ ] Extensions to `tests/test_invoke_role.py`, `tests/test_service_api.py`, `tests/test_events.py`
 
@@ -111,6 +117,9 @@ so a UI spec that quietly reaches into the pipeline breaks a test rather than a 
       case across all four states.
 - [ ] `GET /api/calibration` returns the sample size and, with fewer than five recorded outcomes,
       the "noise, not a calibration estimate" interpretation verbatim from `calibration.py`.
+- [ ] `GET /api/effort-history` returns p50–p90 wall-clock ranges per effort profile over the
+      recorded history, and an explicit empty shape — no fabricated numbers — when no history
+      exists.
 - [ ] `tests/test_pipeline_invariants.py` passes, and fails if a transition, flow plan or stage
       handler is added, removed or re-pointed. `make check` and `make frontend-check` are green.
 
