@@ -1,12 +1,20 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 
+from orchestrator.ach import (
+    diagnosticity,
+    rank_by_disconfirmation,
+    zero_diagnosticity_records,
+)
 from orchestrator.artifacts import (
+    ACHMatrix,
     DisclosureRecord,
     EvidenceRecord,
     FinalRecommendation,
+    IndependentReview,
+    MonitoringPlan,
     PreMortemReport,
     ProbabilityEstimate,
 )
@@ -18,6 +26,12 @@ from orchestrator.case_store import atomic_write_text
 from orchestrator.citations import (
     collect_final_recommendation_citation_ids,
     validate_final_recommendation_citations,
+)
+from orchestrator.value_model import (
+    WEIGHT_PERTURBATION,
+    compute_ranking,
+    normalize_weights,
+    weight_sensitivity,
 )
 
 PROVENANCE_SOURCED_FACT = "sourced_fact"
@@ -124,6 +138,199 @@ def _render_premortem_section(report: PreMortemReport) -> list[str]:
     return lines
 
 
+def _render_independent_review_section(review: IndependentReview | None) -> list[str]:
+    """Render the independent reviewer's verdict (SPEC-039).
+
+    A dissent that survived to delivery is reported verbatim rather than dropped:
+    disclosing disagreement the system could not resolve beats suppressing it.
+    """
+    if review is None:
+        return []
+    lines = ["## Independent review"]
+    lines.append("")
+    lines.append(
+        f"- [{PROVENANCE_INTERPRETATION}] Verdict: {review.verdict.value.replace('_', ' ')}."
+    )
+    lines.append(
+        f"- [{PROVENANCE_INTERPRETATION}] {_ensure_terminal_punctuation(review.reasoning)}"
+    )
+    if review.divergent_conclusion:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] The independent reviewer would instead "
+            f"recommend: {_ensure_terminal_punctuation(review.divergent_conclusion)}"
+        )
+    for claim in review.unsupported_claims:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] Flagged as unsupported by the evidence: "
+            f"{_ensure_terminal_punctuation(claim)}"
+        )
+    lines.append("")
+    return lines
+
+
+def _render_monitoring_section(plan: MonitoringPlan | None) -> list[str]:
+    """Render what to watch after delivery, and the prepared responses (SPEC-042).
+
+    Replaces the bare change-trigger list: an indicator without a cadence and a linked
+    response is a sentence, not a control.
+    """
+    if plan is None or not plan.indicators:
+        return []
+    lines = ["## What to watch"]
+    lines.append("")
+    if not plan.concretized:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] These indicators were not made concrete; "
+            "treat each one's text as the threshold and sharpen it yourself."
+        )
+        lines.append("")
+    lines.append("| # | Watch | Breach threshold | Every | What it would mean |")
+    lines.append("|---|---|---|---|---|")
+    for indicator in plan.indicators:
+        lines.append(
+            f"| {indicator.indicator_id} | {_escape_md_cell(indicator.observable)} "
+            f"| {_escape_md_cell(indicator.threshold)} "
+            f"| {indicator.check_cadence_days}d "
+            f"| {_escape_md_cell(indicator.would_imply)} |"
+        )
+    lines.append("")
+
+    if plan.mitigations:
+        lines.append("### If one fires")
+        lines.append("")
+        lines.append("| # | Failure mode | Prepared response | Owner | Triggered by |")
+        lines.append("|---|---|---|---|---|")
+        for mitigation in plan.mitigations:
+            triggers = ", ".join(mitigation.triggered_by) if mitigation.triggered_by else "—"
+            lines.append(
+                f"| {mitigation.mitigation_id} "
+                f"| {_escape_md_cell(mitigation.failure_mode)} "
+                f"| {_escape_md_cell(mitigation.mitigation)} "
+                f"| {_escape_md_cell(mitigation.owner)} | {triggers} |"
+            )
+        lines.append("")
+    lines.append(
+        f"- [{PROVENANCE_INTERPRETATION}] Run `advisor watch` to see which checks are due. "
+        "A breach opens a new linked decision rather than reopening this one."
+    )
+    lines.append("")
+    return lines
+
+
+def _render_ach_section(matrix: ACHMatrix | None) -> list[str]:
+    """Render the competing-hypotheses exhibit (SPEC-040).
+
+    The zero-diagnosticity list is included deliberately: naming the evidence that could
+    never have changed the answer is one of the more useful things the technique produces.
+    """
+    if matrix is None:
+        return []
+    standings = rank_by_disconfirmation(matrix)
+    if not standings:
+        return []
+
+    weights = diagnosticity(matrix)
+    lines = ["## Competing hypotheses"]
+    lines.append("")
+    lines.append(
+        f"- [{PROVENANCE_CALCULATION}] Alternatives ranked by weight of disconfirming "
+        "evidence, least disconfirmed first. Evidence consistent with every alternative "
+        "carries no weight."
+    )
+    lines.append("")
+    lines.append("| Rank | Alternative | Disconfirming weight | Records against |")
+    lines.append("|---|---|---|---|")
+    for standing in standings:
+        against = (
+            ", ".join(standing.disconfirming_evidence_ids)
+            if standing.disconfirming_evidence_ids
+            else "—"
+        )
+        lines.append(
+            f"| {standing.rank} | {_escape_md_cell(standing.alternative)} "
+            f"| {standing.weighted_inconsistency:.2f} | {against} |"
+        )
+    lines.append("")
+
+    informative = sorted(
+        (eid for eid, value in weights.items() if value > 0),
+        key=lambda eid: (-weights[eid], eid),
+    )
+    if informative:
+        top = ", ".join(f"{eid} ({weights[eid]:.2f})" for eid in informative[:5])
+        lines.append(f"- [{PROVENANCE_CALCULATION}] Most discriminating evidence: {top}.")
+    uninformative = zero_diagnosticity_records(matrix)
+    if uninformative:
+        lines.append(
+            f"- [{PROVENANCE_CALCULATION}] {len(uninformative)} record(s) scored the same "
+            f"against every alternative and could not have changed the ranking: "
+            f"{', '.join(uninformative)}."
+        )
+    if matrix.excluded_evidence_ids:
+        lines.append(
+            f"- [{PROVENANCE_CALCULATION}] "
+            f"{len(matrix.excluded_evidence_ids)} record(s) fell below the authority cut "
+            "for the capped matrix and were not scored."
+        )
+    lines.append("")
+    return lines
+
+
+def _render_value_model_section(
+    recommendation: FinalRecommendation,
+    objective_weights: Mapping[str, float] | None,
+) -> list[str]:
+    """Render the weighted ranking and its weight sensitivity (SPEC-038).
+
+    Emits nothing when no value model was elicited, so cases predating the weights
+    render exactly as before.
+    """
+    if not objective_weights:
+        return []
+    ranked = compute_ranking(objective_weights, recommendation.alternatives_considered)
+    if not ranked:
+        return []
+
+    normalized = normalize_weights(objective_weights)
+    lines = ["## Weighted ranking"]
+    lines.append("")
+    weight_summary = ", ".join(
+        f"{name} {share:.0%}" for name, share in sorted(normalized.items(), key=lambda kv: -kv[1])
+    )
+    lines.append(f"- [{PROVENANCE_USER_INPUT}] Objective weights: {weight_summary}.")
+    lines.append("")
+    lines.append("| Weighted rank | Alternative | Score | Rank stated by synthesis |")
+    lines.append("|---|---|---|---|")
+    for row in ranked:
+        lines.append(
+            f"| {row.computed_rank} | {_escape_md_cell(row.alternative)} "
+            f"| {row.score:.2f} | {row.stated_rank} |"
+        )
+    lines.append("")
+
+    sensitivity = weight_sensitivity(objective_weights, recommendation.alternatives_considered)
+    if sensitivity is not None:
+        lines.append(
+            f"- [{PROVENANCE_CALCULATION}] `{sensitivity.top_alternative}` stays top under "
+            f"{sensitivity.share_preserving_top:.0%} of "
+            f"{sensitivity.runs_total} single-weight perturbations of "
+            f"±{int(WEIGHT_PERTURBATION * 100)}%."
+        )
+        if sensitivity.smallest_flip is not None:
+            name, direction = sensitivity.smallest_flip
+            lines.append(
+                f"- [{PROVENANCE_CALCULATION}] Changing the weight on `{name}` by "
+                f"{direction:+.0%} flips the top choice."
+            )
+        else:
+            lines.append(
+                f"- [{PROVENANCE_CALCULATION}] No single weight perturbation of "
+                f"±{int(WEIGHT_PERTURBATION * 100)}% changes the top choice."
+            )
+        lines.append("")
+    return lines
+
+
 def render_final_recommendation_markdown(
     recommendation: FinalRecommendation,
     evidence_records: Sequence[EvidenceRecord],
@@ -131,6 +338,11 @@ def render_final_recommendation_markdown(
     disclosure_record: DisclosureRecord | None = None,
     user_supplied_inputs: Sequence[str] = (),
     premortem_report: PreMortemReport | None = None,
+    objective_weights: Mapping[str, float] | None = None,
+    independent_review: IndependentReview | None = None,
+    unanswered_questions: Sequence[str] = (),
+    ach_matrix: ACHMatrix | None = None,
+    monitoring_plan: MonitoringPlan | None = None,
 ) -> str:
     validate_final_recommendation_citations(recommendation, evidence_records)
     evidence_by_id = {record.evidence_id: record for record in evidence_records}
@@ -180,6 +392,8 @@ def render_final_recommendation_markdown(
             f"`{assessment.alternative}` — {assessment.rationale}"
         )
     lines.append("")
+    lines.extend(_render_value_model_section(recommendation, objective_weights))
+    lines.extend(_render_ach_section(ach_matrix))
     lines.append("## Key reasons")
     for reason in recommendation.key_reasons:
         lines.append(f"- [{PROVENANCE_INTERPRETATION}] {reason}")
@@ -233,9 +447,45 @@ def render_final_recommendation_markdown(
     else:
         lines.append("- [interpretation] No explicit recommendation-change triggers were provided.")
     lines.append("")
+    lines.append("## Limitations")
+    if recommendation.limitations:
+        for limitation in recommendation.limitations:
+            lines.append(
+                f"- [{PROVENANCE_INTERPRETATION}] {_ensure_terminal_punctuation(limitation)}"
+            )
+    else:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] No limitations were stated. Treat that as an "
+            "omission rather than as a claim of completeness."
+        )
+    if unanswered_questions:
+        lines.append(
+            f"- [{PROVENANCE_INTERPRETATION}] Questions the investigation did not answer: "
+            f"{'; '.join(unanswered_questions)}."
+        )
+    lines.append("")
+    lines.extend(_render_independent_review_section(independent_review))
+    lines.extend(_render_monitoring_section(monitoring_plan))
     lines.append("## Next actions")
+    lines.append("")
+    lines.append("| # | Action | Owner | By | First step |")
+    lines.append("|---|---|---|---|---|")
     for action in recommendation.next_actions:
-        lines.append(f"- [{PROVENANCE_RECOMMENDATION}] {action}")
+        lines.append(
+            f"| {_escape_md_cell(action.action_id)} "
+            f"| {_escape_md_cell(action.action)} "
+            f"| {_escape_md_cell(action.owner)} "
+            f"| {action.by_date.isoformat()} "
+            f"| {_escape_md_cell(action.first_step)} |"
+        )
+    lines.append("")
+    for action in recommendation.next_actions:
+        detail = f"{action.action_id}: {_ensure_terminal_punctuation(action.why_now)}"
+        if action.estimated_cost is not None:
+            detail = f"{detail} Estimated cost: {action.estimated_cost}."
+        if action.depends_on:
+            detail = f"{detail} Depends on {', '.join(sorted(action.depends_on))}."
+        lines.append(f"- [{PROVENANCE_RECOMMENDATION}] {detail}")
     lines.append("")
     if user_supplied_inputs:
         lines.append("## User-supplied inputs")
@@ -290,6 +540,11 @@ def write_final_recommendation_markdown(
     disclosure_record: DisclosureRecord | None = None,
     user_supplied_inputs: Sequence[str] = (),
     premortem_report: PreMortemReport | None = None,
+    objective_weights: Mapping[str, float] | None = None,
+    independent_review: IndependentReview | None = None,
+    unanswered_questions: Sequence[str] = (),
+    ach_matrix: ACHMatrix | None = None,
+    monitoring_plan: MonitoringPlan | None = None,
 ) -> Path:
     markdown = render_final_recommendation_markdown(
         recommendation,
@@ -297,6 +552,11 @@ def write_final_recommendation_markdown(
         disclosure_record=disclosure_record,
         user_supplied_inputs=user_supplied_inputs,
         premortem_report=premortem_report,
+        objective_weights=objective_weights,
+        independent_review=independent_review,
+        unanswered_questions=unanswered_questions,
+        ach_matrix=ach_matrix,
+        monitoring_plan=monitoring_plan,
     )
     output_path = case_root / "outputs" / "final_recommendation.md"
     atomic_write_text(output_path, markdown)

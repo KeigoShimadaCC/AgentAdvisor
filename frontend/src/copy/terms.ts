@@ -243,6 +243,10 @@ export const SCOPE_COPY = {
     "The broad questions I plan to answer. Strike through any you do not want me to spend time on.",
   outlineFidelityNote:
     "This is the planned set of questions, not a final task tree. The full investigation plan appears once framing is signed.",
+  weightsTitle: "What matters most",
+  weightsHelp:
+    "Split 100 points across your objectives to show how you would trade them off. I use this to rank the options, and I will tell you if my ranking disagrees with yours.",
+  weightsInvalid: "the points must add up to 100 before you can sign",
   groundRulesTitle: "Ground rules",
   groundRulesHelp:
     "Confirm each of these so I work within your real constraints. Items I filled in because you skipped them are marked and editable.",
@@ -654,11 +658,38 @@ export const BRIEF_SECTION_TITLES: Record<string, string> = {
   premortem: "Pre-mortem",
   critical_assumptions: "Critical assumptions",
   recommendation_change_triggers: "Recommendation change triggers",
+  limitations: "What this could not assess",
+  independent_review: "Independent review",
   next_actions: "Next actions",
   user_supplied_inputs: "Your inputs",
   budget_depth_stop_disclosure: "Budget, depth, and stop disclosure",
   evidence_and_citations: "Evidence and citations",
 };
+
+/**
+ * SPEC-041 and SPEC-042 field labels. Every user-visible string comes from here so
+ * raw schema field names never surface (report §14).
+ */
+export const ACTION_PLAN_COPY = {
+  ownerLabel: "Owner",
+  byDateLabel: "By",
+  firstStepLabel: "First step",
+  whyNowLabel: "Why now",
+  estimatedCostLabel: "Estimated cost",
+  dependsOnLabel: "After",
+  monitoringTitle: "What to watch",
+  monitoringHelp:
+    "Signs that would change this recommendation, and what to do if one of them shows up.",
+  observableLabel: "Watch",
+  thresholdLabel: "Counts as a breach",
+  cadenceLabel: "Check every",
+  wouldImplyLabel: "What it would mean",
+  mitigationsTitle: "If one fires",
+  notConcretized:
+    "These were not sharpened into concrete thresholds — treat each one's wording as the threshold.",
+  dueLabel: "Due now",
+  noneDue: "Nothing due yet.",
+} as const;
 
 /**
  * Render an objection ``target_section`` field path (e.g.

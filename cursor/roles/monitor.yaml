@@ -1,0 +1,14 @@
+role_md_path: cursor/roles/monitor.md
+default_model: composer-2.5
+escalation_model: cursor-grok-4.5-low
+read_only: false
+allow_shell: false
+# The monitor concretises an already-assembled plan; it needs the decision context and
+# the evidence that would justify a threshold, not the reasoning trail.
+projection_include:
+  - decision_spec
+  - monitoring_plan
+  - key_evidence
+  - premortem_report
+output_artifact_type: monitoring_plan
+model_tier: low

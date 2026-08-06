@@ -149,3 +149,68 @@ unpack_skipped_duplicate:
 render_skipped:
   template: "Recommendation render skipped (citation issue) — case continues"
   technical: false
+
+objective_weights_recorded:
+  template: "Objective weights recorded ({objective_count} objectives, {source})"
+  technical: false
+
+independent_review_recorded:
+  template: "Independent review: {verdict} ({unsupported_claim_count} claim(s) flagged)"
+  technical: false
+
+independent_review_skipped:
+  template: "Independent review skipped — {reason}"
+  technical: false
+
+ach_matrix_scored:
+  template: "Competing hypotheses scored: {evidence_scored} record(s) against {alternatives} alternatives; least disconfirmed is {least_disconfirmed}"
+  technical: false
+
+ach_skipped:
+  template: "Competing-hypotheses scoring skipped — {reason}"
+  technical: false
+
+monitoring_plan_written:
+  template: "Monitoring plan written: {indicator_count} indicator(s), {mitigation_count} prepared response(s)"
+  technical: false
+
+monitoring_plan_not_concretized:
+  template: "Monitoring indicators left as prose — {reason}"
+  technical: false
+
+monitoring_plan_skipped:
+  template: "No monitoring plan written — {reason}"
+  technical: true
+
+private_evidence_ingested:
+  template: "Read {record_count} excerpt(s) from your supplied documents"
+  technical: false
+
+private_evidence_unsupported:
+  template: "Could not read these supplied files (text formats only): {files}"
+  technical: false
+
+# Pre-existing events that had no narration until the Phase 8 lexicon audit.
+dual_track_skipped:
+  template: "Second independent thesis skipped — {reason}"
+  technical: false
+
+pre_mortem_skipped:
+  template: "Pre-mortem skipped — {reason}"
+  technical: false
+
+reproducibility_gate_failed:
+  template: "Analysis for task {task_id} did not reproduce; its numbers are not trusted"
+  technical: false
+
+reproducibility_gate_error:
+  template: "Could not re-run the analysis for task {task_id} — {error}"
+  technical: true
+
+wall_clock_exceeded:
+  template: "Stopped on the wall-clock limit after {elapsed_s}s"
+  technical: false
+
+value_model_ranked:
+  template: "Weighted ranking computed: {top_alternative} leads ({scored_alternatives} options scored)"
+  technical: false

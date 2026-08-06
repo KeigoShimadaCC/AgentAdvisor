@@ -4,6 +4,7 @@ escalation_model: cursor-grok-4.5-low
 read_only: false
 allow_shell: false
 projection_include:
+  - ach_matrix
   - decision_spec
   - preliminary_recommendation
   - high_materiality_assumptions

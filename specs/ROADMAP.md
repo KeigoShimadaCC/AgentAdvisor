@@ -17,7 +17,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 5 | Evaluation and hardening | done | 4 |
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | done | 4, 6 |
-| 8 | Pipeline improvement | in_progress | 6, 7 |
+| 8 | Pipeline improvement | in_progress (SPEC-044 awaits a live sweep) | 6, 7 |
 | 9 | UX improvement | not_started | 7 (SPEC-053 additionally on 8) |
 
 **Current position (2026-08-03).** Phase 7 is done: all eleven specs (027-037) verified. The web
@@ -37,9 +37,22 @@ checked; reports at `report-and-findings/2026-08-03-evaluation.md` and `dod-audi
 tests, plus 18 live tests deselected by default. `make frontend-check` passes (tsc, the
 type-generation drift check, and 77 frontend unit tests).
 
-**(2026-08-04) Phase 8 opened** from the professional-practice gap analysis at
-`../report-and-findings/2026-08-04-consulting-practice-gap-analysis.md`. Seven specs (038-044), all
-`draft` and awaiting approval. Nothing is implemented yet.
+**(2026-08-04) Phase 8 implemented.** Six of seven specs verified (038-043); SPEC-044 is
+`implemented` and cannot reach `verified` without a live benchmark sweep (authenticated CLI, hours
+of wall clock, ~7M tokens). `make check` is green: lint, mypy, **919 unit tests**, plus 18 live
+tests deselected. `make frontend-check` passes (tsc, the type-generation drift check, **105**
+frontend tests). The pipeline gained one stage (`competing_hypotheses`), three roles (`reviewer-b`,
+`ach`, `monitor`), four deterministic modules (`value_model`, `ach`, `monitoring`, `ingest`),
+eleven gate checks and four projection keys.
+
+**(2026-08-05) Phase 8 final sweep.** The e2e suite was run for the first time this phase — 35
+chromium tests across all three modes (24 fixture / 5 stub / 6 replay), all green. It was not green
+on arrival. Two failures were triaged against `origin/main` in a worktree to separate regression
+from inheritance: a serious axe contrast violation on the brief, **introduced by SPEC-039** and
+fixed here (see that spec's amended results), and `method room shows audit events`, which turned out
+to be a racy assertion in the test rather than the webkit-specific flake the ROADMAP had recorded —
+also fixed. Both had been invisible to `make check` and `make frontend-check`, neither of which runs
+the suite; that gap is the sweep's main finding and is filed under emergent work.
 
 ---
 
@@ -441,13 +454,13 @@ establishes a third model family in the role table. SPEC-038, SPEC-039 and SPEC-
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-038 | Objective weights and a bound value model | draft |
-| SPEC-039 | Independent review with blocking authority, and a limitations statement | draft |
-| SPEC-040 | Analysis of Competing Hypotheses stage | draft |
-| SPEC-041 | Typed action plan | draft |
-| SPEC-042 | Monitoring plan and post-delivery life | draft |
-| SPEC-043 | Private evidence channel (text first cut) | draft |
-| SPEC-044 | Phase 8 re-evaluation | draft |
+| SPEC-041 | Typed action plan | verified |
+| SPEC-038 | Objective weights and a bound value model | verified |
+| SPEC-039 | Independent review with blocking authority, and a limitations statement | verified |
+| SPEC-040 | Analysis of Competing Hypotheses stage | verified |
+| SPEC-042 | Monitoring plan and post-delivery life | verified |
+| SPEC-043 | Private evidence channel (text first cut) | verified |
+| SPEC-044 | Phase 8 re-evaluation | implemented (live sweep outstanding) |
 
 **Findings**
 
@@ -486,6 +499,13 @@ establishes a third model family in the role table. SPEC-038, SPEC-039 and SPEC-
   have rendered through the unknown-event fallback; SPEC-040 now cites Heuer/Pherson and ICD 203.
   The lesson worth keeping: a report that asserts "closes gaps X, Y, Z" is a claim to verify against
   the specs, not a summary to trust.
+- (2026-08-04, found in the Phase 8 gap check) **Five audit events had no lexicon narration** —
+  `dual_track_skipped`, `pre_mortem_skipped`, `reproducibility_gate_failed`,
+  `reproducibility_gate_error`, `wall_clock_exceeded`. All pre-date Phase 8, and all rendered
+  through the unknown-event fallback, so a user watching a case that skipped its pre-mortem or hit
+  the wall clock saw generic noise rather than the reason. Entries added, plus
+  `tests/test_lexicon.py`, which greps every `_audit` call in `orchestrator/` and fails on any
+  event without narration. Closed rather than promoted.
 - (2026-08-04) **Two open questions block approval.** SPEC-043 asks whether the user accepts private
   documents being written into agent workspaces and sent to the configured third-party CLI backend —
   that is a posture decision, not an implementation detail. SPEC-039 may require raising the
@@ -514,13 +534,24 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 - ~~(2026-08-02) Coercion-layer accounting: the Phase 4 runs depended on coercion to complete, so how often it fires, and for which role and field, should be measured rather than assumed benign. Sharpened by the optional-list bug below: the layer was silently not firing on a whole category of fields and nothing noticed until a benchmark scenario died.~~ **Implemented 2026-08-03** in `5af2fce`: `CoercionReport` records every field change, logged to audit trail, extracted by `case_metrics.py` with per-role/per-field/per-type counts. Also fixed a `_base_type` bug where `dict[str, int]` was misidentified as `str`.
 - ~~(2026-08-02) A property test over every artifact model asserting the coercion layer reaches every field, rather than testing hand-picked fields. The `list[...] | None` gap existed because coverage was chosen by example.~~ **Implemented 2026-08-03** in `128231f`: 178 parametrized tests walk every `ArtifactModel` subclass and every field, verifying coercion coverage. Found one known exception (`SensitivityRow.parameter_value: float | NonEmptyStr`).
 - ~~(2026-08-02) Researcher and analyst produce most of the token spend at the worst success rates.~~ **Fixed the same day** in `a2ef43d`; see the Phase 6 findings.
-- (2026-08-03) **The SPEC-037 suite defines a webkit project that has never been run.** The Phase 7
-  results record 35 tests "across chromium", but `e2e/playwright.config.ts` also declares webkit, and
-  running it surfaces `method room shows audit events` as flaky there — it fails, then passes on retry,
-  identically on `origin/main` and on this branch, so it is not a regression. The likely cause is
-  webkit's handling of the SSE fetch stream, which is exactly the kind of browser difference a
-  second engine exists to catch. Either run webkit in the suite and fix the flake, or drop the project
-  from the config so the coverage claim matches what actually executes.
+- ~~(2026-08-03) `method room shows audit events` is flaky on webkit.~~ **Root-caused and fixed
+  2026-08-05 in the Phase 8 final sweep.** It was never webkit-specific: on **chromium** in
+  `E2E_MODE=fixture` it passes and fails on identical invocations, on `origin/main` and on this
+  branch alike. The cause is in the test, not the app — `.method-event-log` renders before its items
+  arrive, and `locator.count()` does not auto-retry, so the assertion read 0 whenever it won the race
+  against the fetch. Replaced with `await expect(logItems.first()).toBeVisible()`; four consecutive
+  runs green. The webkit question is separate and still open: `e2e/playwright.config.ts` declares a
+  webkit project, `make e2e-frontend` would run it, but every recorded result — Phase 7's "35 tests
+  across chromium" and this sweep's 35 (24 fixture / 5 stub / 6 replay) — is chromium only, so no
+  reviewer has seen webkit pass. Either run it and record the result, or drop the project.
+- (2026-08-05, found in the Phase 8 final sweep) **Nothing gates a UI regression.** The repo has no
+  `.github/workflows/` at all, and `make e2e-frontend` is a target neither `make check` nor
+  `make frontend-check` invokes — so the axe and terminology guards only run when a human remembers
+  to run them. Phase 8 shipped a serious contrast violation onto the brief and reached a green
+  `make check` regardless; it was caught by hand-running the suite during this sweep, three commits
+  after it was introduced. The browser-binary half of the problem is fixed (`PW_CHROME` in
+  `playwright.config.ts`), which is the precondition for the rest: wire the suite into CI, or at
+  minimum into `make frontend-check`.
 - (2026-08-03) **`AlternativeAssessment.eliminated` as an agent-declared field.** `OptionView.eliminated`
   currently derives elimination from the rationale prose in `caseview.py::_is_eliminated`. That is one
   tested place rather than a regex in a component, but it is still an inference where the north star
@@ -550,6 +581,10 @@ Work discovered mid-project lands here first as a candidate. With user approval 
   5. **Bind the value model to the ranking** — objective weights elicited at the scope checkpoint, per-objective scores on `AlternativeAssessment`, ranking computed in the orchestrator and diffed against the agent's stated rank. Closes the widest text-to-code gap in north star §8; `objectives` is currently collected and never used quantitatively.
 
   **Promoted to Phase 8 on 2026-08-04** as SPEC-038 to SPEC-044. The two hard items were each split at their natural seam: the typed action plan (SPEC-041) separated from the post-delivery lifecycle (SPEC-042), and the private-evidence text first cut (SPEC-043) separated from the binary-format work, which is deliberately not specced until the seam is proven.
+
+- (2026-08-04, found implementing SPEC-039) **`max_high_tier_calls` is a vestigial cap.** The budget ledger counts high-tier calls by *model*, against `_DEFAULT_MODEL_TIER_MAP`, but no model any role actually resolves to maps to `high`: on cursor every role runs on `low` models (`composer-2.5`, `cursor-grok-4.5-low`), on droid on `medium` (`gpt-5.4`, `claude-sonnet-5`). Seven roles declare `model_tier: high` and none of them consume the counter, so the cap can never fire on the shipped configuration. North star Section 13 makes the escalation ladder's cost ceiling mandatory and orchestrator-enforced; right now it is enforced by a counter that never increments. Either map the role-declared tier onto the budget kind, or drop the cap and stop claiming it. Needs a spec.
+
+- (2026-08-04, found implementing SPEC-039 and again in SPEC-042) **Registering an artifact in `case_store.py` takes four parallel edits and fails at runtime when you miss one.** `_artifact_path` (by instance), `_artifact_path` (by type), `_artifact_dir`, and the `list_artifacts` dispatch are four independent if-chains over the same model set. Two of them differ only by a path suffix, so an edit that targets the wrong one yields `IsADirectoryError` when the artifact is first read rather than an error at import. Both new Phase 8 artifacts hit this. A single registry mapping model type to (directory, filename) would collapse all four and make a missing registration a load-time failure. Needs a spec.
 
 **Promoted**
 

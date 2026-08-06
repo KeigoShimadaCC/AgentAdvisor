@@ -159,5 +159,99 @@ dimensions:
           1: "Some artifacts but gaps"
           2: "Complete chain: intake → framing → evidence → analysis → objections → recommendation"
 
+# ── Phase 8 dimensions (SPEC-044) ────────────────────────────────────────────
+#
+# Added as separate dimensions, never folded into the six above, so the legacy
+# average stays directly comparable to the 2026-08-03 baseline of 1.96. Report both:
+# the legacy average against the old columns, and the extended average alongside it.
+
+  value_model_binding:
+    weight: 1.0
+    phase: 8
+    criteria:
+      - id: vm-1
+        name: weight_elicitation
+        description: "The decision owner's objectives carry weights that reach the ranking"
+        score_range: [0, 2]
+        scoring:
+          0: "No objective weights; the ranking rests on prose alone"
+          1: "Weights present but alternatives are not scored against them"
+          2: "Weights present and every alternative carries per-objective scores"
+      - id: vm-2
+        name: ranking_coherence
+        description: "The weighted ranking and the stated ranking agree, or the difference is explained"
+        score_range: [0, 2]
+        scoring:
+          0: "Rankings disagree with no explanation in key_reasons"
+          1: "Rankings disagree and the difference is acknowledged"
+          2: "Rankings agree, or the divergence is explicitly argued"
+
+  independent_review:
+    weight: 1.0
+    phase: 8
+    criteria:
+      - id: ir-1
+        name: second_opinion_present
+        description: "An independent reviewer re-derived the conclusion from the evidence"
+        score_range: [0, 2]
+        scoring:
+          0: "No independent review ran"
+          1: "Review ran but returned a bare concur with no reasoning of its own"
+          2: "Review ran and its reasoning shows an independent derivation"
+      - id: ir-2
+        name: limitations_disclosure
+        description: "The deliverable states what it could not assess"
+        score_range: [0, 2]
+        scoring:
+          0: "No limitations stated"
+          1: "Generic disclaimers rather than specific gaps"
+          2: "Specific gaps named, each with what would close it"
+
+  disconfirmation:
+    weight: 1.0
+    phase: 8
+    criteria:
+      - id: dq-1
+        name: matrix_completeness
+        description: "Every scored record is scored against every alternative"
+        score_range: [0, 2]
+        scoring:
+          0: "No competing-hypotheses matrix"
+          1: "Matrix present but incomplete or covering a subset of alternatives"
+          2: "Complete matrix over the decision spec's full alternative set"
+      - id: dq-2
+        name: diagnosticity_signal
+        description: "The matrix discriminates rather than scoring everything the same way"
+        score_range: [0, 2]
+        scoring:
+          0: "No matrix, or every record scores identically across alternatives"
+          1: "Most records carry no discriminating power"
+          2: "A clear majority of records discriminate, and the rest are named as not doing so"
+
+  commitment_to_action:
+    weight: 1.0
+    phase: 8
+    criteria:
+      - id: ca-1
+        name: action_executability
+        description: "Actions carry a named owner, a date, and a first step completable in one sitting"
+        score_range: [0, 2]
+        scoring:
+          0: "Actions are sentences with no owner, date or first step"
+          1: "Owners and dates present but first steps missing or vague"
+          2: "Every action has a named owner, a concrete date and a specific first step"
+      - id: ca-2
+        name: monitoring_coverage
+        description: "Leading indicators and change triggers become tracked, with prepared responses"
+        score_range: [0, 2]
+        scoring:
+          0: "No monitoring plan"
+          1: "Indicators tracked but with no thresholds or no linked responses"
+          2: "Indicators carry observables, thresholds and cadences, and link to prepared responses"
+
 # Overall score: weighted average of dimension scores (each dimension 0-2, overall 0-2)
 # 0.0-0.5: poor, 0.5-1.0: fair, 1.0-1.5: good, 1.5-2.0: excellent
+#
+# Report two averages (SPEC-044):
+#   legacy   — the six pre-Phase-8 dimensions only, comparable to the 1.96 baseline
+#   extended — all ten dimensions, which is the honest picture of the current pipeline

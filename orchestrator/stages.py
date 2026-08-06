@@ -10,21 +10,34 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
+from orchestrator.ach import (
+    rank_by_disconfirmation,
+    select_matrix_evidence,
+    zero_diagnosticity_records,
+)
 from orchestrator.artifacts import (
+    MAX_ACH_EVIDENCE,
+    ACHExclusion,
+    ACHMatrix,
     AnalysisResult,
     AssumptionBatch,
     AuditEvent,
     DecisionSpec,
     DisclosureRecord,
     EvidenceBatch,
+    EvidenceCritique,
     EvidenceRecord,
     FinalApproval,
     FinalRecommendation,
+    IndependentReview,
+    IndependentVerdict,
     IntakeRecord,
     IssueTree,
     Level,
+    MonitoringPlan,
     ObjectionBatch,
     ObjectionRecord,
     PreliminaryRecommendation,
@@ -40,6 +53,7 @@ from orchestrator.budget import BudgetConfig, BudgetKind, BudgetLedger, StopEval
 from orchestrator.case_store import Case
 from orchestrator.evidence_critic import critique_case_evidence
 from orchestrator.gates import blocking_findings, run_stage_gate
+from orchestrator.ingest import ingest_case_inputs, unsupported_input_files
 from orchestrator.invoke_role import (
     InvokeTask,
     RoleInvocationFailed,
@@ -47,6 +61,7 @@ from orchestrator.invoke_role import (
     invoke_read_only,
 )
 from orchestrator.issue_tree import compute_coverage
+from orchestrator.monitoring import MonitoringStore, assemble_plan
 from orchestrator.normalize import normalize_evidence_batch
 from orchestrator.planning import apply_planner_acceptance_filter
 from orchestrator.render import write_final_recommendation_markdown
@@ -58,6 +73,7 @@ from orchestrator.task_graph import TaskExecutionResult, TaskGraph
 from orchestrator.thesis import write_thesis
 from orchestrator.tracks import build_position, compare_tracks
 from orchestrator.unpack import unpack_assumption_batch, unpack_objection_batch
+from orchestrator.value_model import compute_ranking, rank_divergence
 from orchestrator.verification import build_verification_worksheet, review_is_acceptable
 
 DEFAULT_TIMEOUT_S = 300.0
@@ -77,6 +93,22 @@ def _role_timeout(backend: AgentBackend, role: str) -> float:
     if getattr(backend, "name", "") == "droid":
         return base * _DROID_TIMEOUT_SCALE
     return base
+
+
+def _unanswered_issue_questions(case: Case) -> list[str]:
+    """Issue-tree leaves with no completed task, for the Limitations section.
+
+    ``compute_coverage`` already computes the leaf/completed-task join; this reuses it
+    so the limitations statement names real gaps rather than inviting the synthesizer
+    to invent plausible ones.
+    """
+    try:
+        tree = case.read_artifact(IssueTree)
+    except FileNotFoundError:
+        return []
+    coverage = compute_coverage(tree, case.list_artifacts(TaskRecord))
+    by_id = {node.node_id: node for node in tree.nodes}
+    return [by_id[node_id].question for node_id in coverage.uncovered_node_ids if node_id in by_id]
 
 
 def _audit(case: Case, event_type: str, payload: dict[str, Any]) -> None:
@@ -240,6 +272,7 @@ class StageHandlers:
         model_tier_map: dict[str, str] | None = None,
         dual_track: bool = True,
         clock: Callable[[], datetime] | None = None,
+        monitoring_root: Path | None = None,
     ) -> None:
         self._backend = backend
         self._budget_config = budget_config
@@ -249,6 +282,8 @@ class StageHandlers:
         self._budget_ledger: BudgetLedger | None = None
         self._task_graph: TaskGraph | None = None
         self._clock: Callable[[], datetime] = clock or (lambda: datetime.now(UTC))
+        # SPEC-042: injectable so tests never touch the real memory root.
+        self._monitoring_root = monitoring_root
 
     @property
     def budget_ledger(self) -> BudgetLedger:
@@ -282,6 +317,7 @@ class StageHandlers:
             "investigation": self.handle_investigation,
             "evidence_critique": self.handle_evidence_critique,
             "assumption_ledger": self.handle_assumption_ledger,
+            "competing_hypotheses": self.handle_competing_hypotheses,
             "preliminary_recommendation": self.handle_preliminary_recommendation,
             "pre_mortem": self.handle_pre_mortem,
             "challenge": self.handle_challenge,
@@ -320,6 +356,27 @@ class StageHandlers:
             return StepResult.error(f"Intake failed: {exc}")
         assert isinstance(artifact, IntakeRecord)
         case.write_artifact(artifact)
+
+        # SPEC-043: ingest the decision's own documents before framing, since a term
+        # sheet or an offer letter frequently changes what the decision even is.
+        ingested = ingest_case_inputs(case)
+        if ingested:
+            _audit(
+                case,
+                "private_evidence_ingested",
+                {
+                    "record_count": len(ingested),
+                    "documents": sorted(
+                        {record.independence_group.split(":", 1)[-1] for record in ingested}
+                    ),
+                },
+            )
+        skipped = unsupported_input_files(case)
+        if skipped:
+            # Told rather than swallowed: a user who dropped a PDF in and saw nothing
+            # happen would reasonably assume it had been read.
+            _audit(case, "private_evidence_unsupported", {"files": skipped})
+
         _audit(case, "stage_completed", {"stage": "intake"})
         return StepResult.ok()
 
@@ -346,6 +403,15 @@ class StageHandlers:
             return StepResult.error(f"Framing failed: {exc}")
         assert isinstance(artifact, DecisionSpec)
         case.write_artifact(artifact)
+        if artifact.objective_weights:
+            _audit(
+                case,
+                "objective_weights_recorded",
+                {
+                    "source": "framing_proposal",
+                    "objective_count": len(artifact.objective_weights),
+                },
+            )
         _audit(case, "stage_completed", {"stage": "framing"})
         return StepResult.ok()
 
@@ -594,6 +660,100 @@ class StageHandlers:
                 "no_assumptions_found": artifact.no_assumptions_found,
             },
         )
+        return StepResult.ok()
+
+    def handle_competing_hypotheses(
+        self, case: Case, state: CaseState, plan: StepPlan
+    ) -> StepResult:
+        """SPEC-040 — score the evidence against every alternative before the thesis forms.
+
+        Failure is non-fatal. The matrix sharpens the Director's input; a case without one
+        is a weaker case, not an invalid one, and dying here would throw away a completed
+        investigation over a hard structured-output task.
+        """
+        try:
+            spec = case.read_artifact(DecisionSpec)
+        except FileNotFoundError as exc:
+            return StepResult.error(f"Competing-hypotheses setup failed: {exc}")
+
+        if len(spec.alternatives) < 2:
+            _audit(
+                case,
+                "ach_skipped",
+                {"reason": "fewer than two alternatives to discriminate between"},
+            )
+            return StepResult.ok()
+
+        evidence = case.list_artifacts(EvidenceRecord)
+        if not evidence:
+            _audit(case, "ach_skipped", {"reason": "no evidence records to score"})
+            return StepResult.ok()
+
+        # Rank by the authority the evidence critique already computed, so the matrix
+        # spends its budget on the records most likely to discriminate.
+        authority: dict[str, float] = {}
+        critiques = case.list_artifacts(EvidenceCritique)
+        if critiques:
+            authority = {score.evidence_id: score.authority_score for score in critiques[0].scored}
+        selected, excluded = select_matrix_evidence(
+            authority,
+            [record.evidence_id for record in evidence],
+            cap=MAX_ACH_EVIDENCE,
+        )
+
+        task = InvokeTask(
+            task_id="T-competing-hypotheses",
+            assignment=(
+                "Score every listed evidence record against every listed alternative.\n"
+                f"Alternatives: {', '.join(spec.alternatives)}\n"
+                f"Evidence ids: {', '.join(selected)}\n"
+                f"Write exactly {len(selected) * len(spec.alternatives)} cells — one per "
+                "(evidence_id, alternative) pair. A partial matrix is rejected.\n"
+                "Ask of each cell: if this alternative were right, how surprising would "
+                "this evidence be? Use 'neutral' freely; most evidence does not "
+                "discriminate, and pretending otherwise is the failure this guards against."
+            ),
+            output_artifact_type="ach_matrix",
+            timeout_s=_role_timeout(self._backend, "ach"),
+        )
+        try:
+            artifact = invoke(
+                case, "ach", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
+        except RoleInvocationFailed as exc:
+            _audit(case, "ach_skipped", {"reason": str(exc)})
+            return StepResult.ok()
+        assert isinstance(artifact, ACHMatrix)
+
+        if excluded:
+            artifact = artifact.model_copy(
+                update={
+                    "excluded_evidence_ids": [
+                        ACHExclusion(
+                            evidence_id=evidence_id,
+                            reason="below the authority cut for the capped matrix",
+                        )
+                        for evidence_id in excluded
+                    ]
+                }
+            )
+        case.write_artifact(artifact)
+
+        standings = rank_by_disconfirmation(artifact)
+        uninformative = zero_diagnosticity_records(artifact)
+        self._gate(case, "competing_hypotheses")
+        _audit(
+            case,
+            "ach_matrix_scored",
+            {
+                "alternatives": len(artifact.alternatives),
+                "evidence_scored": len(artifact.evidence_ids),
+                "evidence_excluded": len(excluded),
+                "least_disconfirmed": standings[0].alternative if standings else None,
+                "zero_diagnosticity_count": len(uninformative),
+            },
+        )
+        _audit(case, "stage_completed", {"stage": "competing_hypotheses"})
         return StepResult.ok()
 
     def _run_track_b(self, case: Case, primary: PreliminaryRecommendation) -> None:
@@ -1028,6 +1188,131 @@ class StageHandlers:
         )
         return StepResult.ok()
 
+    def _write_monitoring_plan(self, case: Case, state: CaseState) -> None:
+        """SPEC-042 — assemble the plan at delivery and persist it outside the pipeline.
+
+        The case stays terminal. What survives delivery is a plan under the memory root,
+        which already outlives individual cases, plus a copy in the case outputs so the
+        delivered package is self-contained.
+
+        Assembly is deterministic and cannot fail; only concretisation is an agent call,
+        and a failed concretisation leaves a plan carrying the prose indicators with
+        ``concretized: false``. A degraded plan beats no plan, and the reader can tell
+        which they have.
+        """
+        try:
+            recommendation = case.read_artifact(FinalRecommendation)
+        except FileNotFoundError:
+            return
+        premortem: PreMortemReport | None = None
+        try:
+            premortem = case.read_artifact(PreMortemReport)
+        except FileNotFoundError:
+            pass
+        owner = "user"
+        try:
+            owner = case.read_artifact(DecisionSpec).owner
+        except FileNotFoundError:
+            pass
+
+        plan = assemble_plan(
+            case.root.name,
+            delivered_at=datetime.now(UTC).date(),
+            premortem=premortem,
+            recommendation=recommendation,
+            owner=owner,
+        )
+        if not plan.indicators:
+            _audit(case, "monitoring_plan_skipped", {"reason": "no indicators to track"})
+            return
+        case.write_artifact(plan)
+
+        # Concretise: turn prose indicators into observables with thresholds.
+        task = InvokeTask(
+            task_id="T-monitoring",
+            assignment=(
+                "Turn each indicator's prose into a concrete observable, threshold and "
+                "check cadence.\n"
+                "Do not add, remove or renumber indicators or mitigations; copy their ids "
+                "through unchanged.\n"
+                "Do not invent a threshold the evidence cannot support — say what is "
+                "unknown instead.\n"
+                "Set concretized: true."
+            ),
+            output_artifact_type="monitoring_plan",
+            timeout_s=DEFAULT_TIMEOUT_S,
+        )
+        try:
+            artifact = invoke(
+                case, "monitor", task, backend=self._backend, budget_ledger=self.budget_ledger
+            )
+        except RoleInvocationFailed as exc:
+            _audit(case, "monitoring_plan_not_concretized", {"reason": str(exc)})
+        else:
+            if isinstance(artifact, MonitoringPlan):
+                plan = artifact
+                case.write_artifact(plan)
+
+        MonitoringStore(self._monitoring_root).write_plan(plan)
+        _audit(
+            case,
+            "monitoring_plan_written",
+            {
+                "indicator_count": len(plan.indicators),
+                "mitigation_count": len(plan.mitigations),
+                "concretized": plan.concretized,
+            },
+        )
+
+    def _run_independent_review(self, case: Case, state: CaseState) -> IndependentReview | None:
+        """Invoke the independent reviewer; a failure degrades rather than blocks.
+
+        The reviewer sees the conclusion and the raw evidence but never the reasoning
+        trail (see ``_independent_review_packet``).  If the invocation fails, the case
+        proceeds without a second opinion rather than dying at the last gate — the
+        absence is audited, and the reviewer's own gate check records nothing, so the
+        omission is visible instead of silently passing as a concur.
+        """
+        task = InvokeTask(
+            task_id=f"T-independent-review-{state.synthesis_retries}",
+            assignment=(
+                "You are the independent second opinion on this recommendation.\n"
+                "You have the decision spec, the final recommendation, the evidence "
+                "ledger, the assumption ledger and the evidence critique. You do NOT "
+                "have the thesis history, objections, dual-track comparison or "
+                "pre-mortem; that exclusion is deliberate.\n"
+                "Answer one question: reading this evidence, would you reach this "
+                "conclusion?\n"
+                "Output an IndependentReview. Dissent only if you would reach a "
+                "different conclusion, and name it."
+            ),
+            output_artifact_type="independent_review",
+            timeout_s=_role_timeout(self._backend, "reviewer"),
+        )
+        try:
+            artifact = invoke(
+                case,
+                "reviewer",
+                task,
+                backend=self._backend,
+                variant="b",
+                budget_ledger=self.budget_ledger,
+            )
+        except RoleInvocationFailed as exc:
+            _audit(case, "independent_review_skipped", {"reason": str(exc)})
+            return None
+        assert isinstance(artifact, IndependentReview)
+        case.write_artifact(artifact)
+        _audit(
+            case,
+            "independent_review_recorded",
+            {
+                "verdict": artifact.verdict.value,
+                "unsupported_claim_count": len(artifact.unsupported_claims),
+            },
+        )
+        return artifact
+
     def handle_review(self, case: Case, state: CaseState, plan: StepPlan) -> StepResult:
         from orchestrator.state_machine import StepOutcome
 
@@ -1086,6 +1371,20 @@ class StageHandlers:
             },
         )
 
+        # SPEC-039 — independent review. Runs only once the conformance reviewer has
+        # passed: there is no point asking a second opinion about a package whose
+        # citations do not resolve, and it would burn a high-tier invocation per retry.
+        independent: IndependentReview | None = None
+        if accepted:
+            independent = self._run_independent_review(case, state)
+            if independent is not None and independent.verdict is IndependentVerdict.DISSENT:
+                accepted = False
+                state.review_accepted = False
+                save_case_state(case, state)
+
+        if accepted:
+            self._write_monitoring_plan(case, state)
+
         # Render unconditionally: if the retry budget is exhausted the state machine
         # advances to approval anyway, and an unrendered case would have no output.
         try:
@@ -1101,6 +1400,35 @@ class StageHandlers:
                 premortem = case.read_artifact(PreMortemReport)
             except FileNotFoundError:
                 pass
+            monitoring_plan: MonitoringPlan | None = None
+            try:
+                monitoring_plan = case.read_artifact(MonitoringPlan)
+            except FileNotFoundError:
+                pass
+            ach_matrix: ACHMatrix | None = None
+            try:
+                ach_matrix = case.read_artifact(ACHMatrix)
+            except FileNotFoundError:
+                pass
+            objective_weights: dict[str, float] | None = None
+            try:
+                objective_weights = case.read_artifact(DecisionSpec).objective_weights
+            except FileNotFoundError:
+                pass
+            if objective_weights:
+                ranked = compute_ranking(objective_weights, recommendation.alternatives_considered)
+                divergence = rank_divergence(
+                    objective_weights, recommendation.alternatives_considered
+                )
+                _audit(
+                    case,
+                    "value_model_ranked",
+                    {
+                        "top_alternative": ranked[0].alternative if ranked else None,
+                        "agrees_with_stated_rank": divergence.agrees,
+                        "scored_alternatives": len(ranked),
+                    },
+                )
 
             write_final_recommendation_markdown(
                 case.root,
@@ -1109,6 +1437,11 @@ class StageHandlers:
                 disclosure_record=disclosure,
                 user_supplied_inputs=[self._raw_prompt],
                 premortem_report=premortem,
+                objective_weights=objective_weights,
+                independent_review=independent,
+                unanswered_questions=_unanswered_issue_questions(case),
+                ach_matrix=ach_matrix,
+                monitoring_plan=monitoring_plan,
             )
         except FileNotFoundError as exc:
             return StepResult.error(f"Render failed: {exc}")

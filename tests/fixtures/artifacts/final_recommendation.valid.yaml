@@ -1,9 +1,11 @@
 alternatives_considered:
 - alternative: invest_now
+  objective_scores: null
   rank: 2
   rationale: Higher upside but materially higher downside concentration.
   schema_version: 1
 - alternative: invest_smaller_amount
+  objective_scores: null
   rank: 1
   rationale: Best downside-adjusted expected utility under current uncertainty.
   schema_version: 1
@@ -19,14 +21,32 @@ evidence_confidence:
 key_reasons:
 - Asymmetric downside risk is still meaningful.
 - Staged or smaller allocation preserves option value.
+limitations: []
 model_stability:
   runs_supporting: 19
   runs_total: 25
   schema_version: 1
   share_of_sensitivity_runs_supporting_recommendation: 0.76
 next_actions:
-- Collect competitor pricing data within 30 days.
-- Set max loss guardrail before order placement.
+- action: Collect competitor pricing data within 30 days
+  action_id: N-001
+  by_date: '2026-08-15'
+  depends_on: []
+  estimated_cost: null
+  first_step: 'Block 30 minutes and start: collect competitor pricing data within
+    30 days'
+  owner: user
+  schema_version: 1
+  why_now: Carries the recommendation into execution
+- action: Set max loss guardrail before order placement
+  action_id: N-002
+  by_date: '2026-08-22'
+  depends_on: []
+  estimated_cost: null
+  first_step: 'Block 30 minutes and start: set max loss guardrail before order placement'
+  owner: user
+  schema_version: 1
+  why_now: Carries the recommendation into execution
 outcome_probabilities:
   positive_return_within_5y:
     adjustments:

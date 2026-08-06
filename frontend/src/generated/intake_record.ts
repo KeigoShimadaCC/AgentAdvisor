@@ -2,7 +2,7 @@
 
 export type AlternativesMentioned = [string, ...string[]] | null;
 /**
- * @maxItems 5
+ * @maxItems 8
  */
 export type ClarificationQuestions =
   | []
@@ -10,7 +10,43 @@ export type ClarificationQuestions =
   | [ClarificationQuestion, ClarificationQuestion]
   | [ClarificationQuestion, ClarificationQuestion, ClarificationQuestion]
   | [ClarificationQuestion, ClarificationQuestion, ClarificationQuestion, ClarificationQuestion]
-  | [ClarificationQuestion, ClarificationQuestion, ClarificationQuestion, ClarificationQuestion, ClarificationQuestion];
+  | [ClarificationQuestion, ClarificationQuestion, ClarificationQuestion, ClarificationQuestion, ClarificationQuestion]
+  | [
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion
+    ]
+  | [
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion
+    ]
+  | [
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion,
+      ClarificationQuestion
+    ];
+/**
+ * What an intake question is asking for.
+ *
+ * Before SPEC-043 every question had to map to one of eight framing fields, so intake
+ * could ask "what is your risk tolerance?" but not "what is your cost basis?" — and the
+ * facts that decide personal cases usually live in the decision owner's head rather
+ * than on the public web.
+ */
+export type ClarificationKind = 'field' | 'document' | 'fact';
 export type MaterialityReason = string;
 export type Question = string;
 export type QuestionId = string;
@@ -22,7 +58,8 @@ export type IntakeField =
   | 'constraints'
   | 'risk_tolerance'
   | 'reversibility'
-  | 'depth';
+  | 'depth'
+  | 'internal_information';
 export type SchemaVersion = number;
 export type Constraints = [string, ...string[]] | null;
 export type Deadline = string | null;
@@ -48,9 +85,10 @@ export interface IntakeRecord {
   schema_version?: SchemaVersion1;
 }
 export interface ClarificationQuestion {
+  kind?: ClarificationKind;
   materiality_reason: MaterialityReason;
   question: Question;
   question_id: QuestionId;
-  resolves_field: IntakeField;
+  resolves_field?: IntakeField | null;
   schema_version?: SchemaVersion;
 }

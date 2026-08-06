@@ -1,0 +1,66 @@
+{
+  "$defs": {
+    "IndependentVerdict": {
+      "enum": [
+        "concur",
+        "concur_with_reservations",
+        "dissent"
+      ],
+      "title": "IndependentVerdict",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A second opinion on the substance, from a reviewer that never saw the reasoning.\n\nThe existing ``ReviewReport`` is a conformance check: citations resolve, confidence\nlanguage matches, worksheet items are all answered.  It catches malformed output but\ncannot catch a well-formed conclusion the evidence does not support, because nobody\nre-derives the answer.\n\nThis role receives the conclusion and the raw evidence ledger but not the thesis\nhistory, objections, track divergence or pre-mortem, and answers one question: would\nyou reach this conclusion from this evidence?",
+  "properties": {
+    "divergent_conclusion": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Divergent Conclusion"
+    },
+    "evidence_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Evidence Ids",
+      "type": "array"
+    },
+    "reasoning": {
+      "minLength": 1,
+      "title": "Reasoning",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "unsupported_claims": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Unsupported Claims",
+      "type": "array"
+    },
+    "verdict": {
+      "$ref": "#/$defs/IndependentVerdict"
+    }
+  },
+  "required": [
+    "verdict",
+    "reasoning"
+  ],
+  "title": "IndependentReview",
+  "type": "object"
+}

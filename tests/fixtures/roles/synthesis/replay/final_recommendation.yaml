@@ -68,8 +68,18 @@ recommendation_change_triggers:
   - If retention drops below 110% for two consecutive quarters, switch to wait_for_milestone.
   - If independent benchmark data contradicts filing-based retention durability, pause follow-on.
 next_actions:
-  - Define tranche sizing and downside guardrails before execution.
-  - Collect one independent retention benchmark before second tranche release.
+  - action_id: "N-001"
+    action: "Define tranche sizing and downside guardrails before execution"
+    owner: "user"
+    by_date: "2026-08-15"
+    first_step: "Block 30 minutes and start: define tranche sizing and downside guardrails before execution"
+    why_now: "Carries the recommendation into execution"
+  - action_id: "N-002"
+    action: "Collect one independent retention benchmark before second tranche release"
+    owner: "user"
+    by_date: "2026-08-22"
+    first_step: "Block 30 minutes and start: collect one independent retention benchmark before second tranche release"
+    why_now: "Carries the recommendation into execution"
 citations:
   - E-101
   - E-102

@@ -20,7 +20,12 @@ model_stability:
   schema_version: 1
   share_of_sensitivity_runs_supporting_recommendation: 0.75
 next_actions:
-- Collect competitor pricing data.
+  - action_id: "N-001"
+    action: "Collect competitor pricing data"
+    owner: "user"
+    by_date: "2026-08-15"
+    first_step: "Block 30 minutes and start: collect competitor pricing data"
+    why_now: "Carries the recommendation into execution"
 outcome_probabilities:
   positive_return_within_5y:
     adjustments:

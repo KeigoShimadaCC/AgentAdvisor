@@ -2,7 +2,7 @@
 id: SPEC-042
 title: Monitoring plan and post-delivery life
 phase: 8
-status: draft
+status: verified
 depends_on: [SPEC-041]
 parallel_with: [SPEC-043]
 north_star_refs: ["3", "9", "16", "19"]
@@ -107,40 +107,40 @@ check per indicator against the cadence, with the delivery date as the origin.
 
 ## Deliverables
 
-- [ ] `orchestrator/artifacts/monitoring.py` and `orchestrator/monitoring.py`
-- [ ] `cursor/roles/monitor.{md,yaml}`, `TaskRole.MONITOR`, model table entries
-- [ ] Plan assembly in `handle_review`, with the degraded path
-- [ ] `TrackedMitigation` assembly from `FailureMode.preventive_action`, linked to indicators
-- [ ] `memory/monitoring/` store with atomic writes
-- [ ] `advisor watch` and `advisor check` commands
-- [ ] Service read endpoint and Delivery-screen monitoring block
-- [ ] `scripts/record_outcome.py` breach integration
-- [ ] Renderer monitoring table and risk register
-- [ ] Three `lexicon_data.yaml` narration entries
-- [ ] `tests/test_monitoring.py`
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `orchestrator/artifacts/monitoring.py` and `orchestrator/monitoring.py`
+- [x] `cursor/roles/monitor.{md,yaml}`, `TaskRole.MONITOR`, model table entries
+- [x] Plan assembly in `handle_review`, with the degraded path
+- [x] `TrackedMitigation` assembly from `FailureMode.preventive_action`, linked to indicators
+- [x] `memory/monitoring/` store with atomic writes
+- [x] `advisor watch` and `advisor check` commands
+- [x] Service read endpoint and Delivery-screen monitoring block
+- [x] `scripts/record_outcome.py` breach integration
+- [x] Renderer monitoring table and risk register
+- [x] Three `lexicon_data.yaml` narration entries
+- [x] `tests/test_monitoring.py`
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] Every `leading_indicators` entry and every `recommendation_change_triggers` entry from a
+- [x] `make check` and `make frontend-check` are green.
+- [x] Every `leading_indicators` entry and every `recommendation_change_triggers` entry from a
       fixture case appears in the assembled plan, asserted by count.
-- [ ] `check_cadence_days` outside `[7, 180]` is rejected.
-- [ ] `due_checks` unit tests cover: never checked, checked within cadence, checked beyond cadence,
+- [x] `check_cadence_days` outside `[7, 180]` is rejected.
+- [x] `due_checks` unit tests cover: never checked, checked within cadence, checked beyond cadence,
       and an `as_of` before delivery.
-- [ ] A failed `monitor` invocation still produces a plan, flagged as not concretized.
-- [ ] A stub pipeline run reaches `done` and writes `memory/monitoring/<case-id>.yaml`.
-- [ ] `advisor watch --due` lists exactly the overdue indicators for a seeded store.
-- [ ] `advisor check` recording a breach prints the linked-case recommendation and does not mutate
+- [x] A failed `monitor` invocation still produces a plan, flagged as not concretized.
+- [x] A stub pipeline run reaches `done` and writes `memory/monitoring/<case-id>.yaml`.
+- [x] `advisor watch --due` lists exactly the overdue indicators for a seeded store.
+- [x] `advisor check` recording a breach prints the linked-case recommendation and does not mutate
       the delivered case directory.
-- [ ] The delivered case's stage history is unchanged from the pre-change pipeline.
-- [ ] Every `FailureMode.preventive_action` in a fixture case appears as a `TrackedMitigation`,
+- [x] The delivered case's stage history is unchanged from the pre-change pipeline.
+- [x] Every `FailureMode.preventive_action` in a fixture case appears as a `TrackedMitigation`,
       asserted by count, each carrying an owner and a `triggered_by` list that resolves to
       indicators drawn from the same failure mode.
-- [ ] `mitigations_for` returns exactly the mitigations linked to a breached indicator, and
+- [x] `mitigations_for` returns exactly the mitigations linked to a breached indicator, and
       `advisor check --breached` prints them.
-- [ ] `advisor report` renders a risk register with owner and status columns.
-- [ ] No audit event emitted by this spec renders through the lexicon's unknown-event fallback,
+- [x] `advisor report` renders a risk register with owner and status columns.
+- [x] No audit event emitted by this spec renders through the lexicon's unknown-event fallback,
       asserted by a test over `lexicon_data.yaml`.
 
 ## Verification plan
@@ -151,9 +151,55 @@ case directory before and after `advisor check` to confirm immutability.
 
 ## Verification results
 
-Not yet executed.
+**Verified 2026-08-04.**
+
+Commands: `uv run ruff check`, `uv run ruff format --check`, `uv run mypy orchestrator`,
+`uv run pytest` (865 passed, 18 deselected), `npm run typecheck`, `npm run check:clean`,
+`npm test` (102 passed), plus a manual CLI walkthrough against a seeded store.
+
+All acceptance criteria met. `tests/test_monitoring.py` adds 23 tests. The end-to-end stub run
+asserts the rendered "What to watch" table, the "If one fires" register, and that
+`outputs/monitoring_plan.yaml` exists.
+
+The CLI loop was exercised by hand: `advisor watch --due` listed four overdue indicators for a
+backdated plan; `advisor check … --breached` recorded the observation, printed the linked
+mitigation, printed the new-linked-case guidance, and the indicator then cleared from `watch`.
+
+**The lifecycle decision held.** Cases stay terminal; nothing in `state_machine.py` changed. The
+plan is assembled at delivery, written to both the case outputs and the memory root, and every
+post-delivery operation is a read or a write against the store. A breach recommends a new linked
+case rather than reopening the delivered one.
+
+**Deviations from the spec as written:**
+
+1. **No `monitor` stage.** Concretisation is one invocation inside the existing `handle_review`
+   rather than a stage of its own, since it neither branches nor needs its own transition. The
+   service endpoint and Delivery-screen block the spec listed *were* built — an earlier pass
+   descoped them, and a follow-up audit correctly rejected that: the spec listed them, they are
+   what makes the plan visible to a user who never opens a terminal, and the reasoning for
+   dropping them ("the renderer already covers it") only held for the delivered markdown, not for
+   the live view.
+2. **Assembly is split from concretisation more sharply than specified.** `assemble_plan` is pure
+   and cannot fail; the agent call only sharpens text. A failed invocation leaves
+   `concretized: false`, which the renderer surfaces with a line telling the reader the thresholds
+   are raw indicator text. Verified by `test_plan_is_marked_unconcretized_until_the_monitor_runs`.
+3. **Duplicate indicator text is collapsed.** Not in the spec, but the pre-mortem and the
+   synthesizer routinely name the same warning sign, and two identical rows in a watch list is how
+   a watch list starts being ignored. First occurrence keeps its provenance.
+4. **`scripts/record_outcome.py --list` now surfaces breached cases.** The spec wanted a breach to
+   prompt outcome recording. A breach is not itself an outcome, so it does not *record* one — but
+   it is the strongest available signal that an outcome has become knowable, so `--list` names any
+   case with a breached indicator and no recorded outcome, and says exactly that. The distinction
+   is kept in the copy rather than dissolved.
+
+**The prefix-match trap bit twice.** Registering an artifact in `case_store.py` requires four
+edits, and two of the four blocks differ only by a path suffix — so a naive string replacement
+matches the wrong one and produces `IsADirectoryError` at runtime rather than a load-time failure.
+It happened for `IndependentReview` in SPEC-039 and again for `MonitoringPlan` here. Worth a
+registry rather than four parallel if-chains; added to ROADMAP emergent work.
 
 ## Open questions
 
-- Should the monitoring store be gitignored like `cases/` and `memory/`? Proposal: yes, it lives
-  under the already-gitignored `memory/` root and is personal data.
+None. The open question — whether the monitoring store is gitignored — was resolved as proposed:
+it lives under `memory/monitoring/`, inside the already-gitignored `memory/` root, and is personal
+data that must not be committed.

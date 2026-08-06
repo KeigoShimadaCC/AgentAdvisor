@@ -1,3 +1,10 @@
+from orchestrator.artifacts.ach import (
+    MAX_ACH_EVIDENCE,
+    ACHCell,
+    ACHConsistency,
+    ACHExclusion,
+    ACHMatrix,
+)
 from orchestrator.artifacts.analysis import (
     AnalysisResult,
     AnalysisScenario,
@@ -18,6 +25,7 @@ from orchestrator.artifacts.audit_findings import (
     AuditStopInput,
 )
 from orchestrator.artifacts.common import (
+    ActionId,
     AssumptionId,
     AssumptionStatus,
     AssumptionType,
@@ -61,6 +69,7 @@ from orchestrator.artifacts.gates import (
     max_severity,
 )
 from orchestrator.artifacts.intake import (
+    ClarificationKind,
     ClarificationQuestion,
     FramingApproval,
     FramingDecision,
@@ -78,6 +87,16 @@ from orchestrator.artifacts.memory import (
     RecurringAssumption,
     SourceReputation,
 )
+from orchestrator.artifacts.monitoring import (
+    IndicatorCheck,
+    IndicatorId,
+    IndicatorSource,
+    MitigationId,
+    MitigationStatus,
+    MonitoredIndicator,
+    MonitoringPlan,
+    TrackedMitigation,
+)
 from orchestrator.artifacts.objections import ObjectionBatch, ObjectionMode, ObjectionRecord
 from orchestrator.artifacts.premortem import MAX_FAILURE_MODES, FailureMode, PreMortemReport
 from orchestrator.artifacts.probability import ProbabilityAdjustment, ProbabilityEstimate
@@ -85,10 +104,13 @@ from orchestrator.artifacts.recommendations import (
     AlternativeAssessment,
     Counterargument,
     FinalRecommendation,
+    NextAction,
     PreliminaryRecommendation,
     ScenarioAssessment,
 )
 from orchestrator.artifacts.review import (
+    IndependentReview,
+    IndependentVerdict,
     ReviewDefect,
     ReviewDefectType,
     ReviewOutcome,
@@ -111,10 +133,16 @@ from orchestrator.artifacts.verification import (
 )
 
 __all__ = [
+    "ACHCell",
+    "ACHConsistency",
+    "ACHExclusion",
+    "ACHMatrix",
+    "MAX_ACH_EVIDENCE",
     "AnalysisResult",
     "AnalysisScenario",
     "AlternativeAssessment",
     "AssumptionBatch",
+    "ActionId",
     "AssumptionId",
     "AssumptionRecord",
     "AssumptionStatus",
@@ -132,6 +160,7 @@ __all__ = [
     "CitationCheckItem",
     "CitationVerdict",
     "ClarificationQuestion",
+    "ClarificationKind",
     "ConfidenceAssessment",
     "Counterargument",
     "DecisionSpec",
@@ -160,10 +189,20 @@ __all__ = [
     "FinalRecommendation",
     "FramingApproval",
     "FramingDecision",
+    "IndependentReview",
+    "IndependentVerdict",
+    "IndicatorCheck",
+    "IndicatorId",
+    "IndicatorSource",
     "IntakeField",
     "IntakeRecord",
     "Level",
+    "MitigationId",
+    "MitigationStatus",
     "ModelStability",
+    "MonitoredIndicator",
+    "MonitoringPlan",
+    "NextAction",
     "ObjectionBatch",
     "ObjectionId",
     "ObjectionMode",
@@ -203,6 +242,7 @@ __all__ = [
     "TaskRole",
     "TaskStatus",
     "ThesisRevision",
+    "TrackedMitigation",
     "ThesisTrigger",
     "TrackDivergence",
     "TrackPosition",

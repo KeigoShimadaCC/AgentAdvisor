@@ -63,6 +63,11 @@ def _flags(
     flags: list[EvidenceFlag] = []
     if tier is SourceTier.WEAK:
         flags.append(EvidenceFlag.WEAK_SOURCE_TIER)
+    if tier is SourceTier.UNVERIFIABLE:
+        # SPEC-043: user-supplied. Flagged rather than penalised — the reader needs to
+        # know a claim rests on the decision owner's own material, which no external
+        # source confirms.
+        flags.append(EvidenceFlag.USER_SUPPLIED)
     if age_days > STALE_AFTER_DAYS:
         flags.append(EvidenceFlag.STALE)
     if record.directness is Level.LOW:

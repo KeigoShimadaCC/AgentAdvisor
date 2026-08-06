@@ -107,6 +107,8 @@ uv run advisor report case-001-semis
 | `advisor resume <case-id>` | Continue a case interrupted mid-stage |
 | `advisor report <case-id>` | Print the final recommendation |
 | `advisor list [--json]` | Every case with its stage |
+| `advisor watch [<case-id>] [--due]` | Monitoring checks that have come due |
+| `advisor check <case-id> <M-nnn> --observed "..." [--breached]` | Record an observation |
 | `advisor ui [--port p]` | Serve the local web UI (see below) |
 
 Useful flags:
@@ -119,6 +121,8 @@ Useful flags:
   approval, so the change is auditable rather than silent.
 - `--answers <file.yaml>` answers the clarification questions intake raised, as a
   mapping of `question_id` to answer.
+- `--input <file>` on `new` (repeatable) hands the case a document about the decision
+  itself — an offer letter, a term sheet, a vendor quote. See below.
 - `--cases-root <dir>` or `AGENTADVISOR_CASES_ROOT` puts case data somewhere else.
 
 Exit codes: `0` success, `2` your mistake (unknown case, wrong stage), `3` the pipeline
@@ -138,6 +142,45 @@ cd frontend && npm install && npm run dev   # SPA on http://localhost:5173
 
 See [`frontend/README.md`](frontend/README.md) for the dev setup, replay mode (re-watch
 a recorded case at scaled speed, zero tokens), and the Playwright e2e suite.
+
+## Your own documents
+
+Public research alone cannot see the decision's own paperwork, and the numbers that
+usually decide a personal case live there. Drop markdown or plain-text files into
+`cases/<case-id>/inputs/`, or pass them at creation:
+
+```bash
+uv run advisor new "Should I accept this offer?" --input ~/offer.md --slug offer
+```
+
+They are read at intake and become evidence records like any other, with three
+differences: their `source_type` is `user_document`, every excerpt from one file shares
+one independence group (so two quotes from your offer letter are never corroboration),
+and they are scored `unverifiable` rather than placed on the public-source authority
+ladder. A conclusion resting only on them is flagged in the report.
+
+Private evidence reaches the roles that reason about the decision and is withheld from
+the ones that check the reasoning — a reviewer anchored on your own material is not
+independent. It also stays inside its own case and never enters cross-case memory.
+
+**Supplied documents are sent to whichever agent CLI backend the case runs on.** Text
+formats only for now; other files are reported and skipped rather than silently ignored.
+
+## After delivery
+
+A finished case leaves a monitoring plan: the pre-mortem's leading indicators and the
+recommendation's change triggers, each with an observable, a breach threshold and a check
+cadence, paired with the pre-mortem's preventive actions as a register of prepared
+responses. It lives in `memory/monitoring/` and outlives the case.
+
+```bash
+uv run advisor watch --due
+uv run advisor check case-001-semis M-001 --observed "Q3 growth 3.1%, Q4 4.2%" --breached
+```
+
+A breach prints the responses linked to that indicator and recommends opening a **new**
+case. Delivered cases stay terminal: a decision made under different conditions is a
+different decision, and reopening one would corrupt the audit chain the product rests on.
 
 ## Recording what actually happened
 
@@ -159,7 +202,7 @@ it has been running optimistic or pessimistic.
 
 ```
 cases/         # case blackboards: artifacts, state, audit log (gitignored)
-memory/        # cross-case memory: prior cases, source reputation, calibration (gitignored)
+memory/        # cross-case memory: prior cases, reputation, calibration, monitoring (gitignored)
 orchestrator/  # the deterministic Python orchestrator (incl. service/ for the web API)
 frontend/      # the web UI: React SPA, generated types, Playwright e2e suite
 backends/      # per-backend model configuration (e.g. backends/droid/models.yaml)

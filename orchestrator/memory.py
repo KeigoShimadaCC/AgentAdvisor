@@ -37,6 +37,7 @@ from orchestrator.artifacts import (
     PriorEvidenceEntry,
     RecurringAssumption,
     SourceReputation,
+    SourceType,
 )
 from orchestrator.artifacts.yaml_io import dump_model_to_yaml_text
 from orchestrator.calibration import summarize_calibration
@@ -275,6 +276,12 @@ class MemoryStore:
     def source_reputations(self) -> list[SourceReputation]:
         by_domain: dict[str, list[PriorEvidenceEntry]] = defaultdict(list)
         for entry in self.prior_evidence():
+            # SPEC-043: user-supplied material has no registrable domain and no
+            # cross-case track record — one person's own documents are not a source
+            # whose reliability accumulates. A `user://` or `file://` reference would
+            # otherwise collect a reputation under a meaningless host.
+            if entry.source_type == SourceType.USER_DOCUMENT.value:
+                continue
             by_domain[registrable_domain(entry.source_url)].append(entry)
 
         reputations = [
@@ -341,6 +348,11 @@ class MemoryStore:
             entry for entry in self.prior_evidence() if entry.from_case_id != case.root.name
         ]
         for record in case.list_artifacts(EvidenceRecord):
+            # SPEC-043: private evidence stays inside its own case. Carrying one
+            # case's offer letter into an unrelated future case would leak personal
+            # material across decisions that have nothing to do with each other.
+            if record.source_type is SourceType.USER_DOCUMENT:
+                continue
             score, _, _ = authority_score(record, as_of=today)
             existing.append(
                 PriorEvidenceEntry(

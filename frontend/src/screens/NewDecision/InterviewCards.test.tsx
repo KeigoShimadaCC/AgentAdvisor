@@ -68,6 +68,53 @@ describe("InterviewCards", () => {
     fireEvent.click(skipButtons[0]);
 
     fireEvent.click(screen.getByText("Continue to the scope sheet"));
-    expect(onDone).toHaveBeenCalledWith({ risk_tolerance: "low" });
+    // Keyed by question_id: that is what the engine's clarification_answers mapping
+    // expects. Keying by resolves_field silently produced the wrong keys until
+    // SPEC-043 made the field optional and forced the question.
+    expect(onDone).toHaveBeenCalledWith({ "q-risk": "low" });
+  });
+});
+
+describe("InterviewCards with non-field questions (SPEC-043)", () => {
+  const openQuestions: ClarificationQuestion[] = [
+    {
+      question_id: "q-doc",
+      kind: "document",
+      question: "Can you add the vendor's quote to the case?",
+      materiality_reason: "Renewal pricing decides the buy path's real cost.",
+    },
+    {
+      question_id: "q-fact",
+      kind: "fact",
+      question: "What do you currently spend on this per year?",
+      materiality_reason: "Without today's baseline neither option is comparable.",
+    },
+  ];
+
+  it("renders questions that fill no framing field", () => {
+    render(<InterviewCards caseId="c1" questions={openQuestions} onDone={() => {}} />);
+    expect(screen.getByText("Can you add the vendor's quote to the case?")).toBeInTheDocument();
+    expect(screen.getAllByText(/only you can answer it/)).toHaveLength(2);
+  });
+
+  it("offers no quick-answer chips for an open question", () => {
+    render(<InterviewCards caseId="c1" questions={openQuestions} onDone={() => {}} />);
+    expect(screen.queryByRole("group", { name: "Quick answers" })).not.toBeInTheDocument();
+  });
+
+  it("collects free-text answers keyed by question_id", () => {
+    const onDone = vi.fn();
+    render(<InterviewCards caseId="c1" questions={openQuestions} onDone={onDone} />);
+    const inputs = screen.getAllByPlaceholderText("Or type your own answer");
+    fireEvent.change(inputs[0], { target: { value: "Attached as quote.md" } });
+    fireEvent.blur(inputs[0]);
+    fireEvent.change(inputs[1], { target: { value: "About 48,000 a year" } });
+    fireEvent.blur(inputs[1]);
+
+    fireEvent.click(screen.getByText("Continue to the scope sheet"));
+    expect(onDone).toHaveBeenCalledWith({
+      "q-doc": "Attached as quote.md",
+      "q-fact": "About 48,000 a year",
+    });
   });
 });

@@ -19,6 +19,9 @@ import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
 from orchestrator.artifacts import (
+    ACHCell,
+    ACHConsistency,
+    ACHMatrix,
     AlternativeAssessment,
     AnalysisResult,
     AnalysisScenario,
@@ -36,12 +39,16 @@ from orchestrator.artifacts import (
     EvidenceRecord,
     FailureMode,
     FinalRecommendation,
+    IndependentReview,
+    IndependentVerdict,
     IntakeRecord,
     IssueNode,
     IssueNodeType,
     IssueTree,
     Level,
     ModelStability,
+    MonitoringPlan,
+    NextAction,
     ObjectionBatch,
     ObjectionMode,
     ObjectionRecord,
@@ -116,6 +123,7 @@ def _make_decision_spec() -> DecisionSpec:
         risk_tolerance=RiskTolerance.MODERATE,
         reversibility=Reversibility.PARTIALLY_REVERSIBLE,
         depth=Depth.STANDARD,
+        objective_weights={"capital appreciation": 40.0, "risk management": 60.0},
     )
 
 
@@ -455,18 +463,21 @@ def _make_final_recommendation() -> FinalRecommendation:
         alternatives_considered=[
             AlternativeAssessment(
                 alternative="invest_nvda_now",
-                rank=2,
+                rank=3,
                 rationale="Full allocation carries concentration risk",
+                objective_scores={"capital appreciation": 0.85, "risk management": 0.30},
             ),
             AlternativeAssessment(
                 alternative="staged_entry",
                 rank=1,
                 rationale="Balances timing risk with participation",
+                objective_scores={"capital appreciation": 0.70, "risk management": 0.75},
             ),
             AlternativeAssessment(
                 alternative="etf_diversified",
-                rank=3,
+                rank=2,
                 rationale="Lower risk but also lower expected return",
+                objective_scores={"capital appreciation": 0.45, "risk management": 0.72},
             ),
         ],
         key_reasons=[
@@ -491,7 +502,9 @@ def _make_final_recommendation() -> FinalRecommendation:
                 probability=_prob(0.25),
             ),
         ],
-        quantitative_findings=["Expected value of staged entry: $11,000 based on scenario model"],
+        quantitative_findings=[
+            "Expected value of staged entry: $11,000 based on scenario model [E-001]"
+        ],
         strongest_counterarguments=[
             Counterargument(
                 claim="Staged entry may miss the upside if earnings beat",
@@ -501,9 +514,29 @@ def _make_final_recommendation() -> FinalRecommendation:
         ],
         critical_assumptions=["A-001"],
         recommendation_change_triggers=["If earnings miss by >10%, shift to ETF strategy"],
+        limitations=[
+            "Valuation evidence rests on a single independence group",
+            "Competitive response within 24 months was not investigated",
+        ],
         next_actions=[
-            "Place initial 30% allocation this week",
-            "Set earnings alert for next quarter",
+            NextAction(
+                action_id="N-001",
+                action="Place initial 30% allocation",
+                owner="user",
+                by_date=date(2026, 8, 15),
+                first_step="Open the brokerage order ticket and set a limit price",
+                why_now="Staged entry starts now so the remaining tranches stay optional",
+                estimated_cost="15000 USD",
+            ),
+            NextAction(
+                action_id="N-002",
+                action="Set an earnings alert for next quarter",
+                owner="user",
+                by_date=date(2026, 8, 20),
+                first_step="Add the earnings date to the calendar with a price alert",
+                why_now="The next print is the first checkpoint for the staged plan",
+                depends_on=["N-001"],
+            ),
         ],
         citations=["E-001", "E-002"],
         outcome_probabilities={"positive_return_12m": _prob(0.58)},
@@ -518,6 +551,89 @@ def _make_final_recommendation() -> FinalRecommendation:
             runs_total=2,
             runs_supporting=1,
         ),
+    )
+
+
+def _make_independent_review() -> IndependentReview:
+    return IndependentReview(
+        verdict=IndependentVerdict.CONCUR_WITH_RESERVATIONS,
+        reasoning=(
+            "The evidence supports a staged entry over a full allocation: the valuation "
+            "records show a premium multiple that growth only partly justifies, and the "
+            "concentration argument is documented. I reach the same action. My reservation "
+            "is that the demand-growth claim rests on one independence group."
+        ),
+        unsupported_claims=["Demand growth is independently corroborated"],
+        evidence_ids=["E-001", "E-002"],
+    )
+
+
+def _make_ach_matrix() -> ACHMatrix:
+    """A deliberately mixed matrix: one discriminating record, one that is not.
+
+    E-002 scores the same against every alternative, so it lands in the
+    zero-diagnosticity list — which exercises the reporting path that names evidence
+    the case collected and could not have used.
+    """
+    alternatives = ["invest_nvda_now", "staged_entry", "etf_diversified"]
+    scores = {
+        "E-001": {
+            "invest_nvda_now": ACHConsistency.STRONGLY_INCONSISTENT,
+            "staged_entry": ACHConsistency.CONSISTENT,
+            "etf_diversified": ACHConsistency.CONSISTENT,
+        },
+        "E-002": {
+            "invest_nvda_now": ACHConsistency.NEUTRAL,
+            "staged_entry": ACHConsistency.NEUTRAL,
+            "etf_diversified": ACHConsistency.NEUTRAL,
+        },
+    }
+    return ACHMatrix(
+        decision_question="Should I invest $50k in Nvidia vs semiconductor ETF?",
+        alternatives=alternatives,
+        evidence_ids=["E-001", "E-002"],
+        cells=[
+            ACHCell(
+                evidence_id=evidence_id,
+                alternative=alternative,
+                consistency=consistency,
+                note=f"Scored {consistency.value} for {alternative}",
+            )
+            for evidence_id, row in scores.items()
+            for alternative, consistency in row.items()
+        ],
+    )
+
+
+def _make_monitoring_plan(workspace: Path) -> MonitoringPlan:
+    """Concretise the assembled plan the orchestrator projected into the workspace.
+
+    Mirrors what the monitor role is asked to do: keep every id, sharpen the text.
+    Falls back to a minimal plan when the projection is absent so the stub never
+    depends on projection details.
+    """
+    projected = workspace / "inputs" / "monitoring_plan.yaml"
+    if projected.exists():
+        plan = load_model_from_yaml_text(MonitoringPlan, projected.read_text(encoding="utf-8"))
+        return plan.model_copy(
+            update={
+                "concretized": True,
+                "indicators": [
+                    indicator.model_copy(
+                        update={
+                            "threshold": f"Concretised threshold for {indicator.indicator_id}",
+                            "check_cadence_days": 90,
+                        }
+                    )
+                    for indicator in plan.indicators
+                ],
+            }
+        )
+    return MonitoringPlan(
+        case_id="case-001-stub-e2e",
+        delivered_at=date(2026, 8, 4),
+        horizon="24 months",
+        concretized=True,
     )
 
 
@@ -684,6 +800,12 @@ class PipelineStubBackend:
 
         if output_schema == "intake_record":
             artifact: BaseModel = _make_intake()
+        elif output_schema == "monitoring_plan":
+            artifact = _make_monitoring_plan(workspace)
+        elif output_schema == "ach_matrix":
+            artifact = _make_ach_matrix()
+        elif output_schema == "independent_review":
+            artifact = _make_independent_review()
         elif output_schema == "decision_spec":
             artifact = _make_decision_spec()
         elif output_schema == "preliminary_recommendation":

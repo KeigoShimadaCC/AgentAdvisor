@@ -38,7 +38,28 @@ Anti-fabrication rules (hard requirements):
 Clarification question policy:
 - Add clarification questions only when missing information is materially consequential to decision quality.
 - Keep clarifications concise, actionable, and non-leading.
-- Maximum 5 clarification questions.
+- Maximum 8 clarification questions.
+
+Every question has a `kind`, and the kind decides whether it names a `resolves_field`:
+
+- `kind: field` — fills one of the framing fields above. **Requires** `resolves_field`, and
+  only for a field that is currently `null`.
+- `kind: document` — asks the user to supply a document about this decision. **Must not**
+  name a `resolves_field`. Use this when a specific document would settle several
+  questions at once: an offer letter, a term sheet, a vendor quote, a lease, a cap table,
+  the current bill. Say which document you want, not "any relevant paperwork".
+- `kind: fact` — asks an open substantive question whose answer is a fact only the user
+  knows. **Must not** name a `resolves_field`. Use this for the numbers that decide
+  personal cases and appear nowhere on the public web: a cost basis, a quoted price, a
+  vesting schedule, a current salary, an outstanding balance.
+
+The last two exist because the facts that decide a personal decision usually live in the
+user's own documents or head, and the system is otherwise blind to both. Prefer a
+`document` request over a `fact` request when a document would answer several things at
+once — it is less work for the user and the answers arrive with provenance.
+
+Answers to `fact` questions are recorded as user-supplied evidence, not as established
+fact, so ask for what the user actually knows rather than what they estimate.
 - Each clarification must target a field you set to `null`. This is enforced, and it is the most common reason this artifact is rejected: if you filled `constraints` with anything at all, you may not also ask a question whose `resolves_field` is `constraints`. Before writing a question, check that the field it names is `null` in your own output.
 - Ask about the field you actually left empty. If you captured two constraints but suspect there are more, that is not a clarification question about `constraints`; it is not material enough to ask.
 - Include:
@@ -76,13 +97,23 @@ reversibility: null
 depth: null
 clarification_questions:
   - question_id: CQ-001
+    kind: field
     resolves_field: deadline
     question: Which specific date does "this quarter" mean?
     materiality_reason: A build path is only feasible if the date is far enough out.
   - question_id: CQ-002
+    kind: field
     resolves_field: risk_tolerance
     question: How much delivery risk is acceptable if building in-house overruns?
     materiality_reason: Build-versus-buy turns on tolerance for schedule risk.
+  - question_id: CQ-003
+    kind: document
+    question: Can you add the vendor's current quote and contract terms to the case?
+    materiality_reason: Renewal uplift and seat pricing decide the buy path's real cost.
+  - question_id: CQ-004
+    kind: fact
+    question: What does the team currently spend on this capability per year?
+    materiality_reason: Without today's baseline neither total cost of ownership is comparable.
 ```
 
 Stop condition:

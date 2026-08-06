@@ -58,7 +58,8 @@
         "low_directness",
         "low_reliability",
         "missing_limitations",
-        "weak_source_tier"
+        "weak_source_tier",
+        "user_supplied"
       ],
       "title": "EvidenceFlag",
       "type": "string"
@@ -107,7 +108,8 @@
         "primary",
         "official",
         "reputable",
-        "weak"
+        "weak",
+        "unverifiable"
       ],
       "title": "SourceTier",
       "type": "string"

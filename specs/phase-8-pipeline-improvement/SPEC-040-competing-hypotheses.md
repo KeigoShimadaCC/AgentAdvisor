@@ -2,7 +2,7 @@
 id: SPEC-040
 title: Analysis of Competing Hypotheses stage
 phase: 8
-status: draft
+status: verified
 depends_on: [SPEC-038]
 parallel_with: []
 north_star_refs: ["5.3", "6.3", "9", "10", "18"]
@@ -101,32 +101,32 @@ SPEC-044 and reduce the cap if it is material.
 
 ## Deliverables
 
-- [ ] `orchestrator/artifacts/ach.py` with validators
-- [ ] `orchestrator/ach.py` deterministic scoring module
-- [ ] `cursor/roles/ach.{md,yaml}`, `TaskRole.ACH_ANALYST`, model table entries
-- [ ] `CaseStage.COMPETING_HYPOTHESES` and its stage handler
-- [ ] `ach_matrix` projection key and role wiring
-- [ ] Two gate checks
-- [ ] Renderer exhibit and Options-room panel
-- [ ] `orchestrator/stub_backend.py` fixture
-- [ ] `tests/test_ach.py`
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `orchestrator/artifacts/ach.py` with validators
+- [x] `orchestrator/ach.py` deterministic scoring module
+- [x] `cursor/roles/ach.{md,yaml}`, `TaskRole.ACH_ANALYST`, model table entries
+- [x] `CaseStage.COMPETING_HYPOTHESES` and its stage handler
+- [x] `ach_matrix` projection key and role wiring
+- [x] Two gate checks
+- [x] Renderer exhibit and Options-room panel
+- [x] `orchestrator/stub_backend.py` fixture
+- [x] `tests/test_ach.py`
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] `ACHMatrix` rejects an incomplete matrix, a duplicate cell, and an alternative absent from the
+- [x] `make check` and `make frontend-check` are green.
+- [x] `ACHMatrix` rejects an incomplete matrix, a duplicate cell, and an alternative absent from the
       decision spec.
-- [ ] A record scored identically across all alternatives has diagnosticity `0.0` and appears in
+- [x] A record scored identically across all alternatives has diagnosticity `0.0` and appears in
       `zero_diagnosticity_records`.
-- [ ] `rank_by_disconfirmation` unit tests cover a clear winner, a tie, and a case where the
+- [x] `rank_by_disconfirmation` unit tests cover a clear winner, a tie, and a case where the
       least-disconfirmed alternative differs from the most-supported one.
-- [ ] The matrix never exceeds 20 evidence records; a case with more produces a populated
+- [x] The matrix never exceeds 20 evidence records; a case with more produces a populated
       `excluded_evidence_ids` with reasons.
-- [ ] A stub pipeline run reaches `done` with `COMPETING_HYPOTHESES` in the stage history and an
+- [x] A stub pipeline run reaches `done` with `COMPETING_HYPOTHESES` in the stage history and an
       `ach_matrix.yaml` on disk.
-- [ ] `tests/test_role_contracts.py` passes for `ach.md`.
-- [ ] `advisor report` renders the ACH exhibit including the zero-diagnosticity list.
+- [x] `tests/test_role_contracts.py` passes for `ach.md`.
+- [x] `advisor report` renders the ACH exhibit including the zero-diagnosticity list.
 
 ## Verification plan
 
@@ -136,10 +136,56 @@ activity on the `ach` role.
 
 ## Verification results
 
-Not yet executed.
+**Verified 2026-08-04.**
+
+Commands: `uv run ruff check`, `uv run ruff format --check`, `uv run mypy orchestrator`,
+`uv run pytest` (829 passed, 18 deselected), `npm run typecheck`, `npm run check:clean`,
+`npm test` (102 passed).
+
+All acceptance criteria met. `tests/test_ach.py` adds 25 tests. The end-to-end stub run asserts
+the exhibit, its table header, and the zero-diagnosticity line.
+
+The test that matters most is `test_best_supported_is_not_necessarily_least_disconfirmed`: an
+alternative with two strongly consistent records and one strongly inconsistent one ranks *below*
+one with nothing either way. That is the whole point of the technique, and it is the behaviour a
+citation-counting pipeline cannot produce.
+
+**Deviations from the spec as written:**
+
+1. **Diagnosticity is spread, not variance.** The spec said "dispersion". Implemented as
+   `(max − min) / 2.0` rather than variance, because spread is the quantity an analyst can read
+   off the matrix by eye. Same reasoning as SPEC-025's deliberately dumb keyword retrieval:
+   inspectable beats sophisticated when the number has to be defended.
+2. **The linear stage-successor map is a second registration point.** Adding a stage requires both
+   the transition set *and* `_NEXT_STAGE`; updating only the former yields
+   `IllegalTransition: ASSUMPTION_LEDGER -> PRELIMINARY_RECOMMENDATION` at runtime rather than a
+   load-time error. Worth knowing for any future stage.
+3. **`tests/test_state_machine.py` carries its own handler map and expected-write sequence**, both
+   of which need the new stage. This is the same duplicate-fixture trap SPEC-038 recorded, in a
+   third location.
+4. **Exclusions are applied by the orchestrator, not the agent.** The role md tells the agent to
+   leave `excluded_evidence_ids` empty; the handler fills it after the invocation from the
+   selection it already made. Asking the agent to restate a decision the orchestrator made is an
+   invitation to disagree with it.
+
+**A pre-existing stub defect surfaced and was fixed.** The stub's `quantitative_findings` carried
+no citation, so `verification.uncited_claim` blocked every stub review, `review_accepted` was
+always false, and the retry budget was silently exhausted on every end-to-end run. Nothing asserted
+otherwise, so it went unnoticed. It surfaced here only because SPEC-039's independent review is
+gated on the conformance review passing — so the new stage's own assertion failed and exposed it.
+One citation added to both stub copies; the stub pipeline now reaches a passing review for the
+first time, which also means SPEC-039's independent review is exercised end to end rather than
+only in unit tests.
+
+**The agent-reliability risk is unmitigated and remains the open question for live runs.** The
+matrix is capped at 20 records and the role md pushes hard on `neutral`, but nothing here proves a
+model can fill an N×M matrix at an acceptable rate — that needs a live invocation, which this
+environment cannot run. SPEC-044 must report the `ach` role's coercion and failure rates
+separately, and the cap should drop to 10 if they are material.
 
 ## Open questions
 
-- Should the ACH stage run before or after the pre-mortem? Proposal: before the preliminary
-  recommendation as specified, leaving the pre-mortem where it is, so the two adversarial passes
-  stay separated by the thesis they attack.
+None. The open question — whether ACH runs before or after the pre-mortem — was resolved as
+proposed: ACH sits between the assumption ledger and the preliminary recommendation, and the
+pre-mortem stays where it was. The two adversarial passes remain separated by the thesis they
+attack, one testing the reasoning and one testing the future.

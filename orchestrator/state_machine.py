@@ -25,6 +25,7 @@ class CaseStage(Enum):
     INVESTIGATION = "investigation"
     EVIDENCE_CRITIQUE = "evidence_critique"
     ASSUMPTION_LEDGER = "assumption_ledger"
+    COMPETING_HYPOTHESES = "competing_hypotheses"
     PRELIMINARY_RECOMMENDATION = "preliminary_recommendation"
     PRE_MORTEM = "pre_mortem"
     CHALLENGE = "challenge"
@@ -104,6 +105,7 @@ ACTIVE_STAGES: tuple[CaseStage, ...] = (
     CaseStage.INVESTIGATION,
     CaseStage.EVIDENCE_CRITIQUE,
     CaseStage.ASSUMPTION_LEDGER,
+    CaseStage.COMPETING_HYPOTHESES,
     CaseStage.PRELIMINARY_RECOMMENDATION,
     CaseStage.PRE_MORTEM,
     CaseStage.CHALLENGE,
@@ -125,7 +127,8 @@ ALLOWED_TRANSITIONS: dict[CaseStage, frozenset[CaseStage]] = {
     CaseStage.PLANNING: frozenset({CaseStage.INVESTIGATION, CaseStage.FAILED}),
     CaseStage.INVESTIGATION: frozenset({CaseStage.EVIDENCE_CRITIQUE, CaseStage.FAILED}),
     CaseStage.EVIDENCE_CRITIQUE: frozenset({CaseStage.ASSUMPTION_LEDGER, CaseStage.FAILED}),
-    CaseStage.ASSUMPTION_LEDGER: frozenset(
+    CaseStage.ASSUMPTION_LEDGER: frozenset({CaseStage.COMPETING_HYPOTHESES, CaseStage.FAILED}),
+    CaseStage.COMPETING_HYPOTHESES: frozenset(
         {CaseStage.PRELIMINARY_RECOMMENDATION, CaseStage.FAILED}
     ),
     CaseStage.PRELIMINARY_RECOMMENDATION: frozenset({CaseStage.PRE_MORTEM, CaseStage.FAILED}),
@@ -164,6 +167,9 @@ _FLOW_PLANS: dict[CaseStage, StepPlan] = {
     ),
     CaseStage.ASSUMPTION_LEDGER: StepPlan(
         CaseStage.ASSUMPTION_LEDGER, "assumption_ledger", (TaskRole.ASSUMPTION_ANALYST,)
+    ),
+    CaseStage.COMPETING_HYPOTHESES: StepPlan(
+        CaseStage.COMPETING_HYPOTHESES, "competing_hypotheses", (TaskRole.ACH_ANALYST,)
     ),
     CaseStage.PRELIMINARY_RECOMMENDATION: StepPlan(
         CaseStage.PRELIMINARY_RECOMMENDATION, "preliminary_recommendation", (TaskRole.DIRECTOR,)
@@ -308,7 +314,8 @@ def _resolve_next_stage(
         CaseStage.PLANNING: CaseStage.INVESTIGATION,
         CaseStage.INVESTIGATION: CaseStage.EVIDENCE_CRITIQUE,
         CaseStage.EVIDENCE_CRITIQUE: CaseStage.ASSUMPTION_LEDGER,
-        CaseStage.ASSUMPTION_LEDGER: CaseStage.PRELIMINARY_RECOMMENDATION,
+        CaseStage.ASSUMPTION_LEDGER: CaseStage.COMPETING_HYPOTHESES,
+        CaseStage.COMPETING_HYPOTHESES: CaseStage.PRELIMINARY_RECOMMENDATION,
         CaseStage.PRELIMINARY_RECOMMENDATION: CaseStage.PRE_MORTEM,
         CaseStage.PRE_MORTEM: CaseStage.CHALLENGE,
         CaseStage.CHALLENGE: CaseStage.STOP_DECISION,
