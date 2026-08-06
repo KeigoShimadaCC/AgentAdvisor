@@ -142,6 +142,17 @@ describe("the digest component", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("renders nothing on a first visit, which is not a return", () => {
+    // `readStoredCursor` returns 0 both for "never been here" and for "stored
+    // at the beginning". Treating the first as a gap greeted a reader with
+    // three hours of news about a case they had never opened — and made the
+    // screenshot of that page depend on how many events had arrived.
+    const { container } = render(
+      <AwayDigest events={[event("evidence_batch_unpacked", { record_count: 9 })]} sinceCursor={null} />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("renders nothing when there is no stored cursor to compare against", () => {
     const { container } = render(
       <AwayDigest events={[event("evidence_batch_unpacked", { record_count: 3 })]} sinceCursor={null} />,

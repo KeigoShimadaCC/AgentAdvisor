@@ -4,6 +4,7 @@ import {
   modeDescribe,
   assertNoForbiddenTerms,
   apiGet,
+  apiPost,
   FIXTURE_COMPLETED,
   FIXTURE_PARKED,
 } from "./helpers";
@@ -17,35 +18,28 @@ const PARKED_TITLE = "I have $50k and want semiconductor exposure. Nvidia or ETF
 modeDescribe("fixture", "Fixture mode — case library", () => {
   test("shows both fixture cases with human-readable stages", async ({ page }) => {
     await page.goto("/");
+    // SPEC-052 replaced the three-column table with cards. Titles and stage
+    // labels are still the assertion; the container is a card, not a row.
+    await page.locator(".library-card").first().waitFor({ state: "visible" });
 
-    // Both case titles should be visible (library renders title, not case_id)
-    await expect(page.locator(".case-list")).toContainText(COMPLETED_TITLE);
-    await expect(page.locator(".case-list")).toContainText(PARKED_TITLE);
+    const completed = page.locator(".library-card").filter({ hasText: COMPLETED_TITLE });
+    await expect(completed).toContainText("Complete");
 
-    // Completed case shows "Complete" (stageLabel for done)
-    const completedRow = page.locator(".case-list tbody tr").filter({
-      hasText: COMPLETED_TITLE,
-    });
-    await expect(completedRow).toContainText("Complete");
-
-    // Parked case shows "Waiting for your review" (stageLabel for awaiting_framing_approval)
-    const parkedRow = page.locator(".case-list tbody tr").filter({
-      hasText: PARKED_TITLE,
-    });
-    await expect(parkedRow).toContainText("Waiting for your review");
+    const parked = page.locator(".library-card").filter({ hasText: PARKED_TITLE });
+    await expect(parked).toContainText("Waiting for your review");
   });
 
-  test("parked case appears in the needs-you section funneling to scope", async ({ page }) => {
+  test("parked case appears in the waiting group funneling to scope", async ({ page }) => {
     await page.goto("/");
 
-    const needsYou = page.locator(".needs-you-header");
-    await expect(needsYou).toBeVisible();
-    // The needs-you section shows the case title, not the case_id
-    await expect(needsYou).toContainText(PARKED_TITLE);
-    await expect(needsYou).toContainText("Needs your review");
+    const waiting = page.locator('[aria-label="Waiting on you"]');
+    await expect(waiting).toBeVisible();
+    await expect(waiting).toContainText(PARKED_TITLE);
+    await expect(waiting).toContainText("Needs your review");
+    // The consequence is on the card now, not a page away.
+    await expect(waiting).toContainText(/will not proceed on its own/i);
 
-    // Clicking the needs-you link navigates to the scope checkpoint
-    await needsYou.locator("a", { hasText: PARKED_TITLE }).click();
+    await waiting.locator("a", { hasText: PARKED_TITLE }).click();
     await expect(page).toHaveURL(/\/cases\/case-002-fixture-002-parked\/scope$/);
   });
 
@@ -485,5 +479,158 @@ modeDescribe("fixture", "Fixture mode — presence (SPEC-051)", () => {
     if (/noise, not a calibration estimate|calibration is unknown/.test(interpretation)) {
       await expect(page.locator(".calibration-measure dt", { hasText: "Brier score" })).toHaveCount(0);
     }
+  });
+});
+
+modeDescribe("fixture", "Fixture mode — distribution (SPEC-052)", () => {
+  test("the share route renders read-only, and the service refuses control POSTs", async ({
+    page,
+  }) => {
+    await page.goto(`/share/${FIXTURE_COMPLETED}`);
+    await page.locator(".shared-case").waitFor({ state: "visible" });
+
+    // The brief is there.
+    await expect(page.locator(".shared-case-question")).toBeVisible();
+    await expect(page.locator(".brief-document .brief-passage").first()).toBeVisible();
+    await expect(page.locator(".shared-case-provenance")).toContainText(/not licensed advice/i);
+
+    // Read-only is a *service* guarantee, not the absence of a button. A client
+    // that merely omits controls is not read-only, so assert the POST.
+    const accept = await apiPost(page, `/cases/${FIXTURE_COMPLETED}/checkpoints/delivery`, {
+      decision: "accept",
+      approved_by: "user",
+    });
+    expect([403, 409]).toContain(accept.status);
+
+    // And nothing on the page offers to change the case. Citation chips are
+    // buttons and stay — they open the inspector, which is itself read-only —
+    // so this asserts the absence of *controls*, not the absence of buttons.
+    await expect(page.locator(".shared-case .primary-action")).toHaveCount(0);
+    await expect(page.locator(".shared-case .secondary-action")).toHaveCount(0);
+    await expect(page.locator(".altitude-control")).toHaveCount(0);
+    await expect(page.locator(".export-controls")).toHaveCount(0);
+    await expect(page.locator(".reaction-chip")).toHaveCount(0);
+  });
+
+  test("the library groups on the server's needs_you", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(".library-cards").first().waitFor({ state: "visible" });
+    // The parked fixture is waiting; the completed one is not.
+    const waiting = page.locator('[aria-label="Waiting on you"]');
+    await expect(waiting).toBeVisible();
+    await expect(waiting).toContainText(/Needs your review/);
+    await expect(page.locator('[aria-label="Finished"]')).toBeVisible();
+  });
+
+  test("search narrows the library to one case", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(".library-cards").first().waitFor({ state: "visible" });
+    const before = await page.locator(".library-card").count();
+    expect(before).toBeGreaterThan(1);
+
+    await page.getByLabel("Search your decisions").fill("zzz-no-such-decision");
+    await expect(page.locator(".library-card")).toHaveCount(0);
+    await expect(page.getByText(/No decision matches/)).toBeVisible();
+  });
+
+  test("every phase-9 preference is changeable from Settings, and applies at once", async ({
+    page,
+  }) => {
+    await page.goto("/settings");
+    await page.locator(".settings").waitFor({ state: "visible" });
+
+    // Theme applies without a reload, in both directions.
+    await page.getByRole("button", { name: /^Dark/ }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.getByRole("button", { name: /^Light/ }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    // Altitude, depth and presence are all here.
+    await page.getByRole("button", { name: /^Answer/ }).click();
+    await expect(page.getByRole("button", { name: /^Answer/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByRole("button", { name: /^Ping me/ }).click();
+
+    // And the altitude took effect on the case surface, without a reload.
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    await page.locator(".brief-document").waitFor({ state: "visible" });
+    await expect(page.getByRole("button", { name: "Answer" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  test("the tour runs over a real recorded case and can be skipped", async ({ page }) => {
+    await page.goto("/onboarding");
+    await page.locator(".onboarding").waitFor({ state: "visible" });
+    // It is the product behaving, not a script: the narrator and the map are
+    // the same components the case surface uses.
+    await expect(page.locator(".onboarding .narrator")).toBeVisible();
+    await expect(page.locator(".onboarding .case-map")).toBeVisible();
+
+    await page.getByRole("button", { name: "Skip" }).click();
+    await expect(page).toHaveURL(/\/new$/);
+  });
+});
+
+modeDescribe("fixture", "Fixture mode — small viewports (SPEC-052)", () => {
+  const ROUTES = [
+    "/",
+    "/new",
+    "/settings",
+    `/cases/${FIXTURE_COMPLETED}`,
+    `/cases/${FIXTURE_COMPLETED}/delivery`,
+    `/cases/${FIXTURE_COMPLETED}/rooms/sources`,
+    `/cases/${FIXTURE_PARKED}/scope`,
+    `/share/${FIXTURE_COMPLETED}`,
+  ];
+
+  test("no page scrolls the body sideways at 360px", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    for (const url of ROUTES) {
+      await page.goto(url);
+      await page.locator("main.app-main").waitFor({ state: "visible" });
+      await page.waitForTimeout(200);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `${url} overflows horizontally by ${overflow}px at 360px`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("both checkpoints and the answer are operable at 390px", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    // The scope sheet: its lead question and its signature are both reachable.
+    await page.goto(`/cases/${FIXTURE_PARKED}/scope`);
+    await page.locator(".scope-lead").waitFor({ state: "visible" });
+    await expect(page.locator(".scope-consequence")).toBeVisible();
+    const boxes = page.locator(".ground-rule-confirm input[type=checkbox]");
+    await expect(boxes.first()).toBeVisible();
+    await boxes.first().check();
+    await expect(boxes.first()).toBeChecked();
+
+    // Delivery: the recommendation leads, and the disclosure opens.
+    await page.goto(`/cases/${FIXTURE_COMPLETED}/delivery`);
+    await page.locator(".answer-recommendation").waitFor({ state: "visible" });
+    await expect(page.locator(".honest-sentence")).toBeVisible();
+    await page.locator(".uncertainty-disclosure > summary").click();
+    await expect(page.locator(".uncertainty-widget").first()).toBeVisible();
+  });
+
+  test("the shell collapses to one column and the panel becomes a sheet", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/cases/${FIXTURE_COMPLETED}/rooms/sources`);
+    await page.locator(".app-shell-panel").waitFor({ state: "visible" });
+
+    const columns = await page
+      .locator(".app-shell")
+      .evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+    expect(columns, "the shell is still multi-column on a phone").toBe(1);
+
+    // The argument is still reachable, below the panel rather than beside it.
+    await expect(page.locator(".app-shell-content .brief-document")).toBeVisible();
   });
 });

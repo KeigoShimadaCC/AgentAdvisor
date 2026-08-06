@@ -1,35 +1,80 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type CaseSummary } from "../api/client";
 import { stageLabel, NEEDS_YOU, type NeedsYouKey } from "../copy/terms";
 import { Skeleton } from "../screens/shared/Skeleton";
 
-/** Derive a needs-you state from the raw stage string (list endpoint). */
-function needsYouFromStage(stage: string): NeedsYouKey {
-  if (stage === "awaiting_framing_approval") return "scope_checkpoint";
-  if (stage === "awaiting_final_approval") return "delivery_checkpoint";
-  if (stage === "failed") return "interrupted";
-  return "none";
+/**
+ * The library as a workspace (SPEC-052).
+ *
+ * Was a three-column table — case, status, updated — which showed less than
+ * `advisor status` does in a terminal, for a product whose engagements run for
+ * hours. And it derived needs-you from the raw stage string with a local
+ * `needsYouFromStage`, a second copy of a rule the projection already
+ * implements: two implementations of one rule is one implementation and one
+ * future bug.
+ *
+ * `needs_you` now comes from the server (SPEC-046 added it to `CaseSummary`),
+ * grouping is by that field, and the derivation is gone.
+ */
+
+/** Where a case should funnel to, given what it is waiting for. */
+function funnelRoute(c: CaseSummary): string {
+  if (c.needs_you === "scope_checkpoint") return `/cases/${c.case_id}/scope`;
+  if (c.needs_you === "delivery_checkpoint") return `/cases/${c.case_id}/delivery`;
+  return `/cases/${c.case_id}`;
 }
 
-/** The route a case should funnel into based on its needs-you state. */
-function funnelRoute(c: CaseSummary): string {
-  const needs = needsYouFromStage(c.stage);
-  if (needs === "scope_checkpoint") return `/cases/${c.case_id}/scope`;
-  return `/cases/${c.case_id}`;
+const TERMINAL_STAGES = new Set(["done", "failed"]);
+
+interface Group {
+  key: string;
+  heading: string;
+  blurb: string;
+  cases: CaseSummary[];
+}
+
+export function groupCases(cases: CaseSummary[]): Group[] {
+  const waiting = cases.filter((c) => c.needs_you !== "none");
+  const running = cases.filter((c) => c.needs_you === "none" && !TERMINAL_STAGES.has(c.stage));
+  const finished = cases.filter((c) => c.needs_you === "none" && TERMINAL_STAGES.has(c.stage));
+
+  return [
+    {
+      key: "waiting",
+      heading: "Waiting on you",
+      blurb: "These will not proceed until you act.",
+      cases: waiting,
+    },
+    { key: "running", heading: "Running", blurb: "Working now. You can leave the page.", cases: running },
+    { key: "done", heading: "Finished", blurb: "", cases: finished },
+  ].filter((group) => group.cases.length > 0);
+}
+
+/** Case-insensitive match over what a user would actually type: the question. */
+export function filterCases(cases: CaseSummary[], query: string): CaseSummary[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return cases;
+  return cases.filter(
+    (c) => c.title.toLowerCase().includes(q) || c.case_id.toLowerCase().includes(q),
+  );
 }
 
 export function CaseLibrary() {
   const [cases, setCases] = useState<CaseSummary[]>([]);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.listCases()
+    api
+      .listCases()
       .then(setCases)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const groups = useMemo(() => groupCases(filterCases(cases, query)), [cases, query]);
 
   if (loading) return <Skeleton shape="list" label="Loading your cases" />;
   if (error) return <p className="error">{error}</p>;
@@ -42,58 +87,57 @@ export function CaseLibrary() {
     );
   }
 
-  const needsYouCases = cases.filter((c) => needsYouFromStage(c.stage) !== "none");
-
   return (
     <div className="case-library">
-      {needsYouCases.length > 0 && (
-        <section className="needs-you-header" aria-label="Cases that need you">
-          <h2>Waiting on you</h2>
-          <ul className="needs-you-list">
-            {needsYouCases.map((c) => {
-              const needs = needsYouFromStage(c.stage);
-              const desc = NEEDS_YOU[needs];
-              return (
-                <li key={c.case_id} className="needs-you-row">
-                  <Link to={funnelRoute(c)} className="needs-you-link">
-                    <span className="needs-you-title">{c.title}</span>
-                    <span className="needs-you-badge">{desc.badge}</span>
-                  </Link>
-                  <p className="needs-you-consequence">{desc.consequence}</p>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+      <div className="library-search">
+        <label htmlFor="library-search" className="sr-only">Search your decisions</label>
+        <input
+          id="library-search"
+          type="search"
+          className="library-search-input"
+          placeholder="Search your decisions"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
+      {groups.length === 0 && (
+        <p className="screen-help">No decision matches “{query}”.</p>
       )}
 
-      <table className="case-list">
-        <thead>
-          <tr>
-            <th>Case</th>
-            <th>Status</th>
-            <th>Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cases.map((c) => {
-            const needs = needsYouFromStage(c.stage);
-            const desc = NEEDS_YOU[needs];
-            return (
-              <tr key={c.case_id}>
-                <td>
-                  <Link to={funnelRoute(c)}>{c.title}</Link>
-                  {needs !== "none" && (
-                    <span className={`needs-you-pill pill-${needs}`}>{desc.badge}</span>
-                  )}
-                </td>
-                <td>{stageLabel(c.stage)}</td>
-                <td>{c.updated.slice(0, 19).replace("T", " ")}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {groups.map((group) => (
+        <section key={group.key} className={`library-group library-group-${group.key}`} aria-label={group.heading}>
+          <h2 className="library-group-heading">{group.heading}</h2>
+          {group.blurb && <p className="library-group-blurb">{group.blurb}</p>}
+          <ul className="library-cards">
+            {group.cases.map((c) => (
+              <CaseCard key={c.case_id} summary={c} />
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
+  );
+}
+
+function CaseCard({ summary }: { summary: CaseSummary }) {
+  const needs = NEEDS_YOU[summary.needs_you as NeedsYouKey] ?? NEEDS_YOU.none;
+  const waiting = summary.needs_you !== "none";
+
+  return (
+    <li className={`library-card${waiting ? " library-card-waiting" : ""}`}>
+      <Link to={funnelRoute(summary)} className="library-card-link">
+        {/* The decision question leads. The old table led with a slug. */}
+        <span className="library-card-question">{summary.title}</span>
+      </Link>
+      <p className="library-card-meta">
+        {needs.badge && <span className={`needs-you-pill pill-${summary.needs_you}`}>{needs.badge}</span>}
+        <span className="library-card-stage">{stageLabel(summary.stage)}</span>
+        <span className="library-card-updated">{summary.updated.slice(0, 16).replace("T", " ")}</span>
+      </p>
+      {/* The consequence line, on the card rather than a page away: a user
+          scanning the library needs to know that nothing moves without them. */}
+      {waiting && <p className="library-card-consequence">{needs.consequence}</p>}
+    </li>
   );
 }

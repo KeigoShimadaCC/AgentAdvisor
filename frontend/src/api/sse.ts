@@ -38,6 +38,22 @@ export function cursorStorageKey(caseId: string): string {
   return `agentadvisor:cursor:${caseId}`;
 }
 
+/**
+ * Whether this reader has ever been on this case (SPEC-052).
+ *
+ * `readStoredCursor` returns 0 both for "no cursor stored" and for "stored at
+ * the very beginning", and those are different facts: a first-time reader was
+ * never away, so the away digest must not greet them with three hours of news
+ * about a case they have never opened.
+ */
+export function hasStoredCursor(caseId: string): boolean {
+  try {
+    return window.localStorage.getItem(cursorStorageKey(caseId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function readStoredCursor(caseId: string): number {
   try {
     const raw = window.localStorage.getItem(cursorStorageKey(caseId));

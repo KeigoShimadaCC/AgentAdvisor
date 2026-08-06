@@ -1722,11 +1722,13 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
    ~54rem; the rail is 15rem, so in the rail it clipped every stage label to
    "Reading your q…". In a column it reads top to bottom, which is also the
    direction the case runs. */
-.app-shell-rail .case-map { padding: 0; overflow-x: visible; }
-.app-shell-rail .case-map-phases {
-  flex-direction: column; gap: var(--space-md); min-width: 0;
+@media (min-width: 60rem) {
+  .app-shell-rail .case-map { padding: 0; overflow-x: visible; }
+  .app-shell-rail .case-map-phases {
+    flex-direction: column; gap: var(--space-md); min-width: 0;
+  }
+  .app-shell-rail .case-map-phase { min-width: 0; }
 }
-.app-shell-rail .case-map-phase { min-width: 0; }
 
 /* ── The cast: voices, margin notes, dissent (SPEC-049) ───────────────────── */
 
@@ -1976,3 +1978,176 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
 .outcome-prompt-ask { max-width: 60ch; }
 .outcome-prompt-open textarea { width: 100%; max-width: 48rem; font: inherit; padding: var(--space-sm); }
 .outcome-check { display: flex; align-items: center; gap: var(--space-sm); }
+
+/* ── Distribution: library, settings, onboarding, share (SPEC-052) ────────── */
+
+.library-search { margin-bottom: var(--space-xl); }
+.library-search-input {
+  width: 100%; max-width: 30rem; font: inherit; font-size: var(--text-md-plus);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface-raised); color: var(--text);
+}
+.library-search-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.library-group { margin-bottom: var(--space-2xl); }
+.library-group-heading { font-size: var(--text-lg); }
+.library-group-blurb { color: var(--text-muted); font-size: var(--text-md); margin-bottom: var(--space-md); }
+.library-cards { list-style: none; padding: 0; display: flex; flex-direction: column; }
+.library-card { padding: var(--space-md) 0; }
+.library-card + .library-card { border-top: 1px solid var(--border); }
+/* Waiting on you is one of the two things a border may mean. */
+.library-card-waiting {
+  border-left: 3px solid var(--state-needs-you);
+  padding-left: var(--space-md);
+  background: var(--state-needs-you-wash);
+  border-radius: var(--radius-sm);
+}
+.library-card-waiting + .library-card { border-top: none; }
+.library-card-link { text-decoration: none; }
+.library-card-question {
+  font-size: var(--text-md-plus); font-weight: var(--weight-medium);
+  color: var(--text); display: block; max-width: 60ch;
+}
+.library-card-link:hover .library-card-question { color: var(--accent); }
+.library-card-meta {
+  display: flex; flex-wrap: wrap; gap: var(--space-md); align-items: baseline;
+  margin-top: var(--space-3xs); font-size: var(--text-sm); color: var(--text-muted);
+}
+.library-card-updated { font-family: var(--font-mono); font-size: var(--text-xs); }
+.library-card-consequence { font-size: var(--text-sm); margin-top: var(--space-2xs); max-width: 70ch; }
+
+.settings { display: flex; flex-direction: column; gap: var(--space-2xl); max-width: 52rem; }
+.settings-group { display: flex; flex-direction: column; gap: var(--space-sm); }
+.settings-group legend,
+.settings-group h3 { font-size: var(--text-md-plus); font-weight: var(--weight-semibold); }
+.settings-choices { display: flex; flex-wrap: wrap; gap: var(--space-md); }
+.settings-choice {
+  flex: 1 1 14rem; text-align: left; font: inherit; cursor: pointer;
+  background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: var(--space-md);
+  display: flex; flex-direction: column; gap: var(--space-3xs);
+}
+.settings-choice.selected { border-color: var(--accent); background: var(--accent-wash); }
+.settings-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.settings-choice-label { font-weight: var(--weight-medium); }
+.settings-choice-blurb { font-size: var(--text-sm); color: var(--text-muted); }
+.settings-permission { color: var(--text-muted); max-width: 60ch; }
+
+.onboarding { display: flex; flex-direction: column; gap: var(--space-2xl); max-width: 56rem; }
+.onboarding-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
+.onboarding-skip {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font: inherit; font-size: var(--text-sm); text-decoration: underline;
+}
+.onboarding-step { display: flex; flex-direction: column; gap: var(--space-sm); }
+.onboarding-step h3 { font-size: var(--text-lg); }
+.onboarding-count { font-size: var(--text-md); color: var(--text-muted); }
+.onboarding-actions { display: flex; flex-wrap: wrap; gap: var(--space-md); align-items: center; }
+
+.shared-case { display: flex; flex-direction: column; gap: var(--space-xl); max-width: 46rem; margin: 0 auto; }
+.shared-case-question {
+  font-size: var(--text-2xl); font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug); text-wrap: balance;
+}
+.shared-case-provenance { color: var(--text-muted); font-size: var(--text-sm); max-width: 60ch; }
+
+.export-controls { display: flex; flex-wrap: wrap; gap: var(--space-md); align-items: center; }
+.export-note { flex-basis: 100%; font-size: var(--text-sm); color: var(--text-muted); max-width: 60ch; }
+
+/* ── Small viewports ──────────────────────────────────────────────────────── */
+/*
+ * The most likely moment to check a three-hour run is on a phone, and no
+ * project had ever exercised one. Two rules do most of the work: the shell
+ * becomes one column, and the context panel becomes a sheet rather than a
+ * 20rem column squeezed beside the argument.
+ */
+@media (max-width: 59.99rem) {
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .app-shell-rail { order: 2; }
+  .app-shell-panel {
+    order: 3; position: static; max-height: none;
+  }
+  .case-chrome { flex-direction: column; align-items: stretch; }
+  .case-chrome-controls { align-items: flex-start; }
+  .altitude-control { align-self: flex-start; }
+  .app-shell-content .brief-passage > .margin-notes { position: static; width: auto; }
+}
+
+@media (max-width: 30rem) {
+  .app-main { padding-left: var(--space-md); padding-right: var(--space-md); }
+  /* Nothing may push the body sideways at 360px. */
+  .case-map, .invocation-table, .method-raw-view { max-width: 100%; }
+  .away-digest-head { flex-wrap: wrap; }
+  .settings-choice, .preference-chip { flex-basis: 100%; }
+  .case-chrome-question { font-size: var(--text-lg); }
+  .case-surface .answer-recommendation,
+  .delivery .answer-recommendation { font-size: var(--text-2xl); }
+}
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+/*
+ * The browser's own print path is the PDF exporter. Everything interactive is
+ * removed rather than merely hidden-looking: a printed page with a greyed-out
+ * button on it reads as a broken screenshot.
+ */
+@media print {
+  .app-header,
+  .app-nav,
+  .notice-banner,
+  .toast-host,
+  .case-chrome-controls,
+  .altitude-control,
+  .app-shell-rail,
+  .app-shell-panel,
+  .export-controls,
+  .reaction-controls,
+  .away-digest,
+  .outcome-prompt,
+  .action-card .primary-action,
+  .case-crumb,
+  .narrator-transcript,
+  button {
+    display: none !important;
+  }
+
+  .app-shell { display: block; }
+  .brief-passage, .dissent, .margin-note { break-inside: avoid; }
+  .brief-passage-label { break-after: avoid; }
+  a[href]::after { content: ""; }
+}
+
+/*
+ * Grid and flex items default to `min-width: auto`, which means they refuse to
+ * shrink below their content's min-content width. The case map declares
+ * `min-width: max-content` on its phase row so the strip never wraps, and that
+ * made the whole shell 506px wide inside a 360px viewport — the map should
+ * scroll inside its own box, not push the page sideways. This is the fix, and
+ * e2e/fixture.spec.ts's 360px sweep is what keeps it fixed.
+ */
+.app-shell-rail,
+.app-shell-content,
+.app-shell-panel { min-width: 0; }
+
+/*
+ * Long unbreakable tokens. Case content carries raw identifiers —
+ * `recommendation_stable_across_plausible_sensitivity_ranges` is 57 characters
+ * with no break opportunity, about 500px, which pushed a 360px page sideways
+ * with nothing visibly wrong on it. Wrapping is the fix; SPEC-054 addresses the
+ * identifiers themselves.
+ */
+p, li, dd, dt, td, th, .brief-passage-text, .margin-note-claim, .honest-sentence {
+  overflow-wrap: break-word;
+}
+
+/*
+ * `.app-main` is a flex column, so every screen is a flex item — and a flex
+ * item's default `min-width: auto` means it refuses to shrink below its
+ * content's min-content width. A screen with a 68ch measure or a wide table
+ * therefore pushed the whole page sideways on a phone rather than wrapping.
+ *
+ * Fixed once here rather than screen by screen, because the next screen added
+ * would have the same bug and no reason to know about it.
+ */
+.app-main > * { min-width: 0; max-width: 100%; }
+.brief-passage-text { max-width: min(68ch, 100%); }

@@ -185,7 +185,9 @@ modeDescribe("replay", "Replay mode — the away digest over a real cursor gap (
    */
   test("summarises what happened between a stored cursor and the head", async ({ page }) => {
     await page.goto("/");
-    // Arrive as a reader who had seen nothing.
+    // Arrive as a reader who *has been here before* and had seen nothing. The
+    // stored key is what distinguishes a return from a first visit — without
+    // it there is no digest, by design.
     await page.evaluate((caseId) => {
       window.localStorage.setItem(`agentadvisor:cursor:${caseId}`, "0");
     }, FIXTURE_COMPLETED);

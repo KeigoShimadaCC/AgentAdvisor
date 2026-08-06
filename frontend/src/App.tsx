@@ -9,6 +9,9 @@ import { InspectorPage } from "./screens/inspector/InspectorPage";
 import { ToastHost } from "./screens/shared/Toast";
 import { Calibration } from "./screens/Calibration/Calibration";
 import { NoticeBanner } from "./presence/NoticeBanner";
+import { Settings } from "./screens/Settings/Settings";
+import { Onboarding } from "./screens/Onboarding/Onboarding";
+import { SharedCase } from "./screens/Share/SharedCase";
 
 function NotFound() {
   return (
@@ -32,6 +35,7 @@ export function App() {
           <Link to="/" className="app-nav-link">Cases</Link>
           <Link to="/new" className="app-nav-link">New decision</Link>
           <Link to="/calibration" className="app-nav-link">Track record</Link>
+          <Link to="/settings" className="app-nav-link">Settings</Link>
         </nav>
       </header>
       <NoticeBanner />
@@ -40,6 +44,11 @@ export function App() {
           <Route path="/" element={<CaseLibrary />} />
           <Route path="/new" element={<NewDecision />} />
           <Route path="/calibration" element={<Calibration />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          {/* Read-only, no controls (SPEC-052). The guarantee is the service's,
+              not this route's: control POSTs are refused there. */}
+          <Route path="/share/:caseId" element={<SharedCase />} />
           {/* One case surface (SPEC-048). `/brief` and the six room deep links
               were separate pages; they now resolve here, with rooms opening in
               the context panel, so every previously valid URL still works. */}

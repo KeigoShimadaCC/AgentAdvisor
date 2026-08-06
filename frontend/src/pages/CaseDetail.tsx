@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCaseView } from "../screens/shared/useCaseView";
-import { readStoredCursor } from "../api/sse";
+import { readStoredCursor, hasStoredCursor } from "../api/sse";
 import { CaseDataContext } from "../screens/shared/caseContext";
 import { InspectorHost } from "../screens/inspector/InspectorHost";
 import { CitationText } from "../screens/inspector/CitationText";
@@ -23,6 +23,7 @@ import { AwayDigest } from "../presence/AwayDigest";
 import { useCaseTitle } from "../presence/title";
 import { useCaseNotices } from "../presence/useCaseNotices";
 import { OutcomePrompt } from "../screens/Calibration/OutcomePrompt";
+import { ExportControls } from "../export/ExportControls";
 import { showsAt } from "../screens/shell/altitude";
 import { BRIEF_SECTION_TITLES, EMPTY_TRUTHS, ROOMS } from "../copy/terms";
 import { provenanceVoice } from "../copy/voices";
@@ -54,8 +55,13 @@ export function CaseDetail() {
 
   // SPEC-051. The cursor is read once, on mount, before the stream advances it —
   // it is "where this reader was", and reading it later would always be "now".
+  //
+  // SPEC-052: null when this reader has never opened the case. A first visit is
+  // not a return, and "while you were away" on a case you have never seen is
+  // both wrong and non-deterministic — it summarised whatever had arrived by
+  // the time the screenshot was taken.
   const [arrivalCursor] = useState<number | null>(() =>
-    caseId ? readStoredCursor(caseId) : null,
+    caseId && hasStoredCursor(caseId) ? readStoredCursor(caseId) : null,
   );
   useCaseTitle(view);
   useCaseNotices(view);
@@ -182,6 +188,9 @@ export function CaseDetail() {
                 the calibration score mean anything could only be fed from a
                 terminal. */}
             {view.is_terminal && caseId && <OutcomePrompt caseId={caseId} />}
+
+            {/* A brief that cannot leave the tool is not a package (SPEC-052). */}
+            {deep && <ExportControls view={view} />}
           </div>
         </AppShell>
       </InspectorHost>

@@ -27,6 +27,13 @@ export interface CaseSummary {
   stage: string;
   title: string;
   updated: string;
+  /**
+   * SPEC-046 added this to the list endpoint and nothing ever declared it here,
+   * so the library re-derived it from the raw stage string — two
+   * implementations of one rule, which is one implementation and one future
+   * bug. SPEC-052 deletes the derivation.
+   */
+  needs_you: string;
 }
 
 export interface ErrorResponse {

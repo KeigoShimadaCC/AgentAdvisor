@@ -145,9 +145,18 @@ export default defineConfig({
       grep: /visual baselines|token contrast|accessibility \(axe\)/,
     },
     {
+      // SPEC-052: the most likely moment to check a three-hour run is on a
+      // phone, and until this phase no project had ever exercised one.
       name: "mobile",
       use: { ...devices["Pixel 7"], colorScheme: "light", ...chromeBinary },
-      grep: /visual baselines/,
+      grep: /visual baselines|small viewports/,
+    },
+    {
+      // Axe only. The small-viewport sweep is layout, and layout does not
+      // differ by theme — running it twice cost two minutes and bought nothing.
+      name: "mobile-dark",
+      use: { ...devices["Pixel 7"], colorScheme: "dark", ...chromeBinary },
+      grep: /accessibility \(axe\)/,
     },
     {
       name: "reduced-motion",
