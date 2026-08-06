@@ -55,6 +55,16 @@ function makeView(): CaseView {
         ],
       },
       { key: "key_reasons", status: "final", blocks: [{ provenance: "interpretation", text: "Reason one" }] },
+      {
+        key: "next_actions",
+        status: "final",
+        blocks: [
+          {
+            provenance: "recommendation",
+            text: "Talk to manager — user, by 2026-08-15. First step: Send a calendar invite for a 30-minute conversation",
+          },
+        ],
+      },
     ],
     uncertainty: {
       recommendation_confidence: { kind: "assessed", value: 0.75, basis: "consistent evidence" },
@@ -95,7 +105,18 @@ function makeFinal(): FinalRecommendation {
     recommendation_confidence: { value: 0.75, basis: "consistent" },
     evidence_confidence: { value: 0.65, basis: "mixed" },
     outcome_probabilities: { "Switch succeeds": { method: "scenario_model", point: 0.75 } },
-    next_actions: ["Talk to manager"],
+    next_actions: [
+      {
+        action_id: "N-001",
+        action: "Talk to manager",
+        owner: "user",
+        by_date: "2026-08-15",
+        first_step: "Send a calendar invite for a 30-minute conversation",
+        why_now: "The offer deadline lands in three weeks",
+        depends_on: [],
+        estimated_cost: null,
+      },
+    ],
   } as FinalRecommendation;
 }
 
@@ -135,6 +156,15 @@ describe("Delivery", () => {
     expect(screen.getByText("Confidence in this recommendation")).toBeInTheDocument();
     expect(screen.getByText("Source strength")).toBeInTheDocument();
     expect(screen.getByText("Stability")).toBeInTheDocument();
+  });
+
+  it("shows owner and due date for each next action", async () => {
+    renderDelivery(makeView());
+    expect(await screen.findByText("Switch jobs")).toBeInTheDocument();
+    const action = screen.getByText(/Talk to manager/);
+    expect(action).toHaveTextContent("user");
+    expect(action).toHaveTextContent("2026-08-15");
+    expect(action).toHaveTextContent("First step:");
   });
 
   it("renders NotAssessed widgets without numbers", async () => {

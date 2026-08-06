@@ -52,10 +52,18 @@ function walk(dir, out = []) {
 function violationsIn(file) {
   if (ALLOWED.has(file)) return [];
   const found = [];
-  const lines = fs.readFileSync(file, "utf8").split("\n");
+  const raw = fs.readFileSync(file, "utf8");
+
+  // Blank out comments before scanning, preserving newlines so reported line
+  // numbers stay true. Done over the whole file rather than per line: a value
+  // named inside a *multi-line* comment is documentation too, and stripping
+  // only single-line pairs reported those as violations.
+  const lines = raw
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .split("\n");
+
   lines.forEach((line, i) => {
-    // A hex inside a comment is documentation, not a style declaration.
-    const code = line.replace(/\/\*.*?\*\//g, "").replace(/\/\/.*$/, "");
+    const code = line.replace(/\/\/.*$/, "");
     for (const match of code.match(HEX) ?? []) {
       found.push({ line: i + 1, value: match, kind: "raw colour" });
     }

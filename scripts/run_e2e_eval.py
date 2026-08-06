@@ -13,6 +13,7 @@ import json
 import re
 import sys
 import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -117,6 +118,131 @@ def _phase6_metrics(case: Case, events: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _phase8_metrics(case: Case, events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Counters for the structures Phase 8 introduced.
+
+    Same reasoning as ``_phase6_metrics``: the legacy rubric cannot see any of this, so
+    without these columns the comparison would show only whether the new stages hurt the
+    old score, never whether they did anything. Every legacy criterion is computed
+    unchanged so the before/after columns stay directly comparable to the 1.96 baseline.
+    """
+    shared = case.root / "shared"
+    outputs = case.root / "outputs"
+
+    def _load(path: Path) -> dict[str, Any]:
+        if not path.exists():
+            return {}
+        return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+    spec = _load(shared / "decision_spec.yaml")
+    final = _load(outputs / "final_recommendation.yaml")
+
+    # ── SPEC-038: value model ────────────────────────────────────────────────
+    weights = spec.get("objective_weights") or {}
+    assessments = final.get("alternatives_considered", [])
+    scored_alternatives = [a for a in assessments if a.get("objective_scores")]
+    score_coverage = len(scored_alternatives) / len(assessments) if assessments else None
+
+    # ── SPEC-039: independent review and limitations ─────────────────────────
+    independent = _load(outputs / "independent_review.yaml")
+    limitations = final.get("limitations", [])
+
+    # ── SPEC-040: competing hypotheses ───────────────────────────────────────
+    matrix = _load(shared / "ach_matrix.yaml")
+    ach_alternatives = matrix.get("alternatives", [])
+    ach_evidence = matrix.get("evidence_ids", [])
+    cells = matrix.get("cells", [])
+    expected_cells = len(ach_alternatives) * len(ach_evidence)
+    # Diagnosticity is recomputed rather than read: the artifact stores raw scores, and
+    # recomputing keeps this scorer honest if the weighting ever changes.
+    zero_diagnosticity = 0
+    if cells:
+        by_evidence: dict[str, set[str]] = defaultdict(set)
+        for cell in cells:
+            by_evidence[cell.get("evidence_id", "")].add(cell.get("consistency", ""))
+        zero_diagnosticity = sum(1 for values in by_evidence.values() if len(values) == 1)
+
+    # ── SPEC-041: action plan executability ──────────────────────────────────
+    actions = final.get("next_actions", [])
+    with_first_step = sum(1 for a in actions if (a.get("first_step") or "").strip())
+    placeholder_owners = sum(
+        1
+        for a in actions
+        if (a.get("owner") or "").strip().lower() in {"tbd", "unknown", "n/a", "someone"}
+    )
+
+    # ── SPEC-042: monitoring coverage ────────────────────────────────────────
+    plan = _load(outputs / "monitoring_plan.yaml")
+    indicators = plan.get("indicators", [])
+    premortem = _load(shared / "premortem_report.yaml")
+    available_indicators = sum(
+        len(mode.get("leading_indicators", [])) for mode in premortem.get("failure_modes", [])
+    ) + len(final.get("recommendation_change_triggers", []))
+
+    # ── SPEC-043: private evidence ───────────────────────────────────────────
+    evidence_dir = shared / "evidence"
+    private_records = 0
+    total_records = 0
+    if evidence_dir.exists():
+        for path in evidence_dir.glob("*.yaml"):
+            record = _load(path)
+            total_records += 1
+            if record.get("source_type") == "user_document":
+                private_records += 1
+
+    # Per-role failure accounting. The ACH matrix is the largest structured output any
+    # role produces, so its reliability is reported separately rather than averaged in.
+    role_failures: dict[str, int] = defaultdict(int)
+    for event in events:
+        if event.get("event_type") != "role_invocation_attempt":
+            continue
+        payload = event.get("payload", {})
+        if payload.get("status") not in {None, "ok"}:
+            role_failures[str(payload.get("actor") or event.get("actor") or "unknown")] += 1
+
+    skipped = {
+        e.get("event_type")
+        for e in events
+        if e.get("event_type") in {"ach_skipped", "independent_review_skipped"}
+    }
+
+    return {
+        # SPEC-038
+        "value_model_present": bool(weights),
+        "value_model_objective_count": len(weights),
+        "value_model_score_coverage": score_coverage,
+        # SPEC-039
+        "independent_review_verdict": independent.get("verdict"),
+        "independent_review_unsupported_claims": len(
+            independent.get("unsupported_claims", []) or []
+        ),
+        "limitations_count": len(limitations),
+        # SPEC-040
+        "ach_alternatives": len(ach_alternatives),
+        "ach_evidence_scored": len(ach_evidence),
+        "ach_evidence_excluded": len(matrix.get("excluded_evidence_ids", []) or []),
+        "ach_matrix_complete": bool(cells) and len(cells) == expected_cells,
+        "ach_zero_diagnosticity_records": zero_diagnosticity,
+        "ach_skipped": "ach_skipped" in skipped,
+        "ach_role_failures": role_failures.get("ach", 0),
+        # SPEC-041
+        "next_action_count": len(actions),
+        "next_actions_with_first_step": with_first_step,
+        "next_actions_placeholder_owner": placeholder_owners,
+        # SPEC-042
+        "monitoring_indicators": len(indicators),
+        "monitoring_indicators_available": available_indicators,
+        "monitoring_coverage": (
+            len(indicators) / available_indicators if available_indicators else None
+        ),
+        "monitoring_mitigations": len(plan.get("mitigations", []) or []),
+        "monitoring_concretized": plan.get("concretized"),
+        # SPEC-043
+        "private_evidence_records": private_records,
+        "private_evidence_share": (private_records / total_records if total_records else None),
+    }
+
+
 def _extract_metrics(case: Case) -> dict[str, Any]:
     """Extract usage metrics from the case audit log."""
     audit_path = case.root / "audit.jsonl"
@@ -154,6 +280,7 @@ def _extract_metrics(case: Case) -> dict[str, Any]:
 
     return {
         **_phase6_metrics(case, events),
+        **_phase8_metrics(case, events),
         "total_invocations": len(invocations),
         "successful_invocations": len(successful),
         "failed_invocations": len(failed),
@@ -170,7 +297,103 @@ def _extract_metrics(case: Case) -> dict[str, Any]:
     }
 
 
-def _score_case(case: Case, scenario: dict[str, Any]) -> dict[str, Any]:
+def _score_phase8(case: Case, metrics: dict[str, Any]) -> dict[str, int]:
+    """Objective scores for the Phase 8 criteria, from the metrics already extracted."""
+    scores: dict[str, int] = {}
+
+    # ── value_model_binding ──────────────────────────────────────────────────
+    if not metrics.get("value_model_present"):
+        scores["vm-1"] = 0
+        scores["vm-2"] = 0
+    else:
+        coverage = metrics.get("value_model_score_coverage") or 0.0
+        scores["vm-1"] = 2 if coverage >= 1.0 else (1 if coverage > 0 else 0)
+        # The rank-divergence gate finding is the objective signal: no finding means the
+        # weighted and stated rankings agreed.
+        gates = _gate_check_ids(case)
+        diverged = "value_model.rank_divergence" in gates
+        if not diverged:
+            scores["vm-2"] = 2
+        else:
+            final = _load_yaml(case.root / "outputs" / "final_recommendation.yaml")
+            reasons = " ".join(final.get("key_reasons", [])).lower()
+            acknowledged = any(
+                phrase in reasons for phrase in ("weight", "objective", "tradeoff", "trade-off")
+            )
+            scores["vm-2"] = 1 if acknowledged else 0
+
+    # ── independent_review ───────────────────────────────────────────────────
+    verdict = metrics.get("independent_review_verdict")
+    if verdict is None:
+        scores["ir-1"] = 0
+    else:
+        independent = _load_yaml(case.root / "outputs" / "independent_review.yaml")
+        reasoning = str(independent.get("reasoning", ""))
+        # A bare concur with no derivation is the failure mode this role exists to avoid.
+        scores["ir-1"] = 2 if len(reasoning.split()) >= 25 else 1
+
+    limitations = metrics.get("limitations_count", 0)
+    scores["ir-2"] = 2 if limitations >= 2 else (1 if limitations == 1 else 0)
+
+    # ── disconfirmation ──────────────────────────────────────────────────────
+    if not metrics.get("ach_evidence_scored"):
+        scores["dq-1"] = 0
+        scores["dq-2"] = 0
+    else:
+        spec = _load_yaml(case.root / "shared" / "decision_spec.yaml")
+        covered = metrics.get("ach_alternatives", 0) >= len(spec.get("alternatives", []) or [])
+        scores["dq-1"] = 2 if metrics.get("ach_matrix_complete") and covered else 1
+
+        scored = metrics.get("ach_evidence_scored", 0)
+        uninformative = metrics.get("ach_zero_diagnosticity_records", 0)
+        discriminating = (scored - uninformative) / scored if scored else 0.0
+        scores["dq-2"] = 2 if discriminating > 0.5 else (1 if discriminating > 0 else 0)
+
+    # ── commitment_to_action ─────────────────────────────────────────────────
+    actions = metrics.get("next_action_count", 0)
+    if not actions:
+        scores["ca-1"] = 0
+    else:
+        complete = (
+            metrics.get("next_actions_with_first_step", 0) == actions
+            and metrics.get("next_actions_placeholder_owner", 0) == 0
+        )
+        scores["ca-1"] = 2 if complete else 1
+
+    indicators = metrics.get("monitoring_indicators", 0)
+    if not indicators:
+        scores["ca-2"] = 0
+    else:
+        concretized = bool(metrics.get("monitoring_concretized"))
+        linked = metrics.get("monitoring_mitigations", 0) > 0
+        scores["ca-2"] = 2 if concretized and linked else 1
+
+    return scores
+
+
+def _load_yaml(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def _gate_check_ids(case: Case) -> set[str]:
+    gate_dir = case.root / "shared" / "gates"
+    found: set[str] = set()
+    if not gate_dir.exists():
+        return found
+    for path in gate_dir.glob("*.yaml"):
+        report = _load_yaml(path)
+        for finding in report.get("findings", []):
+            check_id = finding.get("check_id")
+            if check_id:
+                found.add(str(check_id))
+    return found
+
+
+def _score_case(
+    case: Case, scenario: dict[str, Any], metrics: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Score a case against the rubric (objective criteria only)."""
     scores: dict[str, Any] = {}
 
@@ -252,25 +475,52 @@ def _score_case(case: Case, scenario: dict[str, Any]) -> dict[str, Any]:
     scores["tr-2"] = 2 if complete_chain else (1 if partial_chain else 0)
 
     # Calculate dimension averages
-    dimension_map: dict[str, list[int]] = {
+    # Legacy dimensions, computed identically to the pre-Phase-8 scorer so the
+    # before/after columns stay comparable to the 2026-08-03 baseline of 1.96.
+    legacy_map: dict[str, list[str]] = {
         "decision_completeness": ["dc-1", "dc-2"],
         "evidence_quality": ["eq-1", "eq-2", "eq-3"],
         "analytical_quality": ["aq-1", "aq-3"],
         "adversarial_robustness": ["ar-1"],
         "traceability": ["tr-1", "tr-2"],
     }
+    phase8_map: dict[str, list[str]] = {
+        "value_model_binding": ["vm-1", "vm-2"],
+        "independent_review": ["ir-1", "ir-2"],
+        "disconfirmation": ["dq-1", "dq-2"],
+        "commitment_to_action": ["ca-1", "ca-2"],
+    }
 
-    dimension_scores: dict[str, float] = {}
-    for dim, criteria in dimension_map.items():
-        values = [scores.get(c, 0) for c in criteria]
-        dimension_scores[dim] = sum(values) / len(values) if values else 0.0
+    if metrics is not None:
+        scores.update(_score_phase8(case, metrics))
 
-    overall = sum(dimension_scores.values()) / len(dimension_scores) if dimension_scores else 0.0
+    def _dimension_scores(mapping: dict[str, list[str]]) -> dict[str, float]:
+        result: dict[str, float] = {}
+        for dim, criteria in mapping.items():
+            values = [scores.get(c, 0) for c in criteria]
+            result[dim] = sum(values) / len(values) if values else 0.0
+        return result
+
+    legacy_scores = _dimension_scores(legacy_map)
+    legacy_overall = sum(legacy_scores.values()) / len(legacy_scores) if legacy_scores else 0.0
+
+    dimension_scores = dict(legacy_scores)
+    extended_overall = legacy_overall
+    if metrics is not None:
+        phase8_scores = _dimension_scores(phase8_map)
+        dimension_scores.update(phase8_scores)
+        extended_overall = (
+            sum(dimension_scores.values()) / len(dimension_scores) if dimension_scores else 0.0
+        )
 
     return {
         "criterion_scores": scores,
         "dimension_scores": dimension_scores,
-        "overall_score": round(overall, 3),
+        # ``overall_score`` stays the legacy average so historical comparisons keep
+        # meaning; the extended average is reported alongside, never in place of it.
+        "overall_score": round(legacy_overall, 3),
+        "legacy_overall_score": round(legacy_overall, 3),
+        "extended_overall_score": round(extended_overall, 3),
     }
 
 
@@ -307,7 +557,7 @@ def run_one_scenario(
         final_stage = state.stage.value
 
         metrics = _extract_metrics(case)
-        scoring = _score_case(case, scenario)
+        scoring = _score_case(case, scenario, metrics)
 
         result = {
             "scenario_id": scenario.get("id", scenario_path.stem),

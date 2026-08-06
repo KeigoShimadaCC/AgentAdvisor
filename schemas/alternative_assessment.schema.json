@@ -6,6 +6,24 @@
       "title": "Alternative",
       "type": "string"
     },
+    "objective_scores": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "propertyNames": {
+            "minLength": 1
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Objective Scores"
+    },
     "rank": {
       "minimum": 1,
       "title": "Rank",

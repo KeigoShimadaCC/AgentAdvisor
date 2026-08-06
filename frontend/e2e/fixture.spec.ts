@@ -130,10 +130,11 @@ modeDescribe("fixture", "Fixture mode — rooms walkthrough", () => {
     const eventLog = page.locator(".method-event-log");
     await expect(eventLog).toBeVisible();
 
-    // Audit log list should have items for a completed case
+    // Audit log list should have items for a completed case. The container
+    // renders before its items arrive, so a bare count() races the fetch and
+    // reads 0 — assert through an auto-retrying matcher instead.
     const logItems = eventLog.locator(".audit-log-item");
-    const count = await logItems.count();
-    expect(count).toBeGreaterThan(0);
+    await expect(logItems.first()).toBeVisible();
   });
 
   const rooms = [

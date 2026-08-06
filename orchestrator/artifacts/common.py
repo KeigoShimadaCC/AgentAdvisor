@@ -12,6 +12,7 @@ EvidenceId = Annotated[str, Field(pattern=r"^E-\d+$")]
 AssumptionId = Annotated[str, Field(pattern=r"^A-\d+$")]
 TaskId = Annotated[str, Field(pattern=r"^T-\d+$")]
 ObjectionId = Annotated[str, Field(pattern=r"^O-\d+$")]
+ActionId = Annotated[str, Field(pattern=r"^N-\d+$")]
 IssueNodeId = Annotated[str, Field(pattern=r"^Q-\d+(?:\.\d+)*$")]
 CaseId = Annotated[str, Field(pattern=r"^case-\d+[-a-z0-9-]*$")]
 
@@ -79,6 +80,8 @@ class TaskRole(StrEnum):
     RESEARCHER = "researcher"
     ANALYST = "analyst"
     ASSUMPTION_ANALYST = "assumption_analyst"
+    ACH_ANALYST = "ach"
+    MONITOR = "monitor"
     SYNTHESIZER = "synthesizer"
     REVIEWER = "reviewer"
     SPECIALIST = "specialist"
@@ -106,6 +109,10 @@ class SourceType(StrEnum):
     ORIGINAL_RESEARCH = "original_research"
     REPUTABLE_SECONDARY = "reputable_secondary"
     SPECIALIST_REPORTING = "specialist_reporting"
+    #: SPEC-043. Supplied by the decision owner: a document they dropped in `inputs/`,
+    #: or an answer to a substantive intake question. Direct and usually decisive, but
+    #: unverifiable and never independent corroboration for anything.
+    USER_DOCUMENT = "user_document"
     OTHER = "other"
 
 

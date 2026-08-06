@@ -26,8 +26,16 @@ from orchestrator.state_machine import (
 
 # ── The snapshot ─────────────────────────────────────────────────────────────
 #
-# Recorded 2026-08-05, at the phase 9 base (main @ 8fbf441).  Stage names are
-# written as their string values so a rename shows up as a diff here too.
+# Recorded 2026-08-05 at the phase 9 base (main @ 8fbf441), then updated when
+# phase 8 merged.  Stage names are written as their string values so a rename
+# shows up as a diff here too.
+#
+# Phase 8's change, reviewed and accepted rather than blind-updated: SPEC-040
+# inserts one stage, `competing_hypotheses` (role `ach`), between the assumption
+# ledger and the preliminary recommendation — an Analysis of Competing
+# Hypotheses pass that scores evidence against every alternative before the
+# Director forms a view.  One stage in, one edge re-pointed, nothing else moved.
+# That is exactly the review this snapshot exists to force.
 
 EXPECTED_TRANSITIONS: dict[str, set[str]] = {
     "intake": {"framing", "failed"},
@@ -38,7 +46,8 @@ EXPECTED_TRANSITIONS: dict[str, set[str]] = {
     "planning": {"investigation", "failed"},
     "investigation": {"evidence_critique", "failed"},
     "evidence_critique": {"assumption_ledger", "failed"},
-    "assumption_ledger": {"preliminary_recommendation", "failed"},
+    "assumption_ledger": {"competing_hypotheses", "failed"},
+    "competing_hypotheses": {"preliminary_recommendation", "failed"},
     "preliminary_recommendation": {"pre_mortem", "failed"},
     "pre_mortem": {"challenge", "failed"},
     "challenge": {"stop_decision", "failed"},
@@ -63,6 +72,7 @@ EXPECTED_FLOW_PLANS: dict[str, tuple[str | None, tuple[str, ...]]] = {
     "investigation": ("investigation", ("researcher", "analyst")),
     "evidence_critique": ("evidence_critique", ()),
     "assumption_ledger": ("assumption_ledger", ("assumption_analyst",)),
+    "competing_hypotheses": ("competing_hypotheses", ("ach",)),
     "preliminary_recommendation": ("preliminary_recommendation", ("director",)),
     "pre_mortem": ("pre_mortem", ("premortem",)),
     "challenge": ("challenge", ("challenger", "auditor")),

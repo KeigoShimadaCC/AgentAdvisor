@@ -6,7 +6,9 @@ from dataclasses import dataclass
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
+from orchestrator.ach import rank_by_disconfirmation, zero_diagnosticity_records
 from orchestrator.artifacts import (
+    ACHMatrix,
     AnalysisResult,
     AssumptionRecord,
     AuditFinding,
@@ -21,11 +23,13 @@ from orchestrator.artifacts import (
     IntakeRecord,
     IssueTree,
     Level,
+    MonitoringPlan,
     ObjectionRecord,
     PreliminaryRecommendation,
     PreMortemReport,
     PriorEvidenceDigest,
     ReviewReport,
+    SourceType,
     TaskProposalBatch,
     TaskRecord,
     ThesisRevision,
@@ -518,6 +522,102 @@ def _budget_snapshot(case: Case) -> list[_Candidate]:
     ]
 
 
+def _independent_review_packet(case: Case) -> list[_Candidate]:
+    """SPEC-039 — everything the independent reviewer needs, and nothing that anchors it.
+
+    Included: the decision spec, the final recommendation, the full evidence ledger,
+    the assumption ledger and the evidence critique.
+
+    Deliberately excluded: thesis history, track divergence, objections, the pre-mortem,
+    gate reports and any prior reviewer output.  A reviewer that reads the reasoning
+    inherits its anchoring, and the anchoring is what this role exists to detect.  The
+    exclusion is enforced by construction — this handler names what it includes rather
+    than filtering a wider set — and asserted by
+    ``tests/test_independent_review.py::test_packet_excludes_the_reasoning_trail``.
+    """
+    candidates: list[_Candidate] = []
+    candidates.extend(_decision_spec(case))
+    candidates.extend(_final_recommendation(case))
+    candidates.extend(_evidence(case))
+    candidates.extend(_assumptions(case))
+    candidates.extend(_evidence_critique(case))
+    return candidates
+
+
+def _ach_matrix(case: Case) -> list[_Candidate]:
+    """The competing-hypotheses matrix, with the deterministic standings appended.
+
+    The standings are computed here rather than left for the reading role to derive,
+    so the Director confronts the ranking the evidence implies instead of re-deriving
+    it (or not bothering).
+    """
+    try:
+        matrix = case.read_artifact(ACHMatrix)
+    except FileNotFoundError:
+        return []
+
+    standings = rank_by_disconfirmation(matrix)
+    uninformative = zero_diagnosticity_records(matrix)
+    summary_lines = [
+        "kind: ach_standings",
+        "note: ranked by weight of disconfirming evidence, least disconfirmed first",
+        "standings:",
+    ]
+    for standing in standings:
+        summary_lines.append(f"  - alternative: {standing.alternative}")
+        summary_lines.append(f"    rank: {standing.rank}")
+        summary_lines.append(f"    weighted_inconsistency: {standing.weighted_inconsistency:.3f}")
+    summary_lines.append("evidence_with_no_discriminating_power:")
+    for evidence_id in uninformative:
+        summary_lines.append(f"  - {evidence_id}")
+    summary = "\n".join(summary_lines) + "\n"
+
+    return [
+        _Candidate(filename="ach_matrix.yaml", yaml_text=dump_model_to_yaml_text(matrix)),
+        _Candidate(filename="ach_standings.yaml", yaml_text=summary),
+    ]
+
+
+def _monitoring_plan(case: Case) -> list[_Candidate]:
+    """The deterministically assembled plan, for the monitor role to concretise."""
+    return _singleton(case, MonitoringPlan, filename="monitoring_plan.yaml")
+
+
+def _private_evidence(case: Case) -> list[_Candidate]:
+    """User-supplied evidence only (SPEC-043).
+
+    Wired into the roles that reason about the decision and deliberately not into the
+    roles that check the reasoning. Two reasons, and both matter: a reviewer anchored on
+    the decision owner's own material is not independent, and narrowing where personal
+    documents travel is worth doing by construction rather than by convention.
+    """
+    records = [
+        record
+        for record in case.list_artifacts(EvidenceRecord)
+        if record.source_type is SourceType.USER_DOCUMENT
+    ]
+    if not records:
+        return []
+    banner = (
+        "kind: private_evidence_notice\n"
+        f"record_count: {len(records)}\n"
+        "notice: >-\n"
+        "  These records were supplied by the decision owner. They are direct evidence\n"
+        "  about their own subject and carry no external verification. Two excerpts from\n"
+        "  one document are one source, never corroboration. Cite them like any other\n"
+        "  record, but do not describe them as independently confirmed.\n"
+    )
+    candidates = [_Candidate(filename="_private_evidence_notice.yaml", yaml_text=banner)]
+    candidates.extend(
+        _Candidate(
+            filename=f"private_evidence_{record.evidence_id}.yaml",
+            yaml_text=dump_model_to_yaml_text(record),
+        )
+        for record in records
+    )
+    return candidates
+
+
 _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "intake_record": _intake_record,
     "framing_approval": _framing_approval,
@@ -549,6 +649,10 @@ _INCLUDE_HANDLERS: dict[str, Callable[[Case], list[_Candidate]]] = {
     "budget_snapshot": _budget_snapshot,
     "issue_tree": _issue_tree,
     "evidence_critique": _evidence_critique,
+    "independent_review_packet": _independent_review_packet,
+    "ach_matrix": _ach_matrix,
+    "monitoring_plan": _monitoring_plan,
+    "private_evidence": _private_evidence,
     "premortem_report": _premortem_report,
     "verification_worksheet": _verification_worksheet,
     "case_memory": _case_memory,

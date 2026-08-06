@@ -19,14 +19,20 @@ export type AgeDays = number;
 export type AuthorityScore = number;
 export type EvidenceId = string;
 export type EvidenceFlag =
-  'single_source_cluster' | 'stale' | 'low_directness' | 'low_reliability' | 'missing_limitations' | 'weak_source_tier';
+  | 'single_source_cluster'
+  | 'stale'
+  | 'low_directness'
+  | 'low_reliability'
+  | 'missing_limitations'
+  | 'weak_source_tier'
+  | 'user_supplied';
 export type Flags = EvidenceFlag[];
 export type IndependenceGroup1 = string;
 export type SchemaVersion2 = number;
 /**
  * Authority tier of an evidence source, ordered strongest to weakest.
  */
-export type SourceTier = 'primary' | 'official' | 'reputable' | 'weak';
+export type SourceTier = 'primary' | 'official' | 'reputable' | 'weak' | 'unverifiable';
 export type Scored = EvidenceAuthorityScore[];
 export type WeakestEvidenceIds = string[];
 

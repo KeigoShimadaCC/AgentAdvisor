@@ -1,0 +1,200 @@
+{
+  "$defs": {
+    "IndicatorSource": {
+      "enum": [
+        "premortem_failure_mode",
+        "change_trigger"
+      ],
+      "title": "IndicatorSource",
+      "type": "string"
+    },
+    "MitigationStatus": {
+      "enum": [
+        "not_started",
+        "in_place",
+        "not_applicable"
+      ],
+      "title": "MitigationStatus",
+      "type": "string"
+    },
+    "MonitoredIndicator": {
+      "additionalProperties": false,
+      "description": "One thing to watch, and what its breach would mean.",
+      "properties": {
+        "check_cadence_days": {
+          "maximum": 180,
+          "minimum": 7,
+          "title": "Check Cadence Days",
+          "type": "integer"
+        },
+        "implicated_alternative": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Implicated Alternative"
+        },
+        "indicator_id": {
+          "pattern": "^M-\\d+$",
+          "title": "Indicator Id",
+          "type": "string"
+        },
+        "observable": {
+          "minLength": 1,
+          "title": "Observable",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "source": {
+          "$ref": "#/$defs/IndicatorSource"
+        },
+        "source_ref": {
+          "minLength": 1,
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "threshold": {
+          "minLength": 1,
+          "title": "Threshold",
+          "type": "string"
+        },
+        "would_imply": {
+          "minLength": 1,
+          "title": "Would Imply",
+          "type": "string"
+        }
+      },
+      "required": [
+        "indicator_id",
+        "source",
+        "source_ref",
+        "observable",
+        "threshold",
+        "check_cadence_days",
+        "would_imply"
+      ],
+      "title": "MonitoredIndicator",
+      "type": "object"
+    },
+    "TrackedMitigation": {
+      "additionalProperties": false,
+      "description": "A prepared response, with an owner.\n\nSourced from ``FailureMode.preventive_action``, which the pipeline generates on every\ncase and has never carried into the deliverable.",
+      "properties": {
+        "failure_mode": {
+          "minLength": 1,
+          "title": "Failure Mode",
+          "type": "string"
+        },
+        "mitigation": {
+          "minLength": 1,
+          "title": "Mitigation",
+          "type": "string"
+        },
+        "mitigation_id": {
+          "pattern": "^R-\\d+$",
+          "title": "Mitigation Id",
+          "type": "string"
+        },
+        "owner": {
+          "minLength": 1,
+          "title": "Owner",
+          "type": "string"
+        },
+        "schema_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "severity": {
+          "minLength": 1,
+          "title": "Severity",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/MitigationStatus",
+          "default": "not_started"
+        },
+        "triggered_by": {
+          "items": {
+            "pattern": "^M-\\d+$",
+            "type": "string"
+          },
+          "title": "Triggered By",
+          "type": "array"
+        }
+      },
+      "required": [
+        "mitigation_id",
+        "failure_mode",
+        "mitigation",
+        "owner",
+        "severity"
+      ],
+      "title": "TrackedMitigation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What to watch after the report is delivered, and what to do about it.",
+  "properties": {
+    "case_id": {
+      "pattern": "^case-\\d+[-a-z0-9-]*$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "concretized": {
+      "default": true,
+      "title": "Concretized",
+      "type": "boolean"
+    },
+    "delivered_at": {
+      "format": "date",
+      "title": "Delivered At",
+      "type": "string"
+    },
+    "horizon": {
+      "minLength": 1,
+      "title": "Horizon",
+      "type": "string"
+    },
+    "indicators": {
+      "items": {
+        "$ref": "#/$defs/MonitoredIndicator"
+      },
+      "title": "Indicators",
+      "type": "array"
+    },
+    "mitigations": {
+      "items": {
+        "$ref": "#/$defs/TrackedMitigation"
+      },
+      "title": "Mitigations",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "case_id",
+    "delivered_at",
+    "horizon"
+  ],
+  "title": "MonitoringPlan",
+  "type": "object"
+}

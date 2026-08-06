@@ -34,6 +34,53 @@ export interface SheetState {
   groundRuleKeys: string[];
   /** Clarification answers collected upstream (field → value). */
   clarificationAnswers: Record<string, string>;
+  /**
+   * SPEC-038. Points allocated to each objective (objective → points).  Empty
+   * when the framing proposed no weights and the user set none, in which case
+   * the case runs without a value model exactly as before.
+   */
+  objectiveWeights?: Record<string, number>;
+  /** The weights the framing proposed, for diffing. */
+  originalObjectiveWeights?: Record<string, number>;
+}
+
+/** Total points allocated across objectives. */
+export function weightTotal(weights: Record<string, number> | undefined): number {
+  if (!weights) return 0;
+  return Object.values(weights).reduce((sum, n) => sum + (Number.isFinite(n) ? n : 0), 0);
+}
+
+/**
+ * True when the allocation is usable: it sums to exactly {@link WEIGHT_BUDGET}
+ * and every objective carries a positive share.
+ *
+ * An empty allocation is valid — it means "no value model", not "invalid".
+ */
+export function weightsAreValid(weights: Record<string, number> | undefined): boolean {
+  if (!weights || Object.keys(weights).length === 0) return true;
+  if (Object.values(weights).some((n) => !Number.isFinite(n) || n <= 0)) return false;
+  return weightTotal(weights) === WEIGHT_BUDGET;
+}
+
+/** The number of points the user distributes across objectives. */
+export const WEIGHT_BUDGET = 100;
+
+/** Weights with zero/blank entries dropped, in stable key order. */
+function meaningfulWeights(state: SheetState): Array<[string, number]> {
+  return Object.entries(state.objectiveWeights ?? {})
+    .filter(([, points]) => Number.isFinite(points) && points > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+}
+
+/** True when the user changed the allocation the framing proposed. */
+function weightsChanged(state: SheetState): boolean {
+  const current = Object.fromEntries(meaningfulWeights(state));
+  const original = state.originalObjectiveWeights ?? {};
+  const keys = new Set([...Object.keys(current), ...Object.keys(original)]);
+  for (const key of keys) {
+    if (current[key] !== original[key]) return true;
+  }
+  return false;
 }
 
 /** Annotations with the blank entries dropped, in stable key order. */
@@ -90,6 +137,12 @@ export function buildEdits(state: SheetState): Record<string, unknown> {
   // constraint the user actually signed off on.
   for (const [key, value] of meaningfulGroundRuleEdits(state)) {
     edits[key] = value;
+  }
+
+  // SPEC-038: the elicited value model rides the same edits path, so a weight
+  // change is auditable rather than silent.
+  if (weightsChanged(state)) {
+    edits.objective_weights = Object.fromEntries(meaningfulWeights(state));
   }
 
   return edits;
@@ -195,6 +248,8 @@ export function canonicalSheetContent(state: SheetState): string {
     meaningfulGroundRuleEdits(state).map(([key, value]) => `${key}=${value}`).join("\n"),
     "ground_rules",
     state.groundRuleKeys.map((k) => `${k}=${state.confirmations[k] ? "confirmed" : "unconfirmed"}`).join("\n"),
+    "objective_weights",
+    meaningfulWeights(state).map(([name, points]) => `${name}=${points}`).join("\n"),
   ].join("\n");
 }
 

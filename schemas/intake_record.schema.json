@@ -1,8 +1,22 @@
 {
   "$defs": {
+    "ClarificationKind": {
+      "description": "What an intake question is asking for.\n\nBefore SPEC-043 every question had to map to one of eight framing fields, so intake\ncould ask \"what is your risk tolerance?\" but not \"what is your cost basis?\" — and the\nfacts that decide personal cases usually live in the decision owner's head rather\nthan on the public web.",
+      "enum": [
+        "field",
+        "document",
+        "fact"
+      ],
+      "title": "ClarificationKind",
+      "type": "string"
+    },
     "ClarificationQuestion": {
       "additionalProperties": false,
       "properties": {
+        "kind": {
+          "$ref": "#/$defs/ClarificationKind",
+          "default": "field"
+        },
         "materiality_reason": {
           "minLength": 1,
           "title": "Materiality Reason",
@@ -19,7 +33,15 @@
           "type": "string"
         },
         "resolves_field": {
-          "$ref": "#/$defs/IntakeField"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IntakeField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "schema_version": {
           "default": 1,
@@ -30,7 +52,6 @@
       },
       "required": [
         "question_id",
-        "resolves_field",
         "question",
         "materiality_reason"
       ],
@@ -55,7 +76,8 @@
         "constraints",
         "risk_tolerance",
         "reversibility",
-        "depth"
+        "depth",
+        "internal_information"
       ],
       "title": "IntakeField",
       "type": "string"
@@ -102,7 +124,7 @@
       "items": {
         "$ref": "#/$defs/ClarificationQuestion"
       },
-      "maxItems": 5,
+      "maxItems": 8,
       "title": "Clarification Questions",
       "type": "array"
     },

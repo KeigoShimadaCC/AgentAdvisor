@@ -17,6 +17,7 @@
         "original_research",
         "reputable_secondary",
         "specialist_reporting",
+        "user_document",
         "other"
       ],
       "title": "SourceType",

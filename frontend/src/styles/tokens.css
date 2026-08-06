@@ -156,6 +156,15 @@
   --state-critical:      var(--crit-600);
   --state-critical-wash: var(--crit-50);
 
+  /* Blocked is not critical. Critical means something broke; blocked means the
+     system is holding, deliberately — a dissenting reviewer that stops a
+     signature (SPEC-049). They share the critical ramp today because inventing
+     a hue for one use site is worse than reusing one, but they are separate
+     names so they can diverge without a find-and-replace. */
+  --state-blocked:        var(--crit-600);
+  --state-blocked-wash:   var(--crit-50);
+  --state-blocked-border: var(--crit-600);
+
   /* Source-strength ramp: ordered, so it is a scale rather than five colours. */
   --source-tier-1: var(--a-600);
   --source-tier-2: var(--a-500);
@@ -214,6 +223,10 @@
     --state-critical:      #f0736a;
     --state-critical-wash: #331512;
 
+    --state-blocked:        #f0736a;
+    --state-blocked-wash:   #331512;
+    --state-blocked-border: #8a3b34;
+
     --source-tier-1: #7cc0f5;
     --source-tier-2: #5aa9f0;
     --source-tier-3: #3d7fb8;
@@ -267,6 +280,10 @@
   --state-critical:      #f0736a;
   --state-critical-wash: #331512;
 
+  --state-blocked:        #f0736a;
+  --state-blocked-wash:   #331512;
+  --state-blocked-border: #8a3b34;
+
   --source-tier-1: #7cc0f5;
   --source-tier-2: #5aa9f0;
   --source-tier-3: #3d7fb8;
@@ -313,6 +330,10 @@
 
   --state-critical:      var(--crit-600);
   --state-critical-wash: var(--crit-50);
+
+  --state-blocked:        var(--crit-600);
+  --state-blocked-wash:   var(--crit-50);
+  --state-blocked-border: var(--crit-600);
 
   --source-tier-1: var(--a-600);
   --source-tier-2: var(--a-500);

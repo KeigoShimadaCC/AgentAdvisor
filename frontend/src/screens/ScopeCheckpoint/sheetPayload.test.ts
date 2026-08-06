@@ -8,6 +8,9 @@ import {
   confirmedKeys,
   canonicalSheetContent,
   computeSummaryHash,
+  weightTotal,
+  weightsAreValid,
+  WEIGHT_BUDGET,
   type SheetState,
 } from "./sheetPayload";
 
@@ -189,5 +192,64 @@ describe("canonicalSheetContent / computeSummaryHash", () => {
   it("returns an 8-char hex string", () => {
     const h = computeSummaryHash(canonicalSheetContent(baseState));
     expect(h).toMatch(/^[0-9a-f]{8}$/);
+  });
+});
+
+
+// ── SPEC-038: objective weights ──────────────────────────────────────────────
+
+describe("objective weights", () => {
+  const weighted: SheetState = {
+    ...baseState,
+    objectiveWeights: { pay: 60, growth: 40 },
+    originalObjectiveWeights: { pay: 60, growth: 40 },
+  };
+
+  it("totals the allocated points", () => {
+    expect(weightTotal(weighted.objectiveWeights)).toBe(100);
+  });
+
+  it("treats an allocation summing to the budget as valid", () => {
+    expect(weightsAreValid({ pay: 60, growth: 40 })).toBe(true);
+  });
+
+  it("rejects an allocation that does not sum to the budget", () => {
+    expect(weightsAreValid({ pay: 60, growth: 30 })).toBe(false);
+    expect(weightsAreValid({ pay: 80, growth: 40 })).toBe(false);
+  });
+
+  it("rejects a non-positive share", () => {
+    expect(weightsAreValid({ pay: 100, growth: 0 })).toBe(false);
+    expect(weightsAreValid({ pay: 120, growth: -20 })).toBe(false);
+  });
+
+  it("treats an empty allocation as valid — it means no value model", () => {
+    expect(weightsAreValid({})).toBe(true);
+    expect(weightsAreValid(undefined)).toBe(true);
+  });
+
+  it("omits objective_weights from edits when the allocation is unchanged", () => {
+    expect(buildEdits(weighted).objective_weights).toBeUndefined();
+  });
+
+  it("includes objective_weights in edits when the user redistributes points", () => {
+    const state = { ...weighted, objectiveWeights: { pay: 30, growth: 70 } };
+    expect(buildEdits(state).objective_weights).toEqual({ growth: 70, pay: 30 });
+  });
+
+  it("drops zeroed objectives from the submitted allocation", () => {
+    const state = { ...weighted, objectiveWeights: { pay: 100, growth: 0 } };
+    expect(buildEdits(state).objective_weights).toEqual({ pay: 100 });
+  });
+
+  it("folds the allocation into the summary hash so the signed sheet covers it", () => {
+    const changed = { ...weighted, objectiveWeights: { pay: 30, growth: 70 } };
+    expect(computeSummaryHash(canonicalSheetContent(weighted))).not.toBe(
+      computeSummaryHash(canonicalSheetContent(changed)),
+    );
+  });
+
+  it("exposes the budget the UI allocates against", () => {
+    expect(WEIGHT_BUDGET).toBe(100);
   });
 });

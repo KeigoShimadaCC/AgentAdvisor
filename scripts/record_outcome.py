@@ -24,8 +24,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from orchestrator.artifacts import OutcomeRecord  # noqa: E402
+from orchestrator.artifacts import OutcomeRecord, PriorCaseEntry  # noqa: E402
 from orchestrator.memory import MemoryStore  # noqa: E402
+from orchestrator.monitoring import MonitoringStore  # noqa: E402
 
 
 def _list_cases(store: MemoryStore) -> int:
@@ -48,7 +49,39 @@ def _list_cases(store: MemoryStore) -> int:
     summary = store.calibration()
     brier = f"{summary.brier_score:.3f}" if summary.brier_score is not None else "n/a"
     print(f"\nCalibration: n={summary.sample_size}, Brier={brier}. {summary.interpretation}")
+
+    # SPEC-042: a breached indicator is the strongest available signal that a case's
+    # outcome is now knowable. Surfacing it here is the whole point of tracking them —
+    # a breach is not itself an outcome, but it is the moment to go and record one.
+    _print_breached_prompts(store, entries)
     return 0
+
+
+def _print_breached_prompts(store: MemoryStore, entries: list[PriorCaseEntry]) -> None:
+    """Nudge toward cases whose monitoring fired and whose outcome is still unrecorded."""
+    monitoring = MonitoringStore(store.root / "monitoring")
+    open_cases = {entry.case_id for entry in entries if entry.outcome is None}
+
+    nudges: list[tuple[str, list[str]]] = []
+    for plan in monitoring.plans():
+        if plan.case_id not in open_cases:
+            continue
+        breached = sorted(
+            {check.indicator_id for check in monitoring.checks(plan.case_id) if check.breached}
+        )
+        if breached:
+            nudges.append((plan.case_id, breached))
+
+    if not nudges:
+        return
+    print("\nThese cases have breached indicators and no recorded outcome yet:")
+    for case_id, breached in nudges:
+        print(f"  {case_id}  ({', '.join(breached)})")
+    print("  A breach is not an outcome, but it usually means one is now knowable.")
+    print(
+        "  Record it with --case-id <id> --summary ... --followed/--no-followed "
+        "--realized/--no-realized"
+    )
 
 
 def _resolve_forecast(

@@ -40,9 +40,18 @@
 - [interpretation] If retention drops below 110% for two consecutive quarters, switch to wait_for_milestone.
 - [interpretation] If independent benchmark data contradicts filing-based retention durability, pause follow-on.
 
+## Limitations
+- [interpretation] No limitations were stated. Treat that as an omission rather than as a claim of completeness.
+
 ## Next actions
-- [recommendation] Define tranche sizing and downside guardrails before execution.
-- [recommendation] Collect one independent retention benchmark before second tranche release.
+
+| # | Action | Owner | By | First step |
+|---|---|---|---|---|
+| N-001 | Define tranche sizing and downside guardrails before execution | user | 2026-08-15 | Block 30 minutes and start: define tranche sizing and downside guardrails before execution |
+| N-002 | Collect one independent retention benchmark before second tranche release | user | 2026-08-22 | Block 30 minutes and start: collect one independent retention benchmark before second tranche release |
+
+- [recommendation] N-001: Carries the recommendation into execution.
+- [recommendation] N-002: Carries the recommendation into execution.
 
 ## User-supplied inputs
 - [user_input] User requires downside protection over maximum upside.

@@ -314,3 +314,68 @@ def test_both_events_reach_the_ui_over_sse(tmp_path: Path, monkeypatch: pytest.M
     cursors = [f["line_cursor"] for f in frames]
     assert cursors == sorted(cursors), "cursors were not monotonic"
     assert len(set(cursors)) == len(cursors), "a cursor was delivered twice"
+
+
+def test_started_and_progress_cover_the_backend_failure_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A backend that errors out is still work that began.
+
+    This is the third of the three paths the spec names, and the one most worth
+    holding: a timeout or a crashed CLI is exactly when the interface must not
+    go silent, and it is the branch that `continue`s past the normal exit — so
+    it is where a heartbeat would most plausibly be left running.
+    """
+    case, _ = _build_case(tmp_path, monkeypatch)
+    monkeypatch.setattr("orchestrator.invoke_role.PROGRESS_INTERVAL_S", 0.05)
+    config = _role_config(tmp_path)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config", lambda _role, _variant=None: config
+    )
+
+    def _failed_result() -> RoleResult:
+        return RoleResult(
+            status=ResultStatus.TIMEOUT,
+            result_text=None,
+            session_id="sess-timeout",
+            request_id="req-timeout",
+            duration_ms=1,
+            usage=None,
+            raw_stdout="",
+            raw_stderr="the agent exceeded its wall clock",
+            cli_version="test",
+        )
+
+    def _slow_then_nothing(_invocation) -> None:  # noqa: ANN001
+        time.sleep(0.2)
+
+    backend = StubBackend(
+        [_failed_result(), _failed_result(), _failed_result()],
+        side_effects=[_slow_then_nothing, _slow_then_nothing, _slow_then_nothing],
+    )
+    before = threading.active_count()
+
+    with pytest.raises(RoleInvocationFailed):
+        invoke(case, "researcher", _task("T-049"), backend=backend)
+
+    events = _audit(case.root)
+    started = [e for e in events if e.event_type == "role_invocation_started"]
+    attempts = [e for e in events if e.event_type == "role_invocation_attempt"]
+
+    announced = [e.payload["attempt"] for e in started]
+    assert announced == [1, 2, 3], "not every attempt announced itself"
+    assert all(e.payload["status"] == "backend_failure" for e in attempts)
+    assert len(attempts) == 3
+
+    # The branch `continue`s rather than returning, so this is where a leaked
+    # timer would survive into the next attempt.
+    types = [e.event_type for e in events]
+    for i, event_type in enumerate(types):
+        if event_type != "role_invocation_progress":
+            continue
+        next_attempt = next(
+            (j for j, t in enumerate(types) if t == "role_invocation_attempt" and j > i), None
+        )
+        assert next_attempt is not None, "a heartbeat outlived the last attempt"
+    time.sleep(0.15)
+    assert threading.active_count() <= before, "a progress thread survived the retry ladder"

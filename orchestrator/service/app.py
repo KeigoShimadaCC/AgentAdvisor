@@ -46,6 +46,7 @@ from orchestrator.control import (
     spawn_worker_background,
 )
 from orchestrator.memory import MemoryStore, memory_root
+from orchestrator.monitoring import MonitoringStore, due_checks
 from orchestrator.service.caseview import build_case_view, needs_you_for_state
 from orchestrator.service.events import replay_stream, sse_event_stream
 from orchestrator.state_machine import CaseStage, load_case_state
@@ -241,10 +242,14 @@ class ServiceConfig:
         cases_root: Path | None = None,
         replay_dir: Path | None = None,
         speed: float = 60.0,
+        monitoring_root: Path | None = None,
     ) -> None:
         self.cases_root = cases_root or default_cases_root()
         self.replay_dir = replay_dir
         self.speed = speed
+        # SPEC-042: monitoring plans live outside the case tree, under the memory root.
+        # Injectable so tests never touch the real one.
+        self.monitoring_root = monitoring_root
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -336,6 +341,7 @@ def create_app(
     *,
     replay_dir: Path | None = None,
     speed: float = 60.0,
+    monitoring_root: Path | None = None,
 ) -> FastAPI:
     """Create a configured FastAPI application.
 
@@ -351,7 +357,12 @@ def create_app(
     speed:
         Replay speed factor (inter-event delay / speed).
     """
-    config = ServiceConfig(cases_root=cases_root, replay_dir=replay_dir, speed=speed)
+    config = ServiceConfig(
+        cases_root=cases_root,
+        replay_dir=replay_dir,
+        speed=speed,
+        monitoring_root=monitoring_root,
+    )
     application = FastAPI(title="Advisor UI", version="1")
     application.state.config = config
 
@@ -436,6 +447,38 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
                 "Connection": "keep-alive",
                 "X-Accel-Buffering": "no",
             },
+        )
+
+    # ── GET /api/cases/{case_id}/monitoring ───────────────────────────────
+    @application.get("/api/cases/{case_id}/monitoring")
+    async def get_monitoring(case_id: str) -> JSONResponse:
+        """SPEC-042 — the delivered monitoring plan and which checks are due.
+
+        Read-only, and it never touches the case directory: the plan lives outside the
+        pipeline under the memory root, which is what lets a delivered case stay terminal.
+        """
+        _load_or_404(case_id, config)
+        store = MonitoringStore(config.monitoring_root)
+        plan = store.read_plan(case_id)
+        if plan is None:
+            return JSONResponse(content={"plan": None, "due": []})
+        due = due_checks(plan, store.checks(case_id))
+        return JSONResponse(
+            content={
+                "plan": plan.model_dump(mode="json"),
+                "due": [
+                    {
+                        "indicator_id": item.indicator.indicator_id,
+                        "observable": item.indicator.observable,
+                        "threshold": item.indicator.threshold,
+                        "days_overdue": item.days_overdue,
+                        "last_checked": (
+                            item.last_checked.isoformat() if item.last_checked else None
+                        ),
+                    }
+                    for item in due
+                ],
+            }
         )
 
     # ── GET /api/cases/{case_id}/artifacts/{artifact_id} ─────────────────

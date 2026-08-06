@@ -19,9 +19,12 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from orchestrator.ach import rank_by_disconfirmation, zero_diagnosticity_records
 from orchestrator.artifacts import (
+    ACHMatrix,
     AnalysisResult,
     AssumptionRecord,
+    DecisionSpec,
     DisclosureRecord,
     EvidenceCritique,
     EvidenceRecord,
@@ -30,6 +33,7 @@ from orchestrator.artifacts import (
     FramingApproval,
     GateReport,
     GateSeverity,
+    IndependentReview,
     IntakeRecord,
     IssueTree,
     ObjectionRecord,
@@ -52,6 +56,7 @@ from orchestrator.artifacts.sentinels import (
 from orchestrator.artifacts.stability import ModelStability
 from orchestrator.case_store import Case
 from orchestrator.state_machine import CaseStage, CaseState, load_case_state
+from orchestrator.value_model import compute_ranking
 
 __all__ = ["CaseView", "build_case_view"]
 
@@ -132,6 +137,8 @@ BRIEF_SECTION_ORDER: tuple[str, ...] = (
     "premortem",
     "critical_assumptions",
     "recommendation_change_triggers",
+    "limitations",
+    "independent_review",
     "next_actions",
     "user_supplied_inputs",
     "budget_depth_stop_disclosure",
@@ -264,6 +271,17 @@ class OptionView(BaseModel):
     rank: int
     rationale: str
     expected_value: float | None = None
+    #: SPEC-038. Per-objective scores and the resulting weighted total, present only
+    #: when the decision owner supplied objective weights.
+    objective_scores: dict[str, float] | None = None
+    weighted_score: float | None = None
+    weighted_rank: int | None = None
+    #: SPEC-040. Position under the competing-hypotheses matrix — ranked by weight of
+    #: disconfirming evidence, so rank 1 is the alternative the evidence fails to rule
+    #: out rather than the one with the most support.
+    disconfirmation_rank: int | None = None
+    disconfirming_weight: float | None = None
+    disconfirming_evidence_ids: list[str] = Field(default_factory=list)
     #: Whether this alternative was ruled out rather than ranked against the others.
     #: Derived here (see :func:`_is_eliminated`) so the presentation layer consumes a
     #: field instead of re-deriving it from prose.
@@ -342,6 +360,11 @@ class OptionsRoom(BaseModel):
 
     options: list[OptionView] = Field(default_factory=list)
     ev_table: dict[str, float] = Field(default_factory=dict)
+    #: SPEC-040. Present only when a competing-hypotheses matrix was built.
+    ach_scored: bool = False
+    #: Evidence that scored identically against every alternative, and so could not have
+    #: changed the ranking. Naming it is one of the more useful outputs of the technique.
+    ach_uninformative_evidence_ids: list[str] = Field(default_factory=list)
 
 
 class ChallengesRoom(BaseModel):
@@ -516,6 +539,7 @@ def _build_brief_sections(
     premortem: PreMortemReport | None,
     disclosure: DisclosureRecord | None,
     intake: IntakeRecord | None,
+    independent_review: IndependentReview | None = None,
 ) -> list[BriefSection]:
     sections: list[BriefSection] = []
     if final is None:
@@ -702,12 +726,65 @@ def _build_brief_sections(
             )
         )
 
+    # limitations (SPEC-039)
+    if final.limitations:
+        sections.append(
+            BriefSection(
+                key="limitations",
+                status="final",
+                blocks=[_block(PROVENANCE_INTERPRETATION, text) for text in final.limitations],
+            )
+        )
+    else:
+        sections.append(
+            BriefSection(
+                key="limitations",
+                status="not_assessed",
+                blocks=[
+                    _block(
+                        PROVENANCE_INTERPRETATION,
+                        "No limitations were stated. Treat that as an omission rather than "
+                        "as a claim of completeness.",
+                    )
+                ],
+            )
+        )
+
+    # independent_review (SPEC-039)
+    if independent_review is not None:
+        blocks = [
+            _block(
+                PROVENANCE_INTERPRETATION,
+                f"Verdict: {independent_review.verdict.value.replace('_', ' ')}",
+            ),
+            _block(PROVENANCE_INTERPRETATION, independent_review.reasoning),
+        ]
+        if independent_review.divergent_conclusion:
+            blocks.append(
+                _block(
+                    PROVENANCE_INTERPRETATION,
+                    f"Would instead recommend: {independent_review.divergent_conclusion}",
+                )
+            )
+        blocks.extend(
+            _block(PROVENANCE_INTERPRETATION, f"Flagged as unsupported: {claim}")
+            for claim in independent_review.unsupported_claims
+        )
+        sections.append(BriefSection(key="independent_review", status="final", blocks=blocks))
+
     # next_actions
     sections.append(
         BriefSection(
             key="next_actions",
             status="final",
-            blocks=[_block(PROVENANCE_RECOMMENDATION, action) for action in final.next_actions],
+            blocks=[
+                _block(
+                    PROVENANCE_RECOMMENDATION,
+                    f"{action.action} — {action.owner}, by {action.by_date.isoformat()}. "
+                    f"First step: {action.first_step}",
+                )
+                for action in final.next_actions
+            ],
         )
     )
 
@@ -902,6 +979,8 @@ def _is_eliminated(rationale: str) -> bool:
 def _build_options_room(
     final: FinalRecommendation | None,
     analysis_results: list[AnalysisResult],
+    spec: DecisionSpec | None = None,
+    ach_matrix: ACHMatrix | None = None,
 ) -> OptionsRoom:
     options: list[OptionView] = []
     if final is not None:
@@ -912,8 +991,21 @@ def _build_options_room(
                     rank=alt.rank,
                     rationale=alt.rationale,
                     eliminated=_is_eliminated(alt.rationale),
+                    objective_scores=dict(alt.objective_scores) if alt.objective_scores else None,
                 )
             )
+
+    # SPEC-038: join the weighted ranking on, when a value model was elicited.
+    if final is not None and spec is not None and spec.objective_weights:
+        ranked = {
+            row.alternative: row
+            for row in compute_ranking(spec.objective_weights, final.alternatives_considered)
+        }
+        for opt in options:
+            row = ranked.get(opt.alternative)
+            if row is not None:
+                opt.weighted_score = row.score
+                opt.weighted_rank = row.computed_rank
 
     ev_table: dict[str, float] = {}
     if analysis_results:
@@ -923,7 +1015,27 @@ def _build_options_room(
         for opt in options:
             opt.expected_value = ev_table.get(opt.alternative)
 
-    return OptionsRoom(options=options, ev_table=ev_table)
+    # SPEC-040: join the disconfirmation standings on, so the room shows both readings
+    # of the same option set — best supported and least ruled out.
+    ach_scored = False
+    uninformative: list[str] = []
+    if ach_matrix is not None:
+        ach_scored = True
+        uninformative = list(zero_diagnosticity_records(ach_matrix))
+        standings = {s.alternative: s for s in rank_by_disconfirmation(ach_matrix)}
+        for opt in options:
+            standing = standings.get(opt.alternative)
+            if standing is not None:
+                opt.disconfirmation_rank = standing.rank
+                opt.disconfirming_weight = round(standing.weighted_inconsistency, 3)
+                opt.disconfirming_evidence_ids = list(standing.disconfirming_evidence_ids)
+
+    return OptionsRoom(
+        options=options,
+        ev_table=ev_table,
+        ach_scored=ach_scored,
+        ach_uninformative_evidence_ids=uninformative,
+    )
 
 
 def _build_challenges_room(
@@ -1284,17 +1396,27 @@ def build_case_view(case: Case) -> CaseView:
     final_approval_list = case.list_artifacts(FinalApproval)
     final_approval = final_approval_list[0] if final_approval_list else None
 
+    spec_list = case.list_artifacts(DecisionSpec)
+    spec = spec_list[0] if spec_list else None
+    ach_list = case.list_artifacts(ACHMatrix)
+    ach_matrix = ach_list[0] if ach_list else None
+
     analysis_results = case.list_artifacts(AnalysisResult)
     tasks = case.list_artifacts(TaskRecord)
 
     # Assemble sections.
-    brief_sections = _build_brief_sections(case, final, premortem, disclosure, intake)
+    independent_review_list = case.list_artifacts(IndependentReview)
+    independent_review = independent_review_list[0] if independent_review_list else None
+
+    brief_sections = _build_brief_sections(
+        case, final, premortem, disclosure, intake, independent_review
+    )
     uncertainty = _build_uncertainty(final, prelim)
 
     rooms = RoomsView(
         sources=_build_sources_room(case, critique),
         assumptions=_build_assumptions_room(case),
-        options=_build_options_room(final, analysis_results),
+        options=_build_options_room(final, analysis_results, spec, ach_matrix),
         challenges=_build_challenges_room(case, premortem, track_divergence),
         plan=_build_plan_view(issue_tree, tasks),
     )

@@ -322,6 +322,22 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
 .outline-item input[type="checkbox"] { margin-top: 0.25rem; }
 .strike { text-decoration: line-through; color: var(--text-muted); }
 
+/* SPEC-038 — objective weight allocation */
+.weight-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.weight-item { display: flex; align-items: center; gap: 0.5rem; }
+.weight-label { flex: 1; }
+.weight-input {
+  width: 5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  text-align: right;
+}
+.weight-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.weight-unit { color: var(--text-muted); font-size: var(--text-sm); }
+.weight-total { margin-top: 0.75rem; font-size: var(--text-md); color: var(--text-muted); }
+.weight-total.invalid { color: var(--state-critical); font-weight: 600; }
+
 .ground-rules { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
 .ground-rule-item {
   padding: 0.5rem 0.75rem;
@@ -728,11 +744,20 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
   margin-bottom: 0.5rem;
 }
 
+/* The pill sits inside an <h3>, so it inherits bold at 12px — below axe's
+   large-text threshold, which means the 4.5:1 AA ratio applies. --color-muted
+   on --color-border is 4.34:1, so this darkens the text rather than reusing the
+   token. Covers the statuses with no override of their own (pending,
+   not_assessed); .status-partial and .status-final set their own pair below. */
 .brief-section-status {
   font-size: var(--text-xs);
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
-  /* Same pair as .status-badge; see the note there. */
+  /* Same pair as .status-badge; see the note there.
+     Phase 8 fixed this same 4.34:1 failure by darkening the text to #595959.
+     Both work; this keeps it because a raw hex is invisible to the second theme
+     and would now be rejected by scripts/check-tokens.cjs, and because the
+     underlying mistake was using a *border* colour as a surface. */
   background: var(--surface-sunken);
   color: var(--text-muted);
   text-transform: capitalize;
@@ -1360,3 +1385,29 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
 .inspector-page { display: flex; flex-direction: column; gap: 1rem; }
 .inspector-page-panel { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 6px; }
 .inspector-page-panel .inspector { height: auto; }
+
+/* SPEC-042 — post-delivery monitoring panel */
+.monitoring-panel { margin-top: 1.5rem; }
+.monitoring-warning { color: var(--text-muted); font-size: var(--text-sm); font-style: italic; }
+.monitoring-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.monitoring-item {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.monitoring-item.due { border-color: var(--accent); }
+.monitoring-observable { font-weight: 600; }
+.monitoring-due-badge {
+  margin-left: 0.5rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-on);
+  font-size: var(--text-2xs);
+}
+.monitoring-detail { display: grid; grid-template-columns: auto 1fr; gap: 0.125rem 0.75rem; margin: 0.5rem 0 0; }
+.monitoring-detail dt { color: var(--text-muted); font-size: var(--text-sm); }
+.monitoring-detail dd { margin: 0; font-size: var(--text-md); }
+.mitigation-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.375rem; }
+.mitigation-list li { display: flex; justify-content: space-between; gap: 0.75rem; font-size: var(--text-md); }
+.mitigation-owner { color: var(--text-muted); white-space: nowrap; }

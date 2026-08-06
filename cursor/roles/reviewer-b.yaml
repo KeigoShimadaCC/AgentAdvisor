@@ -1,0 +1,17 @@
+role_md_path: cursor/roles/reviewer-b.md
+# Only two model families are reachable on either backend, so a reviewer that
+# differs from *both* the Director and the Synthesizer is not available. The
+# binding constraint is the Synthesizer, whose output this role re-derives; the
+# shared family with the Director is mitigated by the packet, which withholds
+# every trace of the Director's reasoning.
+default_model: cursor-grok-4.5-low
+escalation_model: composer-2.5
+read_only: false
+allow_shell: false
+# SPEC-039: the packet deliberately excludes the reasoning trail. A reviewer that
+# reads the thesis history, objections, track divergence or pre-mortem inherits the
+# anchoring this role exists to detect.
+projection_include:
+  - independent_review_packet
+output_artifact_type: independent_review
+model_tier: high

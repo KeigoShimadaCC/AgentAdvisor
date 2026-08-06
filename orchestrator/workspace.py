@@ -46,6 +46,47 @@ def _permission_profile(workspace_path: Path, allow_shell: bool) -> dict[str, di
     return {"permissions": {"allow": allow, "deny": deny}}
 
 
+#: SPEC-043. Roles allowed to see the decision owner's own documents. Everything else —
+#: the reviewers and the auditor — is excluded on purpose: a reviewer anchored on private
+#: material is not independent, and personal documents should travel as narrowly as the
+#: work allows. Enforced here as well as by the projection config so a stray
+#: ``projection_include`` edit cannot quietly widen it.
+PRIVATE_EVIDENCE_ROLES: frozenset[str] = frozenset(
+    {
+        "researcher",
+        "analyst",
+        "director",
+        "structurer",
+        "premortem",
+        "assumption_analyst",
+    }
+)
+
+PRIVATE_EVIDENCE_PREFIX = "private_evidence"
+
+
+class PrivateEvidenceLeak(RuntimeError):
+    """A role outside the allow-list was about to receive private evidence."""
+
+
+def assert_private_evidence_allowed(role: str, projected: list[ProjectedArtifact]) -> None:
+    """Fail the invocation rather than leak the user's documents into a review workspace."""
+    if role in PRIVATE_EVIDENCE_ROLES:
+        return
+    leaked = [
+        artifact.filename
+        for artifact in projected
+        if artifact.filename.startswith(PRIVATE_EVIDENCE_PREFIX)
+    ]
+    if leaked:
+        raise PrivateEvidenceLeak(
+            f"Role {role!r} is not permitted private evidence but {len(leaked)} record(s) "
+            f"were projected into its workspace: {leaked}. Remove 'private_evidence' from "
+            "its projection_include, or add the role to PRIVATE_EVIDENCE_ROLES if it "
+            "genuinely needs the decision owner's own material."
+        )
+
+
 def build_workspace(
     *,
     case: Case,
@@ -55,6 +96,8 @@ def build_workspace(
     projected_inputs: list[ProjectedArtifact],
     skill_packs: list[SkillPack] | None = None,
 ) -> WorkspaceLayout:
+    assert_private_evidence_allowed(role, projected_inputs)
+
     workspace_path = _workspace_path(case, role=role, task_id=task.task_id)
     if workspace_path.exists():
         shutil.rmtree(workspace_path)

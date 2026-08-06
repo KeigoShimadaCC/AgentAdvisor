@@ -212,6 +212,37 @@
           "title": "Alternative",
           "type": "string"
         },
+        "disconfirmation_rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disconfirmation Rank"
+        },
+        "disconfirming_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Disconfirming Evidence Ids",
+          "type": "array"
+        },
+        "disconfirming_weight": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disconfirming Weight"
+        },
         "eliminated": {
           "default": false,
           "title": "Eliminated",
@@ -229,6 +260,21 @@
           "default": null,
           "title": "Expected Value"
         },
+        "objective_scores": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objective Scores"
+        },
         "rank": {
           "title": "Rank",
           "type": "integer"
@@ -236,6 +282,30 @@
         "rationale": {
           "title": "Rationale",
           "type": "string"
+        },
+        "weighted_rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weighted Rank"
+        },
+        "weighted_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Weighted Score"
         }
       },
       "required": [
@@ -249,6 +319,18 @@
     "OptionsRoom": {
       "additionalProperties": false,
       "properties": {
+        "ach_scored": {
+          "default": false,
+          "title": "Ach Scored",
+          "type": "boolean"
+        },
+        "ach_uninformative_evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ach Uninformative Evidence Ids",
+          "type": "array"
+        },
         "ev_table": {
           "additionalProperties": {
             "type": "number"

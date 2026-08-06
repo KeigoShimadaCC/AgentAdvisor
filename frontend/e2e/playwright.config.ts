@@ -19,6 +19,14 @@ const __dirname = path.dirname(__filename);
 
 const E2E_MODE = process.env.E2E_MODE ?? "fixture";
 
+// PW_CHROME (from Phase 8) points at a specific Chrome binary when the
+// environment's pre-installed browser does not match the pinned Playwright
+// version. Hoisted so every Chrome-based project in the SPEC-045 matrix picks
+// it up, not just the first one.
+const chromeBinary = process.env.PW_CHROME
+  ? { launchOptions: { executablePath: process.env.PW_CHROME } }
+  : {};
+
 // Dedicated e2e ports, deliberately NOT the dev defaults (5173/8765): a
 // leftover dev server, replay server, or another session's stack must never
 // be able to stand in for the suite's own servers.
@@ -119,20 +127,26 @@ export default defineConfig({
   // functional journeys it has always covered.
   projects: [
     {
+      // PW_CHROME overrides the browser binary. Playwright resolves a build
+      // keyed to the pinned @playwright/test version, so an environment that
+      // ships a different chromium (a container image, a distro package)
+      // cannot launch the suite at all. Unset, this is exactly the default
+      // resolution — the escape hatch costs nothing and is the difference
+      // between the suite running somewhere and not running there.
       name: "chromium",
-      use: { ...devices["Desktop Chrome"], colorScheme: "light" },
+      use: { ...devices["Desktop Chrome"], colorScheme: "light", ...chromeBinary },
       // The reduced-motion check asserts the preference is *applied*, so it is
       // only meaningful in the project that applies it.
       grepInvert: /reduced motion/,
     },
     {
       name: "chromium-dark",
-      use: { ...devices["Desktop Chrome"], colorScheme: "dark" },
+      use: { ...devices["Desktop Chrome"], colorScheme: "dark", ...chromeBinary },
       grep: /visual baselines|token contrast|accessibility \(axe\)/,
     },
     {
       name: "mobile",
-      use: { ...devices["Pixel 7"], colorScheme: "light" },
+      use: { ...devices["Pixel 7"], colorScheme: "light", ...chromeBinary },
       grep: /visual baselines/,
     },
     {
@@ -140,6 +154,7 @@ export default defineConfig({
       // Both styles.css and Brief.tsx branch on this and nothing tested it.
       use: {
         ...devices["Desktop Chrome"],
+        ...chromeBinary,
         contextOptions: { reducedMotion: "reduce" },
       },
       grep: /reduced motion/,

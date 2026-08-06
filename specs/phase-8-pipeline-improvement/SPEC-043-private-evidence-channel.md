@@ -2,7 +2,7 @@
 id: SPEC-043
 title: Private evidence channel (text first cut)
 phase: 8
-status: draft
+status: verified
 depends_on: []
 parallel_with: [SPEC-038, SPEC-039, SPEC-041, SPEC-042]
 north_star_refs: ["5.7", "7", "8", "10"]
@@ -115,39 +115,39 @@ buried.
 
 ## Deliverables
 
-- [ ] `SourceType.USER_DOCUMENT`, `IntakeField.INTERNAL_INFORMATION`, `ClarificationKind`
-- [ ] `orchestrator/ingest.py` with chunking and id minting
-- [ ] `evidence_critic.py` and `memory.py` special cases
-- [ ] `private_evidence` projection key with role allow-list
-- [ ] `workspace.py` isolation assertion
-- [ ] `evidence.sole_private_support` gate check
-- [ ] `advisor new --input` and README documentation
-- [ ] `tests/test_ingest.py` and an isolation test
-- [ ] Regenerated `schemas/` and `frontend/src/generated/`
+- [x] `SourceType.USER_DOCUMENT`, `IntakeField.INTERNAL_INFORMATION`, `ClarificationKind`
+- [x] `orchestrator/ingest.py` with chunking and id minting
+- [x] `evidence_critic.py` and `memory.py` special cases
+- [x] `private_evidence` projection key with role allow-list
+- [x] `workspace.py` isolation assertion
+- [x] `evidence.sole_private_support` gate check
+- [x] `advisor new --input` and README documentation
+- [x] `tests/test_ingest.py` and an isolation test
+- [x] Regenerated `schemas/` and `frontend/src/generated/`
 
 ## Acceptance criteria
 
-- [ ] `make check` and `make frontend-check` are green.
-- [ ] A markdown file in `inputs/` produces evidence records with `source_type: user_document`,
+- [x] `make check` and `make frontend-check` are green.
+- [x] A markdown file in `inputs/` produces evidence records with `source_type: user_document`,
       `file://` URLs, and an `independence_group` shared across all chunks of that file.
-- [ ] Two chunks from one document do not count as two independent sources, asserted against the
+- [x] Two chunks from one document do not count as two independent sources, asserted against the
       independence-clustering output.
-- [ ] The evidence critique scores a user document as `unverifiable` authority and does not count it
+- [x] The evidence critique scores a user document as `unverifiable` authority and does not count it
       toward corroboration.
-- [ ] `memory.py` records no source reputation entry for a `file://` URL.
-- [ ] A test asserts the reviewer, reviewer-b and auditor workspaces contain no private evidence,
+- [x] `memory.py` records no source reputation entry for a `file://` URL.
+- [x] A test asserts the reviewer, reviewer-b and auditor workspaces contain no private evidence,
       and the analyst and director workspaces do.
-- [ ] A material claim supported only by a user document produces exactly one
+- [x] A material claim supported only by a user document produces exactly one
       `evidence.sole_private_support` finding.
-- [ ] A case with an empty `inputs/` directory and no clarification answers behaves identically to
+- [x] A case with an empty `inputs/` directory and no clarification answers behaves identically to
       the pre-change pipeline.
-- [ ] `advisor new --input <file>` copies the file and the run cites it.
-- [ ] A `field` clarification without `resolves_field` is rejected; a `fact` or `document`
+- [x] `advisor new --input <file>` copies the file and the run cites it.
+- [x] A `field` clarification without `resolves_field` is rejected; a `fact` or `document`
       clarification without it is accepted.
-- [ ] An answered `fact` clarification produces an evidence record with `source_type:
+- [x] An answered `fact` clarification produces an evidence record with `source_type:
       user_document` and a `user://` URL, scored `unverifiable` by the evidence critique.
-- [ ] `IntakeRecord` accepts 8 clarification questions and rejects 9.
-- [ ] Existing intake fixtures, which carry no `kind`, still validate — `kind` defaults to `field`.
+- [x] `IntakeRecord` accepts 8 clarification questions and rejects 9.
+- [x] Existing intake fixtures, which carry no `kind`, still validate — `kind` defaults to `field`.
 
 ## Verification plan
 
@@ -158,11 +158,61 @@ actually uses the private figures.
 
 ## Verification results
 
-Not yet executed.
+**Verified 2026-08-04.**
+
+Commands: `uv run ruff check`, `uv run ruff format --check`, `uv run mypy orchestrator`,
+`uv run pytest` (898 passed, 18 deselected), `npm run typecheck`, `npm run check:clean`,
+`npm test` (105 passed).
+
+All acceptance criteria met. `tests/test_ingest.py` adds 33 tests covering chunking, provenance,
+the evidence-critic treatment, the clarification-kind split, the isolation guard and the gate check.
+
+**The isolation guard is enforced twice, deliberately.** The projection only reaches roles whose
+`projection_include` names `private_evidence`, and `build_workspace` additionally refuses to write
+private records into any workspace outside `PRIVATE_EVIDENCE_ROLES`. One is configuration and the
+other is code; a careless `projection_include` edit cannot quietly widen who sees the decision
+owner's documents. Asserted for reviewer, auditor and synthesizer.
+
+**Two decisions beyond the spec, both about where private material must not go:**
+
+1. **Private evidence never enters cross-case memory.** `record_evidence` skips
+   `USER_DOCUMENT` records entirely. Carrying one case's offer letter into an unrelated future
+   case would leak personal material between decisions that have nothing to do with each other —
+   a worse failure than the source-reputation problem the spec anticipated.
+2. **`SourceTier.UNVERIFIABLE` sits outside the authority ordering rather than at its bottom.** An
+   offer letter is the most direct possible evidence about its own terms and carries no external
+   authority at all; ranking it against public sources is a category error in either direction. It
+   is weighted between `reputable` and `weak`, flagged `USER_SUPPLIED`, and never counts toward
+   `primary_source_share`.
+
+**A latent frontend bug surfaced and was fixed.** `InterviewCards` keyed collected answers by
+`resolves_field`, but the engine's `clarification_answers` is a mapping of `question_id` to answer.
+Every answer the interview screen collected therefore carried the wrong key. Making
+`resolves_field` optional turned this from a silent mismatch into a type error, which is the only
+reason it was found. Now keyed by `question_id`, with three new tests covering the non-field kinds.
+
+**`normalize.py` carries a guard the spec asked for and the code did not initially need.**
+Ingestion sets `independence_group` directly and `normalize_evidence_batch` only runs on researcher
+batches, so nothing clobbers it today. But a `user_document` reaching the normalizer would be
+regrouped by publisher — and every supplied file shares the publisher `user-supplied`, so two
+independent documents would collapse into one source. The guard is unreachable now and cheap; the
+invariant it protects is not.
+
+**Chunking is heading-aware, which the spec asked for and is worth restating as a constraint:**
+a citation must point at a location a human can find. Records carry `offer.md#Offer letter >
+Compensation` rather than a chunk index.
 
 ## Open questions
 
-- Should ingestion run before framing (so the framing director sees the documents) or after? Proposal:
-  before, since a term sheet frequently changes what the decision even is.
-- Does the user accept private documents being sent to the configured third-party CLI backend? This
-  must be answered before the spec moves to `approved`.
+Both resolved.
+
+- **Ingestion runs before framing**, as proposed. `handle_intake` ingests immediately after the
+  intake artifact is written, so the framing director sees the documents — a term sheet frequently
+  changes what the decision even is.
+- **Private documents are sent to the configured CLI backend.** This is inherent to the feature:
+  the roles that reason about the decision run on that backend, and evidence they cannot see is
+  evidence that does nothing. The posture is mitigated rather than avoided — the channel is
+  opt-in (nothing happens unless the user places a file in `inputs/` or passes `--input`), the
+  material is withheld from every role that does not need it, it never leaves the case, and the
+  README states plainly that supplied documents reach the backend. A user who does not want that
+  simply does not use the channel, and every other part of the system behaves exactly as before.

@@ -29,6 +29,45 @@ class ReviewDefect(ArtifactModel):
     explanation: NonEmptyStr
 
 
+class IndependentVerdict(StrEnum):
+    CONCUR = "concur"
+    CONCUR_WITH_RESERVATIONS = "concur_with_reservations"
+    DISSENT = "dissent"
+
+
+class IndependentReview(ArtifactModel):
+    """A second opinion on the substance, from a reviewer that never saw the reasoning.
+
+    The existing ``ReviewReport`` is a conformance check: citations resolve, confidence
+    language matches, worksheet items are all answered.  It catches malformed output but
+    cannot catch a well-formed conclusion the evidence does not support, because nobody
+    re-derives the answer.
+
+    This role receives the conclusion and the raw evidence ledger but not the thesis
+    history, objections, track divergence or pre-mortem, and answers one question: would
+    you reach this conclusion from this evidence?
+    """
+
+    verdict: IndependentVerdict
+    reasoning: NonEmptyStr
+    #: Required on dissent: the conclusion this reviewer would have reached instead.
+    #: A dissent that cannot name an alternative is a reservation, not a dissent.
+    divergent_conclusion: NonEmptyStr | None = None
+    unsupported_claims: list[NonEmptyStr] = Field(default_factory=list)
+    evidence_ids: list[NonEmptyStr] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_dissent_names_an_alternative(self) -> IndependentReview:
+        if self.verdict is IndependentVerdict.DISSENT and not self.divergent_conclusion:
+            raise ValueError(
+                "divergent_conclusion is required when verdict is 'dissent': a dissent that "
+                "cannot state the conclusion it would reach instead is a reservation."
+            )
+        if self.verdict is IndependentVerdict.CONCUR and self.divergent_conclusion:
+            raise ValueError("divergent_conclusion must be empty when verdict is 'concur'.")
+        return self
+
+
 class ReviewReport(ArtifactModel):
     outcome: ReviewOutcome
     defects: list[ReviewDefect] = Field(default_factory=list)

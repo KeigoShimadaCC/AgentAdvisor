@@ -12,32 +12,43 @@ from __future__ import annotations
 import re
 from datetime import UTC, date, datetime
 
+from orchestrator.ach import zero_diagnosticity_records
 from orchestrator.artifacts import (
+    ACHMatrix,
     AnalysisResult,
     AssumptionRecord,
     AuditEvent,
+    DecisionSpec,
     EvidenceCritique,
     EvidenceRecord,
     FinalRecommendation,
     GateFinding,
     GateReport,
     GateSeverity,
+    IndependentReview,
+    IndependentVerdict,
     IssueTree,
     Level,
     ObjectionRecord,
     PreliminaryRecommendation,
+    SourceType,
     TaskRecord,
     TaskStatus,
     max_severity,
 )
 from orchestrator.case_store import Case
 from orchestrator.task_graph import TaskGraph
+from orchestrator.value_model import rank_divergence
 
 _REF_ID_RE = re.compile(r"\b(?:E|A)-\d+\b")
 
 CLUSTER_BLOCK_THRESHOLD = 0.6
 CLUSTER_WARN_THRESHOLD = 0.4
 CONFIDENCE_OVERCLAIM_MARGIN = 0.25
+NEAR_TERM_ACTION_DAYS = 30
+_PLACEHOLDER_OWNERS = frozenset(
+    {"tbd", "tba", "unknown", "n/a", "na", "none", "someone", "somebody", "unassigned", "owner"}
+)
 ISSUE_COVERAGE_WARN_THRESHOLD = 0.5
 
 
@@ -344,10 +355,255 @@ def _check_missing_critical_assumptions(case: Case) -> list[GateFinding]:
     ]
 
 
+def _check_action_plan(case: Case, as_of: date) -> list[GateFinding]:
+    """Check that the action plan is executable rather than aspirational.
+
+    ``owner`` and ``by_date`` are schema-required, so absence is impossible here.
+    What the schema cannot catch is a vacuous owner ("TBD") or a plan whose
+    earliest action sits months out, which is the practical form of the same
+    failure.
+    """
+    recs = case.list_artifacts(FinalRecommendation)
+    if not recs:
+        return []
+    actions = recs[0].next_actions
+    findings: list[GateFinding] = []
+
+    placeholder = [
+        action.action_id
+        for action in actions
+        if action.owner.strip().lower().rstrip("?.") in _PLACEHOLDER_OWNERS
+    ]
+    if placeholder:
+        findings.append(
+            GateFinding(
+                check_id="action_plan.missing_owner",
+                severity=GateSeverity.WARN,
+                message=(
+                    f"{len(placeholder)} next action(s) name a placeholder owner. "
+                    "An action nobody owns will not happen."
+                ),
+                target_ids=placeholder,
+            )
+        )
+
+    earliest = min((action.by_date for action in actions), default=None)
+    if earliest is not None and (earliest - as_of).days > NEAR_TERM_ACTION_DAYS:
+        findings.append(
+            GateFinding(
+                check_id="action_plan.no_near_term_action",
+                severity=GateSeverity.WARN,
+                message=(
+                    f"The earliest next action is due {earliest.isoformat()}, more than "
+                    f"{NEAR_TERM_ACTION_DAYS} days out. A plan with no near-term step "
+                    "gives the decision owner nothing to do now."
+                ),
+                target_ids=[action.action_id for action in actions],
+            )
+        )
+
+    stale = [action.action_id for action in actions if action.by_date < as_of]
+    if stale:
+        findings.append(
+            GateFinding(
+                check_id="action_plan.date_in_past",
+                severity=GateSeverity.WARN,
+                message=f"{len(stale)} next action(s) are dated before the case completed.",
+                target_ids=stale,
+            )
+        )
+    return findings
+
+
+def _check_value_model(case: Case) -> list[GateFinding]:
+    """Compare the weighted ranking against the ranking the synthesizer stated.
+
+    A mismatch is a finding, never an override: deterministic code does not silently
+    reorder a recommendation, because a disagreement usually means the value model is
+    wrong rather than the judgment.
+    """
+    specs = case.list_artifacts(DecisionSpec)
+    recs = case.list_artifacts(FinalRecommendation)
+    if not specs or not recs:
+        return []
+    weights = specs[0].objective_weights
+    if not weights:
+        return []
+
+    assessments = recs[0].alternatives_considered
+    divergence = rank_divergence(weights, assessments)
+    findings: list[GateFinding] = []
+
+    if divergence.unscored:
+        findings.append(
+            GateFinding(
+                check_id="value_model.unscored_alternative",
+                severity=GateSeverity.WARN,
+                message=(
+                    f"{len(divergence.unscored)} alternative(s) carry no objective_scores, so "
+                    "they were excluded from the weighted ranking rather than scored as zero."
+                ),
+                target_ids=list(divergence.unscored),
+            )
+        )
+
+    if not divergence.agrees:
+        detail = ", ".join(
+            f"{alt} (weighted {computed}, stated {stated})"
+            for alt, computed, stated in divergence.positions
+        )
+        findings.append(
+            GateFinding(
+                check_id="value_model.rank_divergence",
+                severity=GateSeverity.WARN,
+                message=(
+                    "The ranking implied by the decision owner's objective weights disagrees "
+                    f"with the ranking the synthesizer stated: {detail}. Either revise the "
+                    "scores or say in key_reasons why the weighted model does not capture "
+                    "this decision."
+                ),
+                target_ids=[alt for alt, _, _ in divergence.positions],
+            )
+        )
+    return findings
+
+
+def _check_review_disclosure(case: Case) -> list[GateFinding]:
+    """SPEC-039 — the deliverable must say what it could not assess, and an
+    unresolved dissent must reach the reader."""
+    recs = case.list_artifacts(FinalRecommendation)
+    if not recs:
+        return []
+    findings: list[GateFinding] = []
+
+    if not recs[0].limitations:
+        findings.append(
+            GateFinding(
+                check_id="review.empty_limitations",
+                severity=GateSeverity.WARN,
+                message=(
+                    "The final recommendation states no limitations. Every case has "
+                    "thin evidence somewhere; an empty list reads as a claim of "
+                    "completeness the artifacts do not support."
+                ),
+                target_ids=[],
+            )
+        )
+
+    reviews = case.list_artifacts(IndependentReview)
+    if reviews and reviews[0].verdict is IndependentVerdict.DISSENT:
+        findings.append(
+            GateFinding(
+                check_id="review.unaddressed_dissent",
+                severity=GateSeverity.BLOCK,
+                message=(
+                    "The independent reviewer dissents from the recommendation: "
+                    f"{reviews[0].divergent_conclusion}"
+                ),
+                target_ids=[],
+            )
+        )
+    elif reviews and reviews[0].verdict is IndependentVerdict.CONCUR_WITH_RESERVATIONS:
+        findings.append(
+            GateFinding(
+                check_id="review.independent_reservations",
+                severity=GateSeverity.WARN,
+                message=(
+                    f"The independent reviewer concurs with {len(reviews[0].unsupported_claims)} "
+                    "reservation(s) about claims the evidence does not carry."
+                ),
+                target_ids=[],
+            )
+        )
+    return findings
+
+
+def _check_ach(case: Case) -> list[GateFinding]:
+    """SPEC-040 — the matrix must cover the real alternative set and carry signal."""
+    matrices = case.list_artifacts(ACHMatrix)
+    if not matrices:
+        return []
+    matrix = matrices[0]
+    findings: list[GateFinding] = []
+
+    specs = case.list_artifacts(DecisionSpec)
+    if specs:
+        missing = sorted(set(specs[0].alternatives) - set(matrix.alternatives))
+        if missing:
+            findings.append(
+                GateFinding(
+                    check_id="ach.alternative_mismatch",
+                    severity=GateSeverity.WARN,
+                    message=(
+                        f"{len(missing)} decision-spec alternative(s) were never scored in "
+                        "the competing-hypotheses matrix, so the ranking cannot speak to them."
+                    ),
+                    target_ids=missing,
+                )
+            )
+
+    uninformative = zero_diagnosticity_records(matrix)
+    if len(uninformative) == len(matrix.evidence_ids):
+        findings.append(
+            GateFinding(
+                check_id="ach.thin_matrix",
+                severity=GateSeverity.WARN,
+                message=(
+                    "Every scored record has zero diagnosticity: no evidence in the matrix "
+                    "discriminates between the alternatives, so the ranking carries no "
+                    "information."
+                ),
+                target_ids=list(uninformative),
+            )
+        )
+    return findings
+
+
+def _check_private_evidence(case: Case) -> list[GateFinding]:
+    """SPEC-043 — flag material claims resting only on the decision owner's own material.
+
+    Not a block. Private evidence is often the most decisive material in a personal case
+    — the offer letter really does state the salary — but a conclusion no external source
+    touches is a different kind of conclusion, and the reader should be told.
+    """
+    recs = case.list_artifacts(FinalRecommendation)
+    if not recs:
+        return []
+    private_ids = {
+        record.evidence_id
+        for record in case.list_artifacts(EvidenceRecord)
+        if record.source_type is SourceType.USER_DOCUMENT
+    }
+    if not private_ids:
+        return []
+
+    sole: list[str] = []
+    for index, reason in enumerate(recs[0].key_reasons):
+        cited = set(extract_reference_ids(reason))
+        evidence_cited = {ref for ref in cited if ref.startswith("E-")}
+        if evidence_cited and evidence_cited <= private_ids:
+            sole.append(f"final_recommendation.key_reasons[{index}]")
+
+    if not sole:
+        return []
+    return [
+        GateFinding(
+            check_id="evidence.sole_private_support",
+            severity=GateSeverity.WARN,
+            message=(
+                f"{len(sole)} material claim(s) rest only on user-supplied evidence, which "
+                "no external source confirms."
+            ),
+            target_ids=sole,
+        )
+    ]
+
+
 _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
     "investigation": ("task_health", "analysis_presence"),
     "evidence_critique": ("evidence_independence",),
     "assumption_ledger": ("assumption_ledger", "issue_coverage"),
+    "competing_hypotheses": ("ach",),
     "preliminary_recommendation": ("citation_integrity", "confidence_coherence"),
     "challenge": ("objection_resolution",),
     "repair": ("citation_integrity", "task_health"),
@@ -356,6 +612,10 @@ _CHECKS_BY_STAGE: dict[str, tuple[str, ...]] = {
         "confidence_coherence",
         "objection_resolution",
         "missing_critical_assumptions",
+        "action_plan",
+        "value_model",
+        "review_disclosure",
+        "private_evidence",
     ),
 }
 
@@ -368,7 +628,6 @@ def run_stage_gate(
     as_of: date | None = None,
 ) -> GateReport:
     """Run the checks registered for ``stage`` and persist the report."""
-    del as_of
     checks = _CHECKS_BY_STAGE.get(stage, ())
     findings: list[GateFinding] = []
     cancellable: list[str] = []
@@ -394,6 +653,16 @@ def run_stage_gate(
             cancellable.extend(immaterial)
         elif check == "missing_critical_assumptions":
             findings.extend(_check_missing_critical_assumptions(case))
+        elif check == "action_plan":
+            findings.extend(_check_action_plan(case, as_of or datetime.now(UTC).date()))
+        elif check == "value_model":
+            findings.extend(_check_value_model(case))
+        elif check == "review_disclosure":
+            findings.extend(_check_review_disclosure(case))
+        elif check == "ach":
+            findings.extend(_check_ach(case))
+        elif check == "private_evidence":
+            findings.extend(_check_private_evidence(case))
 
     cancelled: list[str] = []
     if cancellable and task_graph is not None:

@@ -59,6 +59,8 @@ const PAIRS: { fg: string; bg: string; large?: boolean }[] = [
   { fg: "--state-needs-you-text", bg: "--state-needs-you-wash" },
   { fg: "--state-critical", bg: "--surface-raised" },
   { fg: "--state-critical", bg: "--state-critical-wash" },
+  { fg: "--state-blocked", bg: "--state-blocked-wash" },
+  { fg: "--state-blocked", bg: "--surface-raised" },
 ];
 
 async function measure(page: import("@playwright/test").Page, theme: "light" | "dark") {

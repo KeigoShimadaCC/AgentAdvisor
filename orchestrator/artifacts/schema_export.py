@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from orchestrator.artifacts.ach import ACHMatrix
 from orchestrator.artifacts.analysis import AnalysisResult
 from orchestrator.artifacts.approvals import FinalApproval
 from orchestrator.artifacts.assumptions import AssumptionBatch, AssumptionRecord
@@ -23,6 +24,7 @@ from orchestrator.artifacts.memory import (
     CaseMemoryDigest,
     PriorEvidenceDigest,
 )
+from orchestrator.artifacts.monitoring import MonitoringPlan
 from orchestrator.artifacts.objections import ObjectionBatch, ObjectionRecord
 from orchestrator.artifacts.premortem import PreMortemReport
 from orchestrator.artifacts.probability import ProbabilityAdjustment, ProbabilityEstimate
@@ -33,7 +35,7 @@ from orchestrator.artifacts.recommendations import (
     PreliminaryRecommendation,
     ScenarioAssessment,
 )
-from orchestrator.artifacts.review import ReviewReport
+from orchestrator.artifacts.review import IndependentReview, ReviewReport
 from orchestrator.artifacts.stability import ModelStability
 from orchestrator.artifacts.task_proposals import TaskProposalBatch
 from orchestrator.artifacts.tasks import TaskRecord
@@ -71,6 +73,7 @@ type ModelType = type[BaseModel]
 
 
 MODEL_EXPORTS: dict[str, ModelType] = {
+    "ach_matrix": ACHMatrix,
     "analysis_result": AnalysisResult,
     "alternative_assessment": AlternativeAssessment,
     "assumption_batch": AssumptionBatch,
@@ -93,6 +96,7 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "gate_report": GateReport,
     "intake_record": IntakeRecord,
     "issue_tree": IssueTree,
+    "monitoring_plan": MonitoringPlan,
     "objection_record": ObjectionRecord,
     "objection_batch": ObjectionBatch,
     "premortem_report": PreMortemReport,
@@ -101,6 +105,7 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "probability_adjustment": ProbabilityAdjustment,
     "probability_estimate": ProbabilityEstimate,
     "review_report": ReviewReport,
+    "independent_review": IndependentReview,
     "scenario_assessment": ScenarioAssessment,
     "task_proposal_batch": TaskProposalBatch,
     "task_record": TaskRecord,
