@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-007]
 parallel_with: [SPEC-009]
 north_star_refs: ["13", "8"]
-last_updated: 2026-07-31
+last_updated: 2026-08-06
 ---
 
 # SPEC-008 — Budget controller and stop rules
@@ -64,6 +64,8 @@ uv run pytest tests/test_budget.py -q
 Stop-rule semantics are implemented as a pure evaluator with injected clock and full table-driven coverage of all six Stage 9 stop reasons plus continue, so deadline behavior is tested deterministically without sleep-based flake. High-tier accounting increments only for models mapped to the high tier through an injected tier map, and budget or deadline exhaustion emits a `DisclosureRecord` that names exhausted dimensions so Synthesizer output explicitly discloses a budget-driven stop.
 
 One specification amendment has been incorporated and validated: because Stage 9 distinguishes deadline from depth limit, `StopEvaluatorInputs` now includes an explicit `depth_limit_reached` flag in addition to deadline state. This keeps the stop reason precise instead of collapsing two different termination causes.
+
+**2026-08-06 sweep amendment.** The deliverable "`BudgetConfig` defaults documented in `schemas/` export" was checked without the artifact existing: no `schemas/budget_config.schema.json` was committed and `schema_export.py` did not export the model. Found in the 2026-08-06 spec sweep; fixed by adding `BudgetConfig` to `MODEL_EXPORTS` and regenerating (`schemas/budget_config.schema.json` now documents the 40/3/2/15/6/7200 defaults; `frontend/src/generated/budget_config.ts` regenerated alongside). `make check` and `make frontend-check` green after the change.
 
 ## Open questions
 

@@ -7,15 +7,18 @@ const __dirname = path.dirname(__filename);
 
 // ── Mode selection ───────────────────────────────────────────────────────────
 //
-// The suite supports three deterministic backing modes, selected by the
-// ``E2E_MODE`` env var.  Each mode starts a different ``advisor ui``
-// configuration:
+// The suite supports four backing modes, selected by the ``E2E_MODE`` env var.
+// Each mode starts a different ``advisor ui`` configuration:
 //
 //   fixture (default) — committed dummy case data, read-only journeys
 //   stub              — real orchestrator on StubBackend, full lifecycle
 //   replay            — recorded audit timing, progress-experience assertions
+//   live              — real agent backend, opt-in smoke (SPEC-037; requires
+//                       E2E_LIVE=1 and AGENTADVISOR_E2E_BUDGET_ACK=1, and only
+//                       ever runs live.spec.ts)
 //
-// ``make e2e-frontend`` runs all three sequentially.
+// ``make e2e-frontend`` runs the three deterministic modes sequentially;
+// ``make e2e-frontend-live`` runs the live smoke.
 
 const E2E_MODE = process.env.E2E_MODE ?? "fixture";
 
@@ -56,13 +59,66 @@ if (E2E_MODE === "replay") {
   // with the app factory so make_backend is never called in this process.
   backendCommand = `rm -rf ${stubCasesRoot} && mkdir -p ${stubCasesRoot} && ${pyBin} -c "import pathlib, uvicorn; from orchestrator.service.app import create_app; app = create_app(cases_root=pathlib.Path('${stubCasesRoot}')); uvicorn.run(app, host='127.0.0.1', port=${BACKEND_PORT}, log_level='info')"`;
   backendEnv = { AGENTADVISOR_BACKEND: "stub" };
+} else if (E2E_MODE === "live") {
+  // Live mode: the real backend with a temp cases root that survives the run
+  // for inspection. Never points at cases/ and never at the committed fixtures.
+  const liveCasesRoot = path.join(frontendDir, "e2e", ".tmp", "cases-live");
+  backendCommand = `mkdir -p ${liveCasesRoot} && ${advisorUi} --port ${BACKEND_PORT} --cases-root ${liveCasesRoot}`;
 } else {
   // fixture (default)
   backendCommand = `${advisorUi} --port ${BACKEND_PORT} --cases-root tests/fixtures/cases`;
 }
 
+// ── Projects ─────────────────────────────────────────────────────────────────
+
+const chromiumProject = {
+  // PW_CHROME overrides the browser binary. Playwright resolves a build
+  // keyed to the pinned @playwright/test version, so an environment that
+  // ships a different chromium (a container image, a distro package)
+  // cannot launch the suite at all. Unset, this is exactly the default
+  // resolution — the escape hatch costs nothing and is the difference
+  // between the suite running somewhere and not running there.
+  name: "chromium",
+  use: {
+    ...devices["Desktop Chrome"],
+    launchOptions: { executablePath: process.env.PW_CHROME || undefined },
+  },
+};
+
+const webkitProject = {
+  name: "webkit",
+  use: { ...devices["Desktop Safari"] },
+  retries: 1, // reading-experience parity, allow one retry
+};
+
+// SPEC-037's mobile project: the 390x844 viewport over the fixture journeys
+// and the checkpoint flows only — the stub lifecycle and the replay timing
+// assertions are desktop concerns, and the rooms were not designed for this
+// width yet (that is SPEC-052's scope), so the grep keeps the project to the
+// flows a decision owner would actually start from a phone.
+const mobileProject = {
+  name: "mobile",
+  use: {
+    ...devices["Desktop Chrome"],
+    viewport: { width: 390, height: 844 },
+    launchOptions: { executablePath: process.env.PW_CHROME || undefined },
+  },
+  grep: /case library|scope checkpoint/,
+};
+
+const projects =
+  E2E_MODE === "live"
+    ? [chromiumProject] // a live smoke needs exactly one browser
+    : E2E_MODE === "fixture"
+      ? [chromiumProject, webkitProject, mobileProject]
+      : [chromiumProject, webkitProject];
+
 export default defineConfig({
   testDir: ".",
+  // Live mode runs only its own spec; the deterministic modes collect
+  // everything (live.spec.ts included — it reports itself skipped, which is
+  // what SPEC-037 asks the default suite to show).
+  testMatch: E2E_MODE === "live" ? "live.spec.ts" : undefined,
   timeout: 60_000,
   expect: { timeout: 10_000 },
 
@@ -87,26 +143,7 @@ export default defineConfig({
     video: "retain-on-failure",
   },
 
-  projects: [
-    {
-      // PW_CHROME overrides the browser binary. Playwright resolves a build
-      // keyed to the pinned @playwright/test version, so an environment that
-      // ships a different chromium (a container image, a distro package)
-      // cannot launch the suite at all. Unset, this is exactly the default
-      // resolution — the escape hatch costs nothing and is the difference
-      // between the suite running somewhere and not running there.
-      name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-        launchOptions: { executablePath: process.env.PW_CHROME || undefined },
-      },
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-      retries: 1, // reading-experience parity, allow one retry
-    },
-  ],
+  projects,
 
   // Two servers: the FastAPI backend (advisor ui) and the Vite dev server
   // (which proxies /api to the backend per vite.config.ts).

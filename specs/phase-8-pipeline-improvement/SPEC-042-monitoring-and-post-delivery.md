@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-041]
 parallel_with: [SPEC-043]
 north_star_refs: ["3", "9", "16", "19"]
-last_updated: 2026-08-04
+last_updated: 2026-08-06
 ---
 
 # SPEC-042 — Monitoring plan and post-delivery life
@@ -48,7 +48,11 @@ argued is what separates a think tank from a one-off engagement.
   recommendation; `due_checks(plan, checks, as_of)` computing which indicators are overdue;
   `mitigations_for(plan, breached_indicator_ids)` returning the responses a breach makes urgent.
 - `orchestrator/service/lexicon_data.yaml` — narration for `monitoring_plan_written`,
-  `indicator_check_recorded` and `indicator_breached`.
+  ~~`indicator_check_recorded` and `indicator_breached`~~ **amended 2026-08-06:**
+  `monitoring_plan_not_concretized` and `monitoring_plan_skipped`. The two names struck
+  through were never emitted events — check recording happens through `advisor check`
+  against the monitoring store, not through the case audit log, so there is nothing to
+  narrate. The three real events are exactly the three entries the deliverable counts.
 - `cursor/roles/monitor.{md,yaml}` and `TaskRole.MONITOR` — one cheap invocation that converts each
   prose indicator into a concrete observable and threshold.
 - `orchestrator/stages.py::handle_review` — assemble and write the plan after review passes, before
@@ -197,6 +201,18 @@ edits, and two of the four blocks differ only by a path suffix — so a naive st
 matches the wrong one and produces `IsADirectoryError` at runtime rather than a load-time failure.
 It happened for `IndependentReview` in SPEC-039 and again for `MonitoringPlan` here. Worth a
 registry rather than four parallel if-chains; added to ROADMAP emergent work.
+
+**2026-08-06 sweep amendment.** Two loose ends found in the 2026-08-06 spec sweep, both fixed.
+First, the deliverable "model table entries" was only true on the cursor side
+(`cursor/roles/monitor.yaml`): `backends/droid/models.yaml` had no `monitor` override, leaving
+the role on the tier-low default (haiku) for what is a structured-output task — the failure
+mode the `ach` override exists for. Added a `monitor` entry (claude-sonnet-5 / gpt-5.4) with
+that reasoning recorded in the table. Second, the scope's lexicon bullet named two events
+(`indicator_check_recorded`, `indicator_breached`) that never existed; the bullet now names
+the real three. The acceptance criterion about the unknown-event fallback was and is satisfied
+by `tests/test_lexicon.py::test_every_emitted_audit_event_has_a_lexicon_entry`, which scans
+every emitted event against `lexicon_data.yaml` — the criterion's "asserted by a test over
+`lexicon_data.yaml`" is that test, recorded here because the sheet never said so.
 
 ## Open questions
 

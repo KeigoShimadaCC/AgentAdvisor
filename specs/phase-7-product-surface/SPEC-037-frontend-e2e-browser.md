@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-034, SPEC-035, SPEC-036]
 parallel_with: []
 north_star_refs: ["15", "18"]
-last_updated: 2026-08-03
+last_updated: 2026-08-06
 ---
 
 # SPEC-037 — Frontend end-to-end suite in a real browser
@@ -53,7 +53,10 @@ rare.
     defects listed, positioned above the brief;
   - rooms walkthrough incl. divergence side-by-side, honest-empty sources question, Plan
     coverage fraction; deep links `/r/{id}` resolve after full reload;
-  - dark and light themes render (screenshot smoke), reduced-motion honored;
+  - ~~dark and light themes render (screenshot smoke),~~ reduced-motion honored — **amended
+    2026-08-06:** the app has a single theme and no theme machinery (no toggle, no
+    `prefers-color-scheme`); a second theme is SPEC-045's deliverable, so theme rendering
+    joins the matrix when SPEC-045 lands;
   - terminology guard: a DOM sweep asserting no `CaseStage`/`TaskRole` enum strings or raw
     schema field names on any visited screen;
   - axe-core scan (via `@axe-core/playwright`) on: library, scope sheet (parked fixture), brief,
@@ -127,18 +130,25 @@ identical to production.
 
 ## Acceptance criteria
 
-- [ ] `make e2e-frontend` passes headless from a clean checkout (after `make frontend-build`)
+- [x] `make e2e-frontend` passes headless from a clean checkout (after `make frontend-build`)
       with no network beyond localhost and no `cursor-agent` present; total runtime ≤ 10 min on
-      the reference machine. *(Chromium fixture/stub/replay passes are evidenced; webkit is not counted in current evidence.)*
+      the reference machine. *(Chromium and webkit fixture passes evidenced 2026-08-06; the
+      mobile project (390×844, library + scope-checkpoint flows) passes in fixture mode. Stub
+      and replay passes evidenced 2026-08-03 on chromium.)*
 - [x] The stub lifecycle test asserts both DOM state and disk state at every gate as scoped
       above, and fails if either diverges.
 - [x] The replay ordering, narration-purity, no-percent, sealed-card, and scroll assertions all
       hold against the reference fixture.
-- [x] Axe passes (zero serious/critical) on the six covered screens in both themes.
+- [x] Axe passes (zero serious/critical) on the six covered screens ~~in both themes~~.
+      **Amended 2026-08-06:** only one theme exists; the two-theme matrix is SPEC-045's scope.
+      The axe half passes today on the single theme.
 - [x] The terminology-guard sweep passes on every visited screen.
-- [ ] With `E2E_LIVE` unset, the live spec reports skipped and the suite passes; with both env
-      acks and an authenticated CLI, the live smoke completes within its wall and leaves a
-      inspectable temp case directory (manual, recorded in verification results). *(Live mode was not exercised in current evidence because it spends real usage.)*
+- [~] With `E2E_LIVE` unset, the live spec reports skipped and the suite passes — **verified
+      2026-08-06** (fixture mode: the live spec reports skipped among 29 passed; live mode
+      without consent: 1 skipped, suite green); with both env acks and an authenticated CLI,
+      the live smoke completes within its wall and leaves an inspectable temp case directory —
+      **still outstanding** (the live run spends real usage and needs an authenticated CLI,
+      which the sweep machine does not have).
 - [x] `make check` remains green and unaffected by e2e artifacts.
 
 ## Verification plan
@@ -185,6 +195,28 @@ tests):
 `make check` (697 Python tests) and the 58 frontend unit tests remain green. Live mode
 (`E2E_LIVE`) not exercised (costs real usage); webkit project not run (browser not installed on
 the reference machine) — deferred per the open question below.
+
+**2026-08-06 sweep amendment.** The 2026-08-06 spec sweep found three scope items absent and
+added them: `frontend/e2e/live.spec.ts` (the consent-gated live smoke — preflights the agent
+CLI's auth, commissions on the small profile, renders the real scope sheet, signs, observes
+`structuring` completing via the audit log, pauses, asserts `intake_record.yaml` /
+`decision_spec.yaml` on disk; 20-minute hard wall; temp cases root at
+`frontend/e2e/.tmp/cases-live/`), the `mobile` Playwright project (390×844 viewport,
+grep-limited to the case-library and scope-checkpoint flows, fixture mode only), and the
+`make e2e-frontend-live` target plus the README live-mode cost note. Verified 2026-08-06:
+e2e typecheck clean; fixture mode green on chromium (24 passed), webkit (24 passed — the
+browser is now installed, answering the open question below: webkit stays in the default
+target), and mobile (5 passed); live mode without consent reports 1 skipped and passes; the
+live run itself remains unexercised (needs an authenticated agent CLI and real usage). Also
+corrected in this pass: the "both themes" claims (only one theme exists; the second is
+SPEC-045's deliverable) and the first acceptance criterion's webkit caveat.
+
+One more defect found while re-verifying: `make e2e-frontend` had never worked as written —
+each recipe line runs in its own shell, so the `npx playwright` lines executed from the repo
+root, where `e2e/playwright.config.ts` does not exist. The 2026-08-03 passes were obtained by
+running the modes from `frontend/` directly. The target now `cd`s per line, and the full
+target (all three modes, chromium + webkit + mobile) was run green end to end for the first
+time on 2026-08-06: fixture 53 passed / 25 skipped, stub 10 passed, replay 12 passed.
 
 ## Open questions
 

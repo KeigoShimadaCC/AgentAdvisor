@@ -6,7 +6,7 @@ status: draft
 depends_on: [SPEC-046, SPEC-048]
 parallel_with: [SPEC-049]
 north_star_refs: ["3", "14", "15"]
-last_updated: 2026-08-05
+last_updated: 2026-08-06
 ---
 
 # SPEC-050 — Commissioning and checkpoints: the first five minutes and the two signatures
@@ -43,8 +43,8 @@ presenting all of it at once with nothing ranked.
     or notify**, sit with the deliberation or be pinged, which SPEC-051 consumes. Both are
     preferences, not case data: neither is written into the case.
 - `frontend/src/copy/effort.ts` — effort profiles whose time ranges are computed from recorded
-  history via `MemoryStore.prior_cases()` (p50–p90 per profile), served through a small addition to
-  the existing calibration read, and labelled as measured. With no history, honest fallback copy
+  history via `MemoryStore.prior_cases()` (p50–p90 per profile), served by SPEC-046's
+  `GET /api/effort-history`, and labelled as measured. With no history, honest fallback copy
   rather than a fabricated number. Removes the hardcoded ranges from `terms.ts`.
 - `frontend/src/screens/ScopeCheckpoint/ScopeCheckpoint.tsx` — progressive disclosure:
   - leads with the restatement as a binary — "Here's the decision I'll actually answer. Is that
@@ -139,5 +139,7 @@ Not yet executed.
 - The honest sentence on delivery composes four measures into one claim. Its template must not
   imply more precision than the encodings carry, and should be reviewed against north star Section 9
   (probability and confidence policy) before approval.
-- Whether measured effort ranges are served from the SPEC-046 calibration endpoint or a sibling
-  read. Recommend a sibling `GET /api/effort-history` to keep calibration's contract single-purpose.
+- ~~Whether measured effort ranges are served from the SPEC-046 calibration endpoint or a sibling
+  read.~~ **Resolved 2026-08-06:** a sibling `GET /api/effort-history`, owned by SPEC-046 (added
+  to its scope the same day), keeping calibration's contract single-purpose. The resolution
+  followed the recommendation; the gap was that no sheet had owned the read at all.

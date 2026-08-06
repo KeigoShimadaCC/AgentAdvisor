@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-007, SPEC-008, SPEC-009, SPEC-010, SPEC-011, SPEC-012, SPEC-013, SPEC-014, SPEC-015, SPEC-016, SPEC-017]
 parallel_with: []
 north_star_refs: ["8", "14", "15"]
-last_updated: 2026-08-03
+last_updated: 2026-08-06
 ---
 
 # SPEC-018 — Stage wiring (end-to-end pipeline)
@@ -57,13 +57,13 @@ Handlers contain orchestration only; every substantive judgment stays inside rol
 - [x] `orchestrator/stages.py` (+ pipeline entry `orchestrator/pipeline.py`)
 - [x] Toy case fixture + cheap-model roles override (5 benchmark scenarios + scoring framework)
 - [x] `tests/test_pipeline_stub.py` (passes)
-- [ ] `tests/test_pipeline_live.py` (`live_slow` marker) *(not created; live e2e was run via `scripts/run_e2e_eval.py`)*
+- [x] `tests/test_pipeline_live.py` (`live_slow` marker) *(created 2026-08-06 in the spec sweep: toy purchase-timing case, `SMALL_BUDGET` (15 invocations), all roles pinned to cheap models via a `resolve_models` override that keeps both family guards satisfiable; deselected by default. Still not executed — running it needs an authenticated agent CLI — so the live acceptance criterion below remains unchecked)*
 
 ## Acceptance criteria
 
 - [x] Stub E2E: stage sequence matches the Section 8 order including PROVISIONAL_THESIS, both approval gates halt and resume, each repair cycle routes REPAIR → CHALLENGE (final falsification) → STOP_DECISION with at most 2 cycles, every invocation and transition present in audit.jsonl.
 - [x] Budget exhaustion path (stub): tiny budget forces a stop with DisclosureRecord surfaced in the rendered output *(covered by SPEC-029: `tests/test_budget_truth.py`)*.
-- [ ] Live toy case: completes ≤15 invocations, produces valid FinalRecommendation + final_recommendation.md, total usage recorded in audit log *(current evidence is 5-scenario live validation via `scripts/run_e2e_eval.py`, not a ≤15-invocation toy-case run)*.
+- [ ] Live toy case: completes ≤15 invocations, produces valid FinalRecommendation + final_recommendation.md, total usage recorded in audit log *(current evidence is 5-scenario live validation via `scripts/run_e2e_eval.py`, not a ≤15-invocation toy-case run; the test now exists as `tests/test_pipeline_live.py` but has never been executed — it needs an authenticated CLI, and the modern pipeline carries more stages than the Phase 4 one this number was written for, so the first run may legitimately report that 15 no longer fits)*.
 - [x] Case resume works mid-INVESTIGATION on the stub run (kill and continue) *(covered by SPEC-030: `tests/test_safe_resume.py`)*.
 - [x] `make check` green.
 

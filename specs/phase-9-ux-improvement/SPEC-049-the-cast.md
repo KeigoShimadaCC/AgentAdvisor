@@ -4,7 +4,7 @@ title: The cast — voice attribution, margin objections, and dissent
 phase: 9
 status: draft
 depends_on: [SPEC-047, SPEC-048]
-parallel_with: [SPEC-050]
+parallel_with: [SPEC-050, SPEC-054]
 north_star_refs: ["5", "6", "15"]
 last_updated: 2026-08-05
 ---

@@ -18,6 +18,16 @@ reconciled against phase 8 at `d179f2b`.
 >
 > Phase 9 therefore takes on a job it did not originally have: **SPEC-053 projects and renders phase
 > 8's outputs.** Without it, phase 8's value is reachable only by reading YAML in `cases/`.
+>
+> **Correction (2026-08-06, spec sweep).** The absolute claim above was wrong, as phase 8 landed
+> it: SPEC-038's objective scores and SPEC-040's ACH standings *were* projected into `CaseView`,
+> and SPEC-042 shipped its own read endpoint and Delivery-screen monitoring block. What held was
+> the substance, not the absolutes: the projections were partial, one went entirely unconsumed
+> (the Options room never rendered the ACH fields until the 2026-08-06 sweep added the panel),
+> and the ranking UI, dissent surface, limitations statement, typed action plan, risk-register
+> screen and user-document provenance still have no home. SPEC-053's job stands, resized: finish
+> the projections and build the missing surfaces, not "project and render everything". Its sheet
+> was corrected the same day.
 
 ## Why this phase exists
 
@@ -43,6 +53,7 @@ adds any artifact type at all:
 | `new_case` returns before the worker halts (uses the existing `spawn_worker_background`) | 046 | control-layer |
 | `needs_you` on the case-list endpoint | 046 | additive field |
 | `GET /api/calibration` over the existing `MemoryStore.calibration()` | 046 | additive read |
+| `GET /api/effort-history` — p50–p90 ranges per effort profile over `prior_cases()` | 046 | additive read |
 | `CaseView` projection extended to carry phase 8's artifacts | 053 | additive read model |
 
 Every entry is a read or an emit. `caseview.py` is a projection built from disk, so extending it
@@ -70,7 +81,7 @@ Every phase 8 spec produces something a user should see. None of them says who r
 | 039 independent review + limitations | A reviewer on a **third** model family whose dissent **blocks delivery**; an explicit "what could not be assessed" statement | **049** must treat dissent as three-voiced, not two. The limitations statement is a new delivery element (**053**). |
 | 040 competing hypotheses | A diagnosticity matrix: evidence × alternatives, ranked by *disconfirming* evidence | A substantial new UI object with no home in the original plan. Goes to **053**, surfaced through **048**'s context panel. |
 | 041 typed action plan | `NextAction` with owner, date, first step, cost, dependencies, urgency | Replaces the current `next_actions` string list on delivery. **050** leaves a slot; **053** fills it. |
-| 042 monitoring + post-delivery | Monitoring plan, risk register, `advisor watch`, closes the loop into Brier calibration | Supersedes phase 9 *building* the outcome loop. **051** renders it. `advisor watch` is CLI-only — another surface with no screen. |
+| 042 monitoring + post-delivery | Monitoring plan, risk register, `advisor watch`, closes the loop into Brier calibration | Supersedes phase 9 *building* the outcome loop. SPEC-042 shipped its own Delivery-screen block and read endpoint; **053** owns the full monitoring surface and a screen for the CLI-only `advisor watch`; **051** drives the notification side (due-check nudges on the watch-or-notify preference). *(Corrected 2026-08-06: this row previously said 051 renders it, which 051's own sheet disclaims.)* |
 | 043 private evidence channel | User files in `cases/<id>/inputs/`; open intake questions; `source_type: user_document` | Supersedes phase 9's note channel entirely. **049** must render this provenance as its own voice — §15 requires distinguishing user-supplied information from agent interpretation. |
 | 044 phase 8 re-evaluation | Measurement of phase 8 | None. |
 
@@ -150,7 +161,9 @@ For a phase whose subject is visual, these gaps are the ones that matter:
 2. **No theme testing.** SPEC-037's acceptance criterion *"Axe passes on the six covered screens in
    both themes"* is checked, but there is one theme and no `colorScheme` handling anywhere in `e2e/`.
 3. **No responsive testing.** Both Playwright projects are desktop (`Desktop Chrome`,
-   `Desktop Safari`). No mobile viewport is ever exercised.
+   `Desktop Safari`). No mobile viewport is ever exercised. *(Partially closed 2026-08-06: a
+   `mobile` project at 390×844 now runs the library and scope-checkpoint flows in fixture mode.
+   The rooms and the brief remain unexercised at that width — that coverage is SPEC-052's.)*
 4. **No reduced-motion test**, though both `styles.css` and `Brief.tsx` branch on it.
 5. **No contrast assertions** on color pairs.
 6. **Axe covers 6 of ~13 routes.** The plan, method, options and assumptions rooms and the inspector
@@ -174,8 +187,10 @@ standard the sheets will be written against, not a per-spec choice:
 
 ## Sheets
 
-Written 2026-08-05, all `draft`, none approved. Each is 118–140 lines with 6 deliverables
-and 7 acceptance criteria.
+Written 2026-08-05, all `draft`, none approved. Each is 122–143 lines with 6–7 deliverables
+and 7–8 acceptance criteria. *(Ranges corrected 2026-08-06 against the sheets as written; the
+earlier "118–140 lines, 6 deliverables, 7 criteria" was the calibration target, not the
+measured result.)*
 
 | Spec | Title |
 |---|---|
@@ -194,15 +209,20 @@ and 7 acceptance criteria.
 
 ## Sequencing
 
-Four waves. Within a wave, specs are `parallel_with` each other; waves are sequential.
+Six waves. Waves are sequential; within a wave, specs run in parallel where the sheets declare
+`parallel_with`. *(Corrected 2026-08-06: this said "four waves" while listing six, and claimed
+every intra-wave pair was `parallel_with`. The sheets say otherwise and the sheets are the
+contract: wave B is internally ordered — 048 `depends_on` 047, the narrator stream before the
+shell that hosts it — and in waves C and D the declared pairs are 049∥050∥054 and 051∥052∥055.
+The reciprocal declarations were symmetrised the same day: 049 now lists 054 and 052 lists 055.)*
 
 | Wave | Specs | Job | Phase 8 dependency |
 |---|---|---|---|
 | A — Foundation | 045, 046 | Design system + test harness; the backend additions | none — can start now |
-| B — Truth and form | 047, 048 | Say what is happening; rank the information | none |
+| B — Truth and form | 047 → 048 | Say what is happening; rank the information | none |
 | C — Substance | 049, 050, 054 | The deliberation; the human moments; the uncertainty vocabulary | extension slots only |
-| D — Reach | 051, 052, 055 | Absence, engagement, distribution, resilience | 051 renders SPEC-042's outputs |
-| E — Phase 8 made visible | 053 | Project and render everything phase 8 built | **hard: phase 8 verified** |
+| D — Reach | 051, 052, 055 | Absence, engagement, distribution, resilience | none new — SPEC-042 shipped its own Delivery block; the remaining monitoring surface is 053's |
+| E — Phase 8 made visible | 053 | Finish the projections; build the missing surfaces | **hard: phase 8 verified** |
 | F — Close | 056 | Verification | all |
 
 
@@ -274,7 +294,7 @@ Plus the work phase 8 creates and does not render, which the review could not ha
 | "What could not be assessed" limitations | 053 |
 | Diagnosticity matrix | 053 |
 | Typed action plan | 050 slot → 053 |
-| Monitoring plan, risk register, due checks | 051, 053 |
+| Monitoring plan, risk register, due checks | 053 (surfaces); 051 (due-check notifications) |
 | Private evidence provenance | 049 → 053 |
 
 ## Findings from reviewing the existing sheets
@@ -287,12 +307,16 @@ neither blocks phase 9, but both change what "new work" means.
    two classes… in-app fallback banner when permission is denied") and export ("download the
    deterministic Markdown; print stylesheet for PDF"). Neither `Notification` nor any export/print
    path appears anywhere in `frontend/src/`. Phase 9 picks both up in SPEC-051 and SPEC-052 — they
-   should be understood as completing SPEC-035, not as new scope.
+   should be understood as completing SPEC-035, not as new scope. *(Reconciled 2026-08-06:
+   SPEC-035's sheet now carries the two items unchecked with the deferral recorded, so the
+   sheets agree.)*
 
 2. **SPEC-037's acceptance criterion "Axe passes… on the six covered screens in both themes" is
    checked, but only one theme exists** and `frontend/e2e/` contains no `colorScheme` or theme
    handling at all. SPEC-045 introduces the second theme and the theme matrix, which is what makes
-   that criterion satisfiable.
+   that criterion satisfiable. *(Reconciled 2026-08-06: SPEC-037's criterion and scope now say so
+   in place. The same sweep added the mobile project below, so gap 3 in the testing list is
+   partially closed — a 390×844 viewport runs the library and scope-checkpoint flows.)*
 
 ## Open questions for approval
 

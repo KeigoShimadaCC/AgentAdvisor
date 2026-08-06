@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { OptionsRoom } from "./OptionsRoom";
-import { makeOptionsFixture } from "../fixtures";
+import { makeOptionsACHFixture, makeOptionsFixture } from "../fixtures";
 import type { CaseView } from "../../../generated/case_view";
 
 const { mocks } = vi.hoisted(() => ({
@@ -106,5 +106,64 @@ describe("Options room", () => {
     expect(await screen.findByText(/not yet/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Ranked options")).not.toBeInTheDocument();
     expect(screen.queryByText("Eliminated options")).not.toBeInTheDocument();
+  });
+
+  it("renders the competing-hypotheses exhibit, least disconfirmed first", async () => {
+    renderRoom(makeOptionsACHFixture());
+
+    const exhibit = await screen.findByLabelText("Competing hypotheses");
+    const rows = within(exhibit).getAllByRole("row");
+    // Header + three scored options; the eliminated one has no standing.
+    expect(rows).toHaveLength(4);
+    expect(within(rows[1]).getByText("Buy the ETF")).toBeInTheDocument();
+    expect(within(rows[2]).getByText("Wait for earnings")).toBeInTheDocument();
+    expect(within(rows[3]).getByText("Buy the single stock")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("0.15")).toBeInTheDocument();
+    // Records against are inspectable citations, not bare text.
+    expect(
+      within(rows[3]).getByRole("button", { name: "Inspect record E-2" }),
+    ).toBeInTheDocument();
+  });
+
+  it("badges the least-disconfirmed option without disturbing the director's ranking", async () => {
+    renderRoom(makeOptionsACHFixture());
+    const ranked = await screen.findByLabelText("Ranked options");
+    await within(ranked).findByText("Buy the ETF");
+
+    // The ETF is both the director's pick and the least disconfirmed here;
+    // the two readings sit side by side on the same row.
+    const row = within(ranked).getByText("Buy the ETF").closest(".option-row") as HTMLElement;
+    expect(within(row).getByText("least disconfirmed")).toBeInTheDocument();
+    expect(screen.getByText("Recommended")).toBeInTheDocument();
+    // Exactly one option can hold the badge.
+    expect(screen.getAllByText("least disconfirmed")).toHaveLength(1);
+  });
+
+  it("names the evidence that could not have changed the reading", async () => {
+    renderRoom(makeOptionsACHFixture());
+    const exhibit = await screen.findByLabelText("Competing hypotheses");
+    expect(
+      within(exhibit).getByText(/could not have changed this reading/),
+    ).toBeInTheDocument();
+    expect(
+      within(exhibit).getByRole("button", { name: "Inspect record E-3" }),
+    ).toBeInTheDocument();
+  });
+
+  it("omits the exhibit when no matrix was built", async () => {
+    const fixture = makeOptionsFixture();
+    const room = fixture.rooms!.options!;
+    room.ach_scored = false;
+    room.ach_uninformative_evidence_ids = [];
+    for (const o of room.options!) {
+      delete o.disconfirmation_rank;
+      delete o.disconfirming_weight;
+      delete o.disconfirming_evidence_ids;
+    }
+
+    renderRoom(fixture);
+    expect(await screen.findByText("Buy the ETF")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Competing hypotheses")).not.toBeInTheDocument();
+    expect(screen.queryByText("least disconfirmed")).not.toBeInTheDocument();
   });
 });

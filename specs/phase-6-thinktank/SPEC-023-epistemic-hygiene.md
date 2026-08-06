@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-018]
 parallel_with: []
 north_star_refs: ["6.4", "6.6", "6.8", "9", "11", "13", "17"]
-last_updated: 2026-08-02
+last_updated: 2026-08-06
 ---
 
 # SPEC-023 — Epistemic hygiene layer
@@ -55,8 +55,14 @@ in `specs/ROADMAP.md` show all four are currently aspirational rather than enfor
 - `orchestrator/gates.py`: deterministic checks (citation integrity, assumption coverage,
   independence concentration, task health, analysis reproducibility, confidence coherence),
   written to `shared/gates/<stage>.yaml`.
-- The Auditor is actually invoked once, at the post-investigation boundary, and its
-  `AuditStopInput` feeds the stop evaluator.
+- The Auditor is actually invoked, at the CHALLENGE-stage checkpoint, and the stop
+  evaluator's inputs are computed deterministically from gate blocking findings, open
+  objections, and coverage. *(Amended 2026-08-06: the sheet previously said "invoked once,
+  at the post-investigation boundary" and that "its `AuditStopInput` feeds the stop
+  evaluator". The Auditor sits in the CHALLENGE StepPlan — `orchestrator/state_machine.py` —
+  and `AuditFinding.stop_input` is written and test-validated but has no orchestrator
+  consumer; the enforcement this bullet intended shipped via the deterministic gate path
+  below instead. Found in the 2026-08-06 spec sweep.)*
 - Enforcement: blocking findings (a) cancel non-material failed tasks through
   `TaskGraph.cancel_tasks`, and (b) force `open_critical_evidence_gaps=True` in the stop
   evaluator so a broken chain cannot stop early.
@@ -123,9 +129,12 @@ artifact; it is recorded, it may cancel tasks, and it changes the stop decision.
 
 ## Verification plan
 
-`uv run pytest tests/test_assumption_ledger.py tests/test_evidence_critic.py tests/test_gates.py
+`uv run pytest tests/test_evidence_critic.py tests/test_gates.py
 tests/test_verification.py tests/test_pipeline_stub.py`, then `make check`, then the live
-benchmark suite in SPEC-026.
+benchmark suite in SPEC-026. *(Amended 2026-08-06: the plan previously named
+`tests/test_assumption_ledger.py`, which was never created; assumption-ledger coverage lives
+in `tests/test_pipeline_stub.py`, `tests/test_gates.py`, and
+`tests/test_roles_phase6_live.py`.)*
 
 ## Verification results
 

@@ -371,6 +371,104 @@ def _score_phase8(case: Case, metrics: dict[str, Any]) -> dict[str, int]:
     return scores
 
 
+def _score_phase6(case: Case, metrics: dict[str, Any]) -> dict[str, int]:
+    """Objective scores for the Phase 6 criteria, from the metrics already extracted.
+
+    SPEC-026's scope called for these rubric criteria alongside the metrics; the
+    2026-08-06 spec sweep found only the metrics half existed and added this scorer.
+    Every band is defined over ``_phase6_metrics`` output or the artifact files those
+    metrics were drawn from, so the scoring stays reproducible from the case alone.
+    """
+    scores: dict[str, int] = {}
+
+    # ── assumption_ledger_coverage ─────────────────────────────────────────
+    assumptions = metrics.get("assumption_records", 0)
+    scores["al-1"] = 2 if assumptions >= 5 else (1 if assumptions >= 1 else 0)
+
+    assumptions_dir = case.root / "shared" / "assumptions"
+    rated = 0
+    total = 0
+    if assumptions_dir.exists():
+        for path in assumptions_dir.glob("*.yaml"):
+            record = _load_yaml(path)
+            if not record:
+                continue
+            total += 1
+            if record.get("materiality") in {"high", "medium", "low"}:
+                rated += 1
+    if total == 0:
+        scores["al-2"] = 0
+    else:
+        scores["al-2"] = 2 if rated == total else (1 if rated else 0)
+
+    # ── evidence_authority ─────────────────────────────────────────────────
+    authority_mean = metrics.get("evidence_authority_mean")
+    if authority_mean is None:
+        scores["ea-1"] = 0
+    else:
+        scores["ea-1"] = 2 if authority_mean >= 0.7 else (1 if authority_mean >= 0.4 else 0)
+
+    cluster_share = metrics.get("evidence_max_cluster_share")
+    if cluster_share is None:
+        scores["ea-2"] = 0
+    else:
+        scores["ea-2"] = 2 if cluster_share <= 0.4 else (1 if cluster_share <= 0.6 else 0)
+
+    # ── issue_tree_coverage ────────────────────────────────────────────────
+    leaves = metrics.get("issue_tree_leaves", 0)
+    scores["it-1"] = 2 if leaves >= 3 else (1 if leaves >= 1 else 0)
+
+    tasks_dir = case.root / "shared" / "tasks"
+    linked = 0
+    total_tasks = 0
+    if tasks_dir.exists():
+        for path in tasks_dir.glob("*.yaml"):
+            task = _load_yaml(path)
+            if not task:
+                continue
+            total_tasks += 1
+            if task.get("issue_node_id"):
+                linked += 1
+    if total_tasks == 0:
+        scores["it-2"] = 0
+    else:
+        scores["it-2"] = 2 if linked / total_tasks >= 0.5 else (1 if linked else 0)
+
+    # ── premortem_quality ──────────────────────────────────────────────────
+    failure_mode_count = metrics.get("premortem_failure_modes", 0)
+    scores["pm-1"] = 2 if failure_mode_count >= 3 else (1 if failure_mode_count >= 1 else 0)
+
+    premortem = _load_yaml(case.root / "shared" / "premortem_report.yaml")
+    failure_modes = premortem.get("failure_modes", [])
+    if not failure_modes:
+        scores["pm-2"] = 0
+    else:
+        with_indicators = sum(1 for mode in failure_modes if mode.get("leading_indicators"))
+        scores["pm-2"] = (
+            2 if with_indicators == len(failure_modes) else (1 if with_indicators else 0)
+        )
+
+    # ── verification_depth ─────────────────────────────────────────────────
+    worksheet_items = metrics.get("verification_worksheet_items", 0)
+    scores["vd-1"] = 2 if worksheet_items >= 5 else (1 if worksheet_items >= 1 else 0)
+
+    gate_reports = metrics.get("gate_reports", 0)
+    scores["vd-2"] = 2 if gate_reports >= 3 else (1 if gate_reports >= 1 else 0)
+
+    # ── thesis_evolution ───────────────────────────────────────────────────
+    revisions = metrics.get("thesis_revisions", 0)
+    scores["te-1"] = 2 if revisions >= 2 else (1 if revisions == 1 else 0)
+
+    if metrics.get("track_agreement") is not None:
+        scores["te-2"] = 2
+    elif (case.root / "shared" / "track_divergence.yaml").exists():
+        scores["te-2"] = 1
+    else:
+        scores["te-2"] = 0
+
+    return scores
+
+
 def _load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
@@ -484,6 +582,14 @@ def _score_case(
         "adversarial_robustness": ["ar-1"],
         "traceability": ["tr-1", "tr-2"],
     }
+    phase6_map: dict[str, list[str]] = {
+        "assumption_ledger_coverage": ["al-1", "al-2"],
+        "evidence_authority": ["ea-1", "ea-2"],
+        "issue_tree_coverage": ["it-1", "it-2"],
+        "premortem_quality": ["pm-1", "pm-2"],
+        "verification_depth": ["vd-1", "vd-2"],
+        "thesis_evolution": ["te-1", "te-2"],
+    }
     phase8_map: dict[str, list[str]] = {
         "value_model_binding": ["vm-1", "vm-2"],
         "independent_review": ["ir-1", "ir-2"],
@@ -492,6 +598,7 @@ def _score_case(
     }
 
     if metrics is not None:
+        scores.update(_score_phase6(case, metrics))
         scores.update(_score_phase8(case, metrics))
 
     def _dimension_scores(mapping: dict[str, list[str]]) -> dict[str, float]:
@@ -507,8 +614,8 @@ def _score_case(
     dimension_scores = dict(legacy_scores)
     extended_overall = legacy_overall
     if metrics is not None:
-        phase8_scores = _dimension_scores(phase8_map)
-        dimension_scores.update(phase8_scores)
+        dimension_scores.update(_dimension_scores(phase6_map))
+        dimension_scores.update(_dimension_scores(phase8_map))
         extended_overall = (
             sum(dimension_scores.values()) / len(dimension_scores) if dimension_scores else 0.0
         )

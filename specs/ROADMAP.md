@@ -54,6 +54,23 @@ to be a racy assertion in the test rather than the webkit-specific flake the ROA
 also fixed. Both had been invisible to `make check` and `make frontend-check`, neither of which runs
 the suite; that gap is the sweep's main finding and is filed under emergent work.
 
+**(2026-08-06) Full spec sweep.** All 56 sheets checked against the codebase; 15 needed fixes,
+each recorded in the sheet with a dated amendment. Code gaps closed: SPEC-008's missing
+`BudgetConfig` schema export, SPEC-018's live toy-case test (`tests/test_pipeline_live.py`,
+`live_slow`), SPEC-026's rubric extension (six `phase: 6` dimensions + `_score_phase6`; the
+metrics half existed, the criteria half did not), SPEC-037's live e2e spec / mobile project /
+`make e2e-frontend-live`, SPEC-040's Options-room ACH exhibit (the projection had no consumer),
+SPEC-042's `monitor` entry in the droid model table, and phase 9's orphaned effort-history
+endpoint (now owned by SPEC-046). Also found: `make e2e-frontend` had never worked as written
+(recipe lines ran from the repo root) — fixed, and the full suite is green for the first time
+across chromium, webkit and mobile (53 + 10 + 12 passed). Text drift corrected in SPEC-010,
+021, 023, 035, 037, 042 and the phase-9 README/sheets (wave count, `parallel_with` symmetry,
+the overstated "phase 8 builds nothing visible" claim, sheet sizing). `make check`: **928
+passed**, 19 deselected. `make frontend-check`: **109 passed**. Report:
+`../report-and-findings/2026-08-06-spec-sweep.md`. Still outstanding, all by design: SPEC-044's
+live benchmark sweep and the new live tests need an authenticated CLI; SPEC-035's two missing
+features belong to draft SPEC-051/052 and await approval.
+
 ---
 
 ## Phase 0 — Foundations [done]
