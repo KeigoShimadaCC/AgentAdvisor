@@ -3,7 +3,8 @@ import { useCaseView } from "../screens/shared/useCaseView";
 import { RoomTabs } from "../screens/shared/RoomTabs";
 import { InspectorHost } from "../screens/inspector/InspectorHost";
 import { CitationText } from "../screens/inspector/CitationText";
-import { LiveActivity } from "../screens/Brief/LiveActivity";
+import { Narrator } from "../narration/Narrator";
+import { CaseMap, countersFromView } from "../screens/shared/CaseMap";
 import { stageLabel, phaseLabel, NEEDS_YOU } from "../copy/terms";
 import type { CaseView } from "../generated/case_view";
 
@@ -22,7 +23,7 @@ function statusLabel(view: CaseView): string {
 
 export function CaseDetail() {
   const { caseId } = useParams<{ caseId: string }>();
-  const { view, events, loading, error } = useCaseView(caseId);
+  const { view, events, narration, loading, error } = useCaseView(caseId);
 
   if (loading) return <p>Loading…</p>;
   if (error) return <p className="error">{error}</p>;
@@ -56,7 +57,8 @@ export function CaseDetail() {
         </p>
       )}
 
-      <LiveActivity events={events} />
+      <CaseMap view={view} counters={countersFromView(view)} />
+      <Narrator narration={narration} events={events} />
 
       {caseId && <RoomTabs caseId={caseId} />}
 
@@ -75,16 +77,6 @@ export function CaseDetail() {
         ))}
       </section>
 
-      <section className="event-log">
-        <h3>Live events</h3>
-        <ul>
-          {events.slice(-20).map((e, i) => (
-            <li key={i} className={e.technical ? "event-technical" : "event-user"}>
-              <small>[{e.line_cursor}]</small> {e.message}
-            </li>
-          ))}
-        </ul>
-      </section>
 
       <p className="back-link">
         <Link to="/">← All cases</Link>

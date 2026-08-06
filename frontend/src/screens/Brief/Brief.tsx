@@ -6,9 +6,9 @@ import { CitationLink } from "../inspector/CitationLink";
 import { CitationText } from "../inspector/CitationText";
 import { FailurePath } from "../shared/FailurePath";
 import { MarginNarration } from "./MarginNarration";
-import { LiveActivity } from "./LiveActivity";
+import { Narrator } from "../../narration/Narrator";
 import { WorkingViewCard } from "./WorkingViewCard";
-import { MethodStrip } from "./MethodStrip";
+import { CaseMap, countersFromView } from "../shared/CaseMap";
 import { SealedAnswerCard } from "./SealedAnswerCard";
 import {
   BRIEF_SECTION_TITLES,
@@ -27,7 +27,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function Brief() {
   const { caseId } = useParams<{ caseId: string }>();
-  const { view, events, loading, error } = useCaseView(caseId);
+  const { view, events, narration, loading, error } = useCaseView(caseId);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [settleKeys, setSettleKeys] = useState<Set<string>>(new Set());
   const prevSections = useRef<BriefSection[] | undefined>(undefined);
@@ -84,13 +84,13 @@ export function Brief() {
         </section>
       ) : (
         <>
-          <MethodStrip view={view} />
+          <CaseMap view={view} counters={countersFromView(view)} />
           <SealedAnswerCard stage={view.stage} />
           <WorkingViewCard
             caseId={view.case_id}
             revisions={view.history?.thesis_revisions ?? []}
           />
-          <LiveActivity events={events} />
+          <Narrator narration={narration} events={events} showTranscript={false} />
           <MarginNarration events={events} />
           <FailurePath view={view} />
           <section className="brief-sections" aria-label="Brief sections">

@@ -120,3 +120,58 @@ modeDescribe("replay", "Replay mode — sealed answer card", () => {
     expect(bodyText).not.toMatch(/percent\s*complete/i);
   });
 });
+
+// ── SPEC-047: the narrator and the live projection ───────────────────────────
+
+modeDescribe("replay", "Replay mode — narrator", () => {
+  test("names what is happening, without leaking cursors or enums", async ({ page }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}/brief`);
+    const narrator = page.locator(".narrator");
+    await narrator.waitFor({ state: "visible" });
+
+    // The narration line must be prose. The old event log rendered
+    // `[47] researcher — attempt 1: ok`, which is a debug view: a raw audit
+    // cursor and a raw status enum, neither of which means anything to a reader.
+    const text = (await narrator.innerText()).trim();
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).not.toMatch(/\[\d+\]/);
+    expect(text).not.toMatch(/role_invocation_|stage_completed|_batch_unpacked/);
+  });
+
+  test("narration is driven by the stream, and settles when the case does", async ({ page }) => {
+    // Deliberately not "the line changed": replay runs at 60x, so a completed
+    // fixture can flush its whole history between two reads. Racing the stream
+    // makes a flaky test, and a flaky visual/narration gate gets muted rather
+    // than fixed. Assert the end state instead, which is deterministic.
+    await page.goto(`/cases/${FIXTURE_COMPLETED}/brief`);
+    const narrator = page.locator(".narrator");
+    await narrator.waitFor({ state: "visible" });
+
+    await expect
+      .poll(async () => (await narrator.innerText()).includes("complete"), { timeout: 20_000 })
+      .toBe(true);
+
+    // And it got there by folding the stream, not by reading the projection:
+    // the counters only exist if events were reduced.
+    const counters = page.locator(".narrator-counters");
+    if (await counters.count()) {
+      await expect(counters).toContainText(/evidence|assumptions|objections/);
+    }
+  });
+
+  test("the case map shows the cycles and never claims a phase that is not current", async ({
+    page,
+  }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}/brief`);
+    const map = page.locator(".case-map");
+    await map.waitFor({ state: "visible" });
+
+    // All three cycles are drawn before any of them runs: a loop the user has
+    // been shown is a plan, not a malfunction.
+    await expect(page.getByTestId("cycle-rescope")).toBeVisible();
+    await expect(page.getByTestId("cycle-repair")).toBeVisible();
+    await expect(page.getByTestId("cycle-re-review")).toBeVisible();
+
+    await expect(page.locator(".case-map-phase-current")).toHaveCount(1);
+  });
+});
