@@ -688,14 +688,55 @@ def _truncation_notice(omitted: list[str], budget_chars: int) -> ProjectedArtifa
 
 
 def project(
-    case: Case, include: list[str] | tuple[str, ...], budget_chars: int
+    case: Case,
+    include: list[str] | tuple[str, ...],
+    budget_chars: int,
+    required: list[str] | tuple[str, ...] = (),
 ) -> list[ProjectedArtifact]:
+    """Project the case's artifacts into a role workspace under a character budget.
+
+    The budget is filled greedily in list order, so an early, large include key
+    can crowd out everything behind it. ``required`` names keys that must not be
+    crowded out: they are resolved and given budget ahead of everything else,
+    whatever their position in ``include``. A role whose output must *cite* an
+    input cannot treat that input as optional — the synthesizer citing a
+    preliminary recommendation it never received is the failure this prevents.
+
+    Required keys that resolve to nothing (the artifact does not exist yet) are
+    not an error; a required key that exists and cannot fit the budget is, since
+    silently dropping it is the behavior being fixed.
+    """
+
     if budget_chars <= 0:
         return [_truncation_notice(omitted=[], budget_chars=budget_chars)]
 
+    required_keys = tuple(required)
+    unknown_required = [key for key in required_keys if key not in include]
+    if unknown_required:
+        raise ProjectionError(
+            f"Required projection keys {unknown_required} are not in the include list. "
+            "A key cannot be required without also being included."
+        )
+
+    # Required first, then the rest in their declared order. Ordering is the
+    # whole mechanism: the budget loop below is unchanged and still greedy.
     candidates: list[_Candidate] = []
-    for include_key in include:
+    for include_key in required_keys:
         candidates.extend(_resolve_candidates(case, include_key))
+    required_count = len(candidates)
+    for include_key in include:
+        if include_key in required_keys:
+            continue
+        candidates.extend(_resolve_candidates(case, include_key))
+
+    required_chars = sum(len(candidate.yaml_text) for candidate in candidates[:required_count])
+    if required_chars > budget_chars:
+        names = ", ".join(candidate.filename for candidate in candidates[:required_count])
+        raise ProjectionError(
+            f"Required projection inputs ({names}) need {required_chars} chars, over the "
+            f"{budget_chars}-char budget. Raise the budget or narrow the required set; "
+            "dropping them silently is what this check exists to prevent."
+        )
 
     projected: list[ProjectedArtifact] = []
     omitted: list[str] = []

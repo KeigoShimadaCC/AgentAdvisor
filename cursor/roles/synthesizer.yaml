@@ -6,10 +6,6 @@ allow_shell: false
 projection_include:
   - ach_matrix
   - decision_spec
-  # artifact_index is a compact, authoritative list of every real E-/A-/O- ID
-  # with a one-line summary. It is placed early so it survives the projection
-  # char budget even when full evidence records are truncated, giving the
-  # synthesizer the true ID set to cite instead of inventing IDs (e.g. E-801).
   - artifact_index
   - evidence_records
   - assumptions
@@ -20,6 +16,29 @@ projection_include:
   - premortem_report
   - track_divergence
   - evidence_critique
+  - review_report
+# Inputs the synthesis output is checked against, so the synthesizer cannot be
+# asked to cite what it never received. The budget fills greedily in list order,
+# and on a real case the include set above runs roughly half again over it — in
+# the SPEC-020 case the synthesizer said in its own output that the preliminary
+# recommendation, objection resolutions and pre-mortem indicators "were
+# truncated out of the inputs available to this synthesis", and the review then
+# blocked twice on uncited_claim and undisclosed_open_objection. That is a
+# structural failure, not a model one. Naming these gives them budget before
+# anything else, whatever their position above.
+#
+#   artifact_index — the authoritative E-/A-/O- id set. Ordering alone used to
+#     protect it; without it the synthesizer invents ids (E-801).
+#   objections — open ones must be disclosed, which needs their resolutions.
+#   premortem_report — leading indicators become the change triggers.
+#   review_report — the repair cycle's feedback; a repair that cannot see what
+#     was flagged cannot fix it.
+projection_required:
+  - decision_spec
+  - artifact_index
+  - objections
+  - preliminary_recommendation
+  - premortem_report
   - review_report
 output_artifact_type: final_recommendation
 model_tier: high

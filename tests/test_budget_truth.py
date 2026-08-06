@@ -469,3 +469,118 @@ def test_research_tasks_consumed_for_researcher_dispatch(stub_env: Case, tmp_pat
         f"research_tasks={research_tasks} should equal "
         f"completed researcher tasks={len(evidence_events)}"
     )
+
+
+# ── 8. The ceiling refuses the escalation instead of recording an overrun ────
+
+
+class _AlwaysFailingBackend:
+    name = BackendName.CURSOR
+
+    def __init__(self) -> None:
+        self.models: list[str] = []
+
+    def run(self, invocation: RoleInvocation) -> RoleResult:
+        self.models.append(invocation.model)
+        return RoleResult(
+            status=ResultStatus.ERROR,
+            result_text=None,
+            session_id="stub-session",
+            request_id="stub-req",
+            duration_ms=1,
+            usage=TokenUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+            raw_stdout="",
+            raw_stderr="forced failure",
+            cli_version="stub-1.0",
+        )
+
+
+def _high_tier_role_config(tmp_path: Path) -> Any:
+    from orchestrator.artifacts import TaskRole
+    from orchestrator.roles_config import PermissionProfile, RoleConfig
+
+    role_md = tmp_path / "role.md"
+    role_md.write_text("Write a review_report and stop.\n", encoding="utf-8")
+    return RoleConfig(
+        role=TaskRole.REVIEWER,
+        role_md_path=role_md,
+        default_model="model-default",
+        escalation_model="model-escalation",
+        read_only=False,
+        permission_profile=PermissionProfile(allow_shell=False),
+        projection_include=tuple(),
+        output_artifact_type="review_report",
+        model_tier="high",
+    )
+
+
+def _invoke_high_tier_role(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    max_high_tier_calls: int,
+    slug: str,
+) -> tuple[_AlwaysFailingBackend, str]:
+    from orchestrator.budget import BudgetLedger
+    from orchestrator.invoke_role import InvokeTask, RoleInvocationFailed, invoke
+    from orchestrator.state_machine import CaseState
+
+    case = create_case(slug, cases_root=tmp_path / "cases")
+    monkeypatch.setenv("AGENTADVISOR_RUNTIME_ROOT", str(tmp_path / "runtime"))
+    config = _high_tier_role_config(tmp_path)
+    monkeypatch.setattr(
+        "orchestrator.invoke_role.load_role_config",
+        lambda _role, _variant=None: config,
+    )
+    monkeypatch.setattr(
+        "orchestrator.invoke_role._build_attempt_plan",
+        lambda _config, _backend: ["model-default", "model-default", "model-escalation"],
+    )
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    ledger = BudgetLedger(
+        state=CaseState(case_id=case.root.name, created_at=now, updated_at=now),
+        config=BudgetConfig(max_agent_invocations=40, max_high_tier_calls=max_high_tier_calls),
+        # No model maps to `high` — the shipped situation on both backends.
+        model_tier_map={"model-default": "low", "model-escalation": "medium"},
+    )
+    backend = _AlwaysFailingBackend()
+
+    with pytest.raises(RoleInvocationFailed) as excinfo:
+        invoke(
+            case,
+            "reviewer",
+            InvokeTask(
+                task_id="T-CEILING",
+                assignment="Review the recommendation.",
+                output_artifact_type="review_report",
+            ),
+            backend=backend,
+            budget_ledger=ledger,
+        )
+    return backend, str(excinfo.value)
+
+
+def test_escalation_proceeds_while_the_ceiling_has_room(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    backend, _ = _invoke_high_tier_role(
+        tmp_path, monkeypatch, max_high_tier_calls=6, slug="ceiling-room"
+    )
+
+    assert backend.models == ["model-default", "model-default", "model-escalation"]
+
+
+def test_escalation_is_refused_once_the_ceiling_is_reached(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A cost cap that counts overruns without preventing them is not a cap."""
+
+    backend, message = _invoke_high_tier_role(
+        tmp_path, monkeypatch, max_high_tier_calls=0, slug="ceiling-reached"
+    )
+
+    assert backend.models == ["model-default", "model-default"]
+    assert "model-escalation" not in backend.models
+    # The reason reaches the failure message rather than looking like a model fault.
+    assert "high-capability model call ceiling" in message
