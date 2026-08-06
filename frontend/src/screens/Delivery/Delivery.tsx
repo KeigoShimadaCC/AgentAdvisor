@@ -23,6 +23,7 @@ import {
   ACTION_PLAN_COPY,
 } from "../../copy/terms";
 import { provenanceVoice } from "../../copy/voices";
+import { honestSentence } from "../../copy/honestSentence";
 import type { FinalRecommendation } from "../../generated/final_recommendation";
 import type { CaseView, BriefSection } from "../../generated/case_view";
 import type { ProbabilityView } from "../../generated/uncertainty_view";
@@ -36,6 +37,7 @@ export function Delivery() {
   const [signed, setSigned] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
   const [revisionSent, setRevisionSent] = useState(false);
+  const [confirmingSendBack, setConfirmingSendBack] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const toast = useToast();
 
@@ -145,24 +147,11 @@ export function Delivery() {
               <p className="answer-timing">Timing: <CitationText>{final.timing}</CitationText></p>
             </section>
 
-            <section className="uncertainty-widgets" aria-label="Four uncertainty measures">
-              <div className="uncertainty-widget">
-                <h4>Probability</h4>
-                <PrimaryProbability probabilities={view.uncertainty?.outcome_probabilities} />
-              </div>
-              <div className="uncertainty-widget">
-                <h4>Confidence in this recommendation</h4>
-                <ConfidenceBands confidence={view.uncertainty?.recommendation_confidence} />
-              </div>
-              <div className="uncertainty-widget">
-                <h4>Source strength</h4>
-                <SourceStrengthGrade source={view.uncertainty?.evidence_confidence} />
-              </div>
-              <div className="uncertainty-widget">
-                <h4>Stability</h4>
-                <StabilityDots stability={view.uncertainty?.model_stability} />
-              </div>
-            </section>
+            {/* SPEC-050: one honest sentence, then the reasons. The four
+                encodings used to sit between the answer and its reasons, so a
+                reader asking "how sure is this" got a dashboard instead of an
+                answer. They are unchanged in substance, one click down. */}
+            <p className="honest-sentence">{honestSentence(view.uncertainty).text}</p>
 
             <section className="key-reasons" aria-label="Key reasons">
               <h3>Why this recommendation</h3>
@@ -181,6 +170,36 @@ export function Delivery() {
             </section>
 
             <Tripwires triggers={final.recommendation_change_triggers} />
+
+            {/* The action-plan slot (SPEC-050). `MonitoringPanel` has existed
+                since SPEC-042 and was never rendered by anything — a whole
+                feature written, tested and invisible. It is wired here, and it
+                returns null when a case has no plan, which is the normal case
+                for an in-flight decision. SPEC-053 fills the rest of the slot
+                with phase 8 SPEC-041's typed action plan. */}
+            {caseId && <MonitoringPanel caseId={caseId} />}
+
+            <details className="uncertainty-disclosure">
+              <summary>How sure is this?</summary>
+              <section className="uncertainty-widgets" aria-label="Four uncertainty measures">
+                <div className="uncertainty-widget">
+                  <h4>Probability</h4>
+                  <PrimaryProbability probabilities={view.uncertainty?.outcome_probabilities} />
+                </div>
+                <div className="uncertainty-widget">
+                  <h4>Confidence in this recommendation</h4>
+                  <ConfidenceBands confidence={view.uncertainty?.recommendation_confidence} />
+                </div>
+                <div className="uncertainty-widget">
+                  <h4>Source strength</h4>
+                  <SourceStrengthGrade source={view.uncertainty?.evidence_confidence} />
+                </div>
+                <div className="uncertainty-widget">
+                  <h4>Stability</h4>
+                  <StabilityDots stability={view.uncertainty?.model_stability} />
+                </div>
+              </section>
+            </details>
 
             <IntegritySlip view={view} />
 
@@ -219,14 +238,43 @@ export function Delivery() {
                 disabled={!canSendBack || submitting}
                 rows={3}
               />
-              <button
-                type="button"
-                className="secondary-action"
-                onClick={handleSendBack}
-                disabled={!canSendBack || !revisionNote.trim() || submitting}
-              >
-                Send back
-              </button>
+              {/* SPEC-050: MAX_FINAL_REVISIONS is 1, so this button spends the
+                  only send-back the case has. A one-shot, irreversible action
+                  behind a single click is a trap; the confirmation names what
+                  it costs rather than asking "are you sure". */}
+              {confirmingSendBack ? (
+                <div className="send-back-confirm" role="alertdialog" aria-label="Confirm send back">
+                  <p className="send-back-cost">
+                    This is the only send-back this case has. Once it is used, the next
+                    recommendation is the one you accept or leave.
+                  </p>
+                  <button
+                    type="button"
+                    className="secondary-action"
+                    onClick={handleSendBack}
+                    disabled={submitting}
+                  >
+                    Send it back
+                  </button>
+                  <button
+                    type="button"
+                    className="tertiary-action"
+                    onClick={() => setConfirmingSendBack(false)}
+                    disabled={submitting}
+                  >
+                    Keep reading
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => setConfirmingSendBack(true)}
+                  disabled={!canSendBack || !revisionNote.trim() || submitting}
+                >
+                  Send back
+                </button>
+              )}
               {!canSendBack && hasReviseApproval && (
                 <p className="screen-help">
                   Final revision cap reached — you can only send back once.

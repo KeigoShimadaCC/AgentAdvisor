@@ -390,7 +390,7 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
 | SPEC-047 | The live case: streaming truth, the narrator, and the case map | implemented |
 | SPEC-048 | The reading room: shell, persistent chrome, hierarchy, altitudes | implemented |
 | SPEC-049 | The cast: voice attribution, margin objections, dissent | implemented |
-| SPEC-050 | Commissioning and checkpoints | draft |
+| SPEC-050 | Commissioning and checkpoints | implemented |
 | SPEC-051 | Presence and engagement: notifications, away digest, reactions, calibration | draft |
 | SPEC-052 | Distribution: export, share, replay onboarding, library, mobile | draft |
 | SPEC-053 | Phase 8 made visible: projecting and rendering the pipeline improvements | draft |

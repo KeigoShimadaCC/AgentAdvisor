@@ -478,3 +478,148 @@ def test_needs_you_is_correct_for_every_state(tmp_path: Path) -> None:
         # And the list must agree with the projection for the same case.
         projected = c.get(f"/api/cases/{case_id}/view").json()["needs_you"]
         assert listed[case_id] == projected
+
+
+# ── GET /api/effort-history (SPEC-050) ───────────────────────────────────────
+
+
+def _make_timed_case(
+    root: Path, slug: str, *, profile: str, stage: str, start: str, end: str
+) -> None:
+    """A real case layout with a known duration and budget profile."""
+    import json
+
+    from orchestrator.case_store import create_case
+
+    case = create_case(slug, cases_root=root)
+    (case.root / "state.yaml").write_text(
+        "\n".join(
+            [
+                f"case_id: {case.root.name}",
+                "created_at: '2026-08-01T00:00:00Z'",
+                "elapsed_s: 0.0",
+                "failure_cause: null",
+                "final_approved: true",
+                "final_revisions: 0",
+                "framing_approved: true",
+                "framing_revisions: 0",
+                "repair_cycle: 0",
+                "review_accepted: true",
+                "schema_version: 1",
+                f"stage: {stage}",
+                "synthesis_retries: 0",
+                "updated_at: '2026-08-01T00:00:00Z'",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (case.root / "shared" / "control_meta.yaml").write_text(
+        f"budget_profile: {profile}\nraw_prompt: a decision\n", encoding="utf-8"
+    )
+    lines = [
+        json.dumps({"ts": start, "event_type": "case_created", "payload": {}}),
+        json.dumps({"ts": end, "event_type": "case_finalized", "payload": {}}),
+    ]
+    (case.root / "audit.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_effort_history_reports_measured_durations_per_profile(tmp_path: Path) -> None:
+    """The whole point of the endpoint: report what runs took, not what we hoped."""
+    _make_timed_case(
+        tmp_path,
+        "effort-a",
+        profile="default",
+        stage="done",
+        start="2026-08-01T00:00:00Z",
+        end="2026-08-01T01:00:00Z",
+    )
+    _make_timed_case(
+        tmp_path,
+        "effort-b",
+        profile="default",
+        stage="done",
+        start="2026-08-01T00:00:00Z",
+        end="2026-08-01T03:00:00Z",
+    )
+    _make_timed_case(
+        tmp_path,
+        "effort-c",
+        profile="deep",
+        stage="done",
+        start="2026-08-01T00:00:00Z",
+        end="2026-08-01T05:00:00Z",
+    )
+
+    body = TestClient(create_app(cases_root=tmp_path)).get("/api/effort-history").json()
+
+    assert body["profiles"]["default"]["samples"] == 2
+    assert body["profiles"]["default"]["p50_s"] == 3600.0
+    assert body["profiles"]["default"]["p90_s"] == 10800.0
+    assert body["profiles"]["deep"]["samples"] == 1
+    assert body["profiles"]["deep"]["p50_s"] == 18000.0
+
+
+def test_effort_history_counts_only_completed_cases(tmp_path: Path) -> None:
+    """A case still running has a duration, but not a duration of a *completed* case.
+
+    Counting it would quote a number smaller than what finishing actually costs,
+    which is the same failure as the authored estimate this endpoint replaces.
+    """
+    _make_timed_case(
+        tmp_path,
+        "done-case",
+        profile="default",
+        stage="done",
+        start="2026-08-01T00:00:00Z",
+        end="2026-08-01T02:00:00Z",
+    )
+    _make_timed_case(
+        tmp_path,
+        "running-case",
+        profile="default",
+        stage="investigation",
+        start="2026-08-01T00:00:00Z",
+        end="2026-08-01T00:05:00Z",
+    )
+
+    body = TestClient(create_app(cases_root=tmp_path)).get("/api/effort-history").json()
+    assert body["profiles"]["default"]["samples"] == 1
+    assert body["profiles"]["default"]["p50_s"] == 7200.0
+
+
+def test_effort_history_is_empty_rather_than_absent_with_no_cases(tmp_path: Path) -> None:
+    body = TestClient(create_app(cases_root=tmp_path)).get("/api/effort-history").json()
+    assert body == {"profiles": {}}
+
+
+def test_effort_history_survives_a_corrupt_case(tmp_path: Path) -> None:
+    """One unreadable case must not hide every other case's timing."""
+    _make_timed_case(
+        tmp_path,
+        "good-case",
+        profile="default",
+        stage="done",
+        start="2026-08-01T00:00:00Z",
+        end="2026-08-01T01:00:00Z",
+    )
+    broken = tmp_path / "case-999-broken"
+    broken.mkdir()
+    (broken / "state.yaml").write_text("{{{ not yaml", encoding="utf-8")
+
+    body = TestClient(create_app(cases_root=tmp_path)).get("/api/effort-history").json()
+    assert body["profiles"]["default"]["samples"] == 1
+
+
+def test_effort_history_percentile_returns_an_observed_duration(tmp_path: Path) -> None:
+    """Nearest-rank, not interpolating.
+
+    With the two or three runs a real history starts with, an interpolating
+    percentile invents a number between two observations and presents it with
+    the authority of a measurement. Every value returned here is a duration some
+    case actually took.
+    """
+    from orchestrator.service.app import _percentile
+
+    observations = [60.0, 300.0, 4000.0]
+    for fraction in (0.5, 0.9):
+        assert _percentile(observations, fraction) in observations

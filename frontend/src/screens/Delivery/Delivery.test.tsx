@@ -12,6 +12,7 @@ const { mocks, state } = vi.hoisted(() => ({
     getFinalRecommendation: vi.fn(),
     approveDelivery: vi.fn(),
     requestFinalRevision: vi.fn(),
+    getMonitoring: vi.fn(),
   },
   state: { events: [] as TranslatedEvent[] },
 }));
@@ -22,6 +23,7 @@ vi.mock("../../api/client", () => ({
     getFinalRecommendation: mocks.getFinalRecommendation,
     approveDelivery: mocks.approveDelivery,
     requestFinalRevision: mocks.requestFinalRevision,
+    getMonitoring: mocks.getMonitoring,
   },
 }));
 
@@ -130,6 +132,9 @@ function renderDelivery(view: CaseView, events: TranslatedEvent[] = []) {
   });
   mocks.approveDelivery.mockResolvedValue({ case_id: "case-1", stage: "done" });
   mocks.requestFinalRevision.mockResolvedValue({ case_id: "case-1", stage: "synthesis" });
+  // A case with no monitoring plan is the normal case for an in-flight
+  // decision, and the panel renders nothing for it.
+  mocks.getMonitoring.mockResolvedValue({ plan: null, due: [] });
   return render(
     <MemoryRouter initialEntries={["/cases/case-1/delivery"]}>
       <Routes>
@@ -152,6 +157,9 @@ describe("Delivery", () => {
   it("renders answer card and all four uncertainty measures", async () => {
     renderDelivery(makeView());
     expect(await screen.findByText("Switch jobs")).toBeInTheDocument();
+    // SPEC-050 moved the four encodings one click down; they are unchanged in
+    // substance and still all four.
+    fireEvent.click(screen.getByText("How sure is this?"));
     expect(screen.getByText("Probability")).toBeInTheDocument();
     expect(screen.getByText("Confidence in this recommendation")).toBeInTheDocument();
     expect(screen.getByText("Source strength")).toBeInTheDocument();
@@ -176,7 +184,9 @@ describe("Delivery", () => {
       outcome_probabilities: {},
     };
     renderDelivery(view);
-    expect(await screen.findByText("Not assessed")).toBeInTheDocument();
+    expect(await screen.findByText("Switch jobs")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("How sure is this?"));
+    expect(screen.getAllByText("Not assessed").length).toBeGreaterThan(0);
     expect(screen.queryByText(/0\.0%/)).not.toBeInTheDocument();
     expect(screen.queryByText(/0%/)).not.toBeInTheDocument();
   });
@@ -190,7 +200,11 @@ describe("Delivery", () => {
     renderDelivery(makeView());
     const note = await screen.findByLabelText(/Send back with a note/);
     fireEvent.change(note, { target: { value: "Need more evidence" } });
-    fireEvent.click(screen.getByRole("button", { name: /Send back/ }));
+    // SPEC-050: send-back is now two steps, because it spends the only
+    // revision the case has.
+    fireEvent.click(screen.getByRole("button", { name: "Send back" }));
+    expect(screen.getByText(/only send-back this case has/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Send it back" }));
     await vi.waitFor(() => expect(mocks.requestFinalRevision).toHaveBeenCalled());
     expect(mocks.requestFinalRevision).toHaveBeenCalledWith("case-1", "Need more evidence");
   });

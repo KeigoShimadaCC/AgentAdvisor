@@ -3,6 +3,7 @@ import type { IntakeRecord } from "../generated/intake_record";
 import type { DecisionSpec } from "../generated/decision_spec";
 import type { FramingApproval } from "../generated/framing_approval";
 import type { FinalRecommendation } from "../generated/final_recommendation";
+import type { EffortHistory } from "../copy/effort";
 
 export interface CaseSummary {
   case_id: string;
@@ -122,6 +123,9 @@ export const api = {
     if (!resp.ok) throw await resp.json().catch(() => ({ error: "request_failed", detail: resp.statusText }));
     return resp.text();
   },
+
+  /** Measured wall-clock history per effort profile (SPEC-050). */
+  getEffortHistory: () => fetchJSON<EffortHistory>("/effort-history"),
 
   createCase: (prompt: string, effort: string = "default", slug?: string) =>
     fetchJSON<{ case_id: string; stage: string }>("/cases", {

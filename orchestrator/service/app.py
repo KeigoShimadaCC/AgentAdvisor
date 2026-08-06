@@ -12,6 +12,7 @@ exposed for ASGI servers that import a global.
 from __future__ import annotations
 
 import logging
+import math
 import os
 import re
 import threading
@@ -47,7 +48,11 @@ from orchestrator.control import (
 )
 from orchestrator.memory import MemoryStore, memory_root
 from orchestrator.monitoring import MonitoringStore, due_checks
-from orchestrator.service.caseview import build_case_view, needs_you_for_state
+from orchestrator.service.caseview import (
+    _read_audit_events,
+    build_case_view,
+    needs_you_for_state,
+)
 from orchestrator.service.events import replay_stream, sse_event_stream
 from orchestrator.state_machine import CaseStage, load_case_state
 from orchestrator.supervisor import CaseLocked as _CaseLocked  # noqa: F401 (re-export)
@@ -377,6 +382,79 @@ def create_app(
     return application
 
 
+def _percentile(values: list[float], fraction: float) -> float:
+    """Nearest-rank percentile.
+
+    Deliberately not an interpolating percentile: with the two or three runs a
+    real history starts with, interpolation invents a number between two
+    observations and presents it with the same authority as a measurement.
+    Nearest-rank always returns a duration some case actually took.
+    """
+    if not values:
+        raise ValueError("percentile of an empty sequence")
+    ordered = sorted(values)
+    rank = max(1, math.ceil(fraction * len(ordered)))
+    return ordered[min(rank, len(ordered)) - 1]
+
+
+def _case_wall_clock_s(case: Case) -> float | None:
+    """Elapsed seconds for a case, from the first audit event to the last."""
+    timestamps: list[datetime] = []
+    for event in _read_audit_events(case):
+        raw = event.get("ts")
+        if isinstance(raw, str):
+            try:
+                timestamps.append(datetime.fromisoformat(raw.replace("Z", "+00:00")))
+            except ValueError:
+                continue
+    if len(timestamps) < 2:
+        return None
+    return (max(timestamps) - min(timestamps)).total_seconds()
+
+
+def _effort_history(config: ServiceConfig) -> dict[str, Any]:
+    """Measured wall-clock durations per budget profile, from completed cases.
+
+    Only ``done`` cases count.  A case that is still running or that failed
+    partway through has a duration, but it is not a duration *of a completed
+    case*, and quoting it would understate what finishing costs.
+    """
+    root = config.cases_root
+    durations: dict[str, list[float]] = {}
+    if root.exists():
+        for entry in sorted(root.iterdir()):
+            if not entry.is_dir() or not (entry / "state.yaml").exists():
+                continue
+            try:
+                case = load_case(entry.name, cases_root=root)
+                state = load_case_state(case)
+                if state.stage is not CaseStage.DONE:
+                    continue
+                meta_path = case.root / "shared" / "control_meta.yaml"
+                meta = (
+                    yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
+                    if meta_path.exists()
+                    else {}
+                )
+                profile = str(meta.get("budget_profile") or "default")
+                elapsed = _case_wall_clock_s(case)
+            except Exception:  # noqa: BLE001 — one corrupt case must not hide the rest
+                continue
+            if elapsed is None or elapsed <= 0:
+                continue
+            durations.setdefault(profile, []).append(elapsed)
+
+    profiles = {
+        profile: {
+            "samples": len(values),
+            "p50_s": _percentile(values, 0.50),
+            "p90_s": _percentile(values, 0.90),
+        }
+        for profile, values in sorted(durations.items())
+    }
+    return {"profiles": profiles}
+
+
 def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
     is_replay = config.replay_dir is not None
 
@@ -650,6 +728,23 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
             raise _http_from_control(exc, case_id, config) from exc
         stage = _case_stage_value(case_id, config)
         return JSONResponse(content={"case_id": case_id, "stage": stage})
+
+    # ── GET /api/effort-history ──────────────────────────────────────────
+    #
+    # SPEC-050.  The effort chips promised "roughly 10-20 minutes" for a
+    # standard case; the first verified real case took 191 minutes and 1.58M
+    # tokens.  A product whose pitch is epistemic honesty cannot open with an
+    # estimate off by an order of magnitude, and the fix is not a better guess —
+    # it is to stop guessing.  This reports what runs actually took, per budget
+    # profile, and says how many runs that is drawn from so the client can tell
+    # a measurement from a rumour.
+    #
+    # A sibling read rather than part of ``/api/calibration``: calibration is
+    # the system's forecasting track record, and mixing wall-clock timing into
+    # it would make a single-purpose contract answer two questions.
+    @application.get("/api/effort-history")
+    async def get_effort_history() -> JSONResponse:
+        return JSONResponse(content=_effort_history(config))
 
     # ── GET /api/calibration ─────────────────────────────────────────────
     #

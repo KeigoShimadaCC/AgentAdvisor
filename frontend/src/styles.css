@@ -1847,3 +1847,60 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
 
 .objection-voice { font-weight: var(--weight-medium); cursor: help; }
 .signature-blocked { border-color: var(--state-critical); }
+
+/* ── Commissioning and checkpoints (SPEC-050) ─────────────────────────────── */
+
+.effort-history-note,
+.preference-blurb { font-size: var(--text-sm); color: var(--text-muted); }
+.effort-history-note { margin-top: var(--space-md); max-width: 60ch; }
+
+.commission-preferences { margin-top: var(--space-xl); }
+.preference-row { display: flex; flex-wrap: wrap; gap: var(--space-md); margin-top: var(--space-md); }
+.preference-chip {
+  flex: 1 1 18rem; text-align: left; font: inherit; cursor: pointer;
+  background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: var(--space-md) var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-3xs);
+}
+.preference-chip.selected { border-color: var(--accent); background: var(--accent-wash); }
+.preference-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.preference-label { font-weight: var(--weight-medium); }
+
+/* The scope sheet leads with one question. */
+.scope-lead { padding-top: 0; }
+.scope-consequence {
+  font-size: var(--text-md); color: var(--state-needs-you-text);
+  background: var(--state-needs-you-wash); border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-md);
+}
+.scope-adjust { margin: var(--space-xl) 0; }
+.scope-adjust-summary {
+  cursor: pointer; display: flex; flex-wrap: wrap; gap: var(--space-md);
+  align-items: baseline; padding: var(--space-sm) 0;
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.scope-adjust-label { font-weight: var(--weight-medium); }
+.scope-adjust-counts { font-size: var(--text-sm); color: var(--text-muted); }
+.scope-adjust[open] .scope-adjust-summary { margin-bottom: var(--space-lg); }
+
+/* Delivery leads with one sentence, not four instruments. */
+.honest-sentence {
+  font-size: var(--text-lg); line-height: var(--leading-snug);
+  max-width: 60ch; color: var(--text);
+}
+.uncertainty-disclosure > summary {
+  cursor: pointer; font-weight: var(--weight-medium);
+  padding: var(--space-sm) 0; border-top: 1px solid var(--border);
+}
+.uncertainty-disclosure[open] > summary { margin-bottom: var(--space-lg); }
+
+.send-back-confirm {
+  display: flex; flex-direction: column; gap: var(--space-sm); align-items: flex-start;
+  border: 1px solid var(--state-uncertain-border); background: var(--state-uncertain-wash);
+  border-radius: var(--radius-md); padding: var(--space-md); margin-top: var(--space-sm);
+}
+.send-back-cost { font-weight: var(--weight-medium); max-width: 52ch; }
+.tertiary-action {
+  background: none; border: none; color: var(--accent); cursor: pointer;
+  font: inherit; padding: 0; text-decoration: underline;
+}

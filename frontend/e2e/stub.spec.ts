@@ -166,3 +166,104 @@ modeDescribe("stub", "Stub mode — wrong-stage protection", () => {
     expect(resp.status).toBe(409);
   });
 });
+
+modeDescribe("stub", "Stub mode — disclosure must not change the record (SPEC-050)", () => {
+  /**
+   * The load-bearing property of the scope sheet's progressive disclosure.
+   *
+   * If signing immediately and signing after expanding "Adjust scope" produced
+   * different artifacts, the UI would have quietly introduced two classes of
+   * approval, and the audit trail would stop meaning one thing. Nobody would
+   * notice from reading the code — the two paths run the same handler — which
+   * is exactly why it is asserted against what lands on disk.
+   */
+  async function signScope(page: import("@playwright/test").Page, prompt: string, expand: boolean) {
+    const { data } = await apiPost<{ case_id: string }>(page, "/cases", {
+      prompt,
+      effort: "default",
+    });
+    const caseId = data!.case_id;
+    await waitForStage(page, caseId, "awaiting_framing_approval", 30_000);
+
+    await page.goto(`/cases/${caseId}/scope`);
+    await page.locator(".scope-lead").waitFor({ state: "visible" });
+
+    if (expand) {
+      await page.locator(".scope-adjust > summary").click();
+      await expect(page.locator(".scope-adjust")).toHaveAttribute("open", "");
+      // Every collapsed section is now on screen and has been read.
+      await expect(page.locator(".options-list")).toBeVisible();
+      await expect(page.locator(".outline-list")).toBeVisible();
+    } else {
+      await expect(page.locator(".scope-adjust")).not.toHaveAttribute("open", "");
+    }
+
+    // Ground rules are outside the disclosure precisely because confirming them
+    // is required, so both paths do exactly this and nothing more.
+    const boxes = page.locator(".ground-rule-confirm input[type=checkbox]");
+    const count = await boxes.count();
+    for (let i = 0; i < count; i++) await boxes.nth(i).check();
+
+    await page.getByRole("button", { name: /Sign|Approve/ }).first().click();
+
+    // Poll for the artifact rather than for a stage: the stub pipeline runs
+    // fast enough that it can pass through several stages before the first
+    // poll, and waiting on one that has already gone by costs a full timeout
+    // for no signal.
+    const deadline = Date.now() + 30_000;
+    let resp = await apiGet<{ content: string }>(
+      page,
+      `/_test/case-file/${caseId}?path=shared/framing_approval.yaml`,
+    );
+    while (resp.status !== 200 && Date.now() < deadline) {
+      await page.waitForTimeout(250);
+      resp = await apiGet<{ content: string }>(
+        page,
+        `/_test/case-file/${caseId}?path=shared/framing_approval.yaml`,
+      );
+    }
+    expect(resp.status, "framing_approval.yaml was not written").toBe(200);
+    return { caseId, content: resp.data!.content };
+  }
+
+  /** Strip what legitimately differs between two runs: identity and clock. */
+  function normalise(content: string, caseId: string): string {
+    return content
+      .split("\n")
+      .filter((line) => !/^(approved_at|case_id|artifact_id|schema_version):/.test(line))
+      .join("\n")
+      .replaceAll(caseId, "<case>")
+      .replace(/\d{4}-\d{2}-\d{2}T[\d:.]+Z?/g, "<ts>");
+  }
+
+  test("signing fast and signing after expanding write the same approval", async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.goto("/");
+
+    const prompt = "Should I invest $50k in a single semiconductor stock or a broad ETF?";
+    const fast = await signScope(page, prompt, false);
+    const full = await signScope(page, prompt, true);
+
+    const normalised = normalise(fast.content, fast.caseId);
+
+    // Guard against a vacuous pass. `framing_approval.yaml` is a short record —
+    // decision, who, edits, clarification answers — so a length check alone is
+    // weak. Name the three fields that would actually move if opening a
+    // disclosure leaked into the signed record, and assert they are present
+    // before comparing them.
+    for (const field of ["decision:", "approved_by:", "edits:", "clarification_answers:"]) {
+      expect(normalised, `normalise() removed ${field} — the comparison would be vacuous`).toContain(
+        field,
+      );
+    }
+    // A clean sign records no edits by either path; an expanded sign that
+    // silently captured field state would show them here.
+    expect(normalised).toContain("edits: {}");
+    expect(normalised).toContain("clarification_answers: {}");
+
+    expect(
+      normalised,
+      "expanding the disclosure changed the signed record",
+    ).toBe(normalise(full.content, full.caseId));
+  });
+});

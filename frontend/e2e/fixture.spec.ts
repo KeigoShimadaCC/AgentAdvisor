@@ -104,7 +104,10 @@ modeDescribe("fixture", "Fixture mode — delivered brief journey", () => {
   test("stability sentinel renders 'not assessed', never a bare number", async ({ page }) => {
     await page.goto(`/cases/${FIXTURE_COMPLETED}/delivery`);
 
-    // The stability widget is in the uncertainty widgets section
+    // SPEC-050 moved the four encodings one click down, under "How sure is
+    // this?", so the answer is not read through four instruments. They are
+    // unchanged in substance — including this sentinel.
+    await page.locator(".uncertainty-disclosure > summary").click();
     const stabilityWidget = page.locator(".uncertainty-widget", { hasText: "Stability" });
     await expect(stabilityWidget).toBeVisible();
 
@@ -177,17 +180,20 @@ modeDescribe("fixture", "Fixture mode — scope checkpoint (parked case)", () =>
   test("scope sheet renders for the parked case", async ({ page }) => {
     await page.goto(`/cases/${FIXTURE_PARKED}/scope`);
 
-    // Restatement section
+    // SPEC-050: the sheet leads with one question and one consequence line.
     await expect(page.locator("h2", { hasText: "Here is what I understood" })).toBeVisible();
+    await expect(page.locator(".scope-consequence")).toBeVisible();
 
-    // Options section
-    await expect(page.locator("h2", { hasText: "Options on the table" })).toBeVisible();
-
-    // Ground rules section
+    // Ground rules stay outside the disclosure: confirming them is required to
+    // sign, and required work must not hide behind a control labelled "adjust".
     await expect(page.locator("h2", { hasText: "Ground rules" })).toBeVisible();
-
-    // Signature section
     await expect(page.locator("h2", { hasText: "Your signature" })).toBeVisible();
+
+    // Options are one click down, and the summary counts what is in there.
+    await expect(page.locator("h2", { hasText: "Options on the table" })).toBeHidden();
+    await expect(page.locator(".scope-adjust-counts")).toContainText(/option/);
+    await page.locator(".scope-adjust > summary").click();
+    await expect(page.locator("h2", { hasText: "Options on the table" })).toBeVisible();
   });
 
   test("terminology guard on the scope sheet", async ({ page }) => {
