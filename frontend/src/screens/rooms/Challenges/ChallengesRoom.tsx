@@ -3,6 +3,7 @@ import { HonestEmpty } from "../../shared/HonestEmpty";
 import { CitationLink } from "../../inspector/CitationLink";
 import type { CaseView, ObjectionView } from "../../../generated/case_view";
 import { voiceFor, roleVoice } from "../../../copy/voices";
+import { ReactionControls } from "../../../engagement/ReactionControls";
 import {
   objectionStatusLabel,
   levelLabel,
@@ -50,7 +51,7 @@ function ChallengesBody({ view }: { view: CaseView }) {
           <h3>Objections</h3>
           <ul className="objection-list">
             {sortedObjections.map((o) => (
-              <ObjectionRow key={o.objection_id} objection={o} />
+              <ObjectionRow key={o.objection_id} objection={o} caseId={view.case_id} />
             ))}
           </ul>
         </section>
@@ -171,7 +172,7 @@ function ChallengesBody({ view }: { view: CaseView }) {
   );
 }
 
-function ObjectionRow({ objection }: { objection: ObjectionView }) {
+function ObjectionRow({ objection, caseId }: { objection: ObjectionView; caseId: string }) {
   return (
     <li className={`objection-row objection-status-${objection.resolution_status}`}>
       <div className="objection-row-head">
@@ -189,6 +190,16 @@ function ObjectionRow({ objection }: { objection: ObjectionView }) {
       </div>
       <p className="objection-claim">{objection.claim}</p>
       <p className="objection-reasoning">{objection.reasoning}</p>
+      {/* Only "this matters": an objection is already a challenge, so marking
+          it wrong would be arguing with the Challenger on the Challenger's
+          behalf. What a reader adds is weight. */}
+      <ReactionControls
+        caseId={caseId}
+        targetId={objection.objection_id}
+        targetKind="objection"
+        label={objection.claim}
+        kinds={["matters"]}
+      />
     </li>
   );
 }

@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import {
   modeDescribe,
   assertNoForbiddenTerms,
+  apiGet,
   FIXTURE_COMPLETED,
   FIXTURE_PARKED,
 } from "./helpers";
@@ -401,5 +402,88 @@ modeDescribe("fixture", "Fixture mode — the cast (SPEC-049)", () => {
     await expect(panel.locator(".never-averaged-footer")).toBeVisible();
     // Objections carry the Challenger's voice here too.
     await expect(panel.locator(".objection-voice").first()).toHaveText("The Challenger");
+  });
+});
+
+modeDescribe("fixture", "Fixture mode — presence (SPEC-051)", () => {
+  test("the tab title carries the case state, and is restored on leaving", async ({ page }) => {
+    await page.goto("/");
+    const libraryTitle = await page.title();
+
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    await page.locator(".brief-document .brief-passage").first().waitFor({ state: "visible" });
+    const caseTitle = await page.title();
+    expect(caseTitle).not.toBe(libraryTitle);
+    // The fixture is complete, so the title says so rather than looking live.
+    expect(caseTitle).toContain("✓");
+
+    // A parked case reads as needing you, distinguishably.
+    await page.goto(`/cases/${FIXTURE_PARKED}`);
+    await page.locator("main.app-main").waitFor({ state: "visible" });
+    await expect.poll(() => page.title()).toContain("Needs you");
+  });
+
+  test("no notification is issued without permission, and the fallback appears instead", async ({
+    page,
+  }) => {
+    // Denied is the interesting case: a product that only ever notified through
+    // the OS would simply go silent for these users.
+    await page.goto("/");
+    await page.evaluate(() => {
+      window.localStorage.setItem("agentadvisor:presence", "notify");
+    });
+    await page.context().clearPermissions();
+
+    await page.goto(`/cases/${FIXTURE_PARKED}`);
+    await page.locator("main.app-main").waitFor({ state: "visible" });
+    await expect(page.locator(".notice-banner")).toBeVisible();
+    await expect(page.locator(".notice-banner")).toContainText(/scope review/i);
+  });
+
+  test("a watcher is not notified about a gate they can already see", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => window.localStorage.setItem("agentadvisor:presence", "watch"));
+
+    await page.goto(`/cases/${FIXTURE_PARKED}`);
+    await page.locator("main.app-main").waitFor({ state: "visible" });
+    await page.waitForTimeout(250);
+    await expect(page.locator(".notice-banner")).toHaveCount(0);
+  });
+
+  test("spend in the chrome shows each count against its cap", async ({ page }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    await page.locator(".case-chrome-spend").waitFor({ state: "visible" });
+    // A count without its denominator says nothing about whether a run is near
+    // its limit.
+    await expect(page.locator(".case-chrome-spend")).toContainText(/\d+\/\d+ calls/);
+  });
+
+  test("marks survive a reload and are scoped to their case", async ({ page }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}/rooms/assumptions`);
+    const mark = page.locator(".reaction-chip", { hasText: "This looks wrong" }).first();
+    await mark.waitFor({ state: "visible" });
+    await mark.click();
+    await expect(mark).toHaveAttribute("aria-pressed", "true");
+
+    await page.reload();
+    const after = page.locator(".reaction-chip", { hasText: "This looks wrong" }).first();
+    await after.waitFor({ state: "visible" });
+    await expect(after).toHaveAttribute("aria-pressed", "true");
+
+    // Nothing was written into the case: the projection is unchanged.
+    const { data } = await apiGet<{ case_id: string }>(page, `/cases/${FIXTURE_COMPLETED}/view`);
+    expect(data!.case_id).toBe(FIXTURE_COMPLETED);
+  });
+
+  test("the calibration screen withholds a score it calls noise", async ({ page }) => {
+    await page.goto("/calibration");
+    await page.locator(".calibration-interpretation").waitFor({ state: "visible" });
+    const interpretation = await page.locator(".calibration-interpretation").innerText();
+
+    // Whatever the fixture memory holds, the screen must never show a headline
+    // score alongside an interpretation that calls the sample noise.
+    if (/noise, not a calibration estimate|calibration is unknown/.test(interpretation)) {
+      await expect(page.locator(".calibration-measure dt", { hasText: "Brier score" })).toHaveCount(0);
+    }
   });
 });

@@ -18,6 +18,11 @@ function formatElapsed(seconds: number | null | undefined): string | null {
   return `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
+/** Within a fifth of the cap: close enough that the run may stop for it. */
+function nearCap(used: number, cap: number): boolean {
+  return cap > 0 && used >= cap * 0.8;
+}
+
 const CONNECTION_COPY: Record<ConnectionState, string | null> = {
   connecting: null,
   connected: null,
@@ -42,6 +47,10 @@ export function CaseChrome({ view, connection, altitude, onAltitudeChange }: Cas
   const elapsed = formatElapsed(view.effort?.wall_clock_s);
   const invocations = view.effort?.invocation_attempts ?? 0;
   const tokens = view.effort?.total_tokens ?? 0;
+  // SPEC-051: a count without its cap says nothing about whether a run is near
+  // its limit. 31 invocations is unremarkable at a cap of 200 and alarming at
+  // a cap of 35, and the user cannot tell which without the denominator.
+  const invocationCap = view.effort?.budget_caps?.max_agent_invocations ?? 0;
   const connectionNote = connection ? CONNECTION_COPY[connection] : null;
 
   return (
@@ -70,7 +79,11 @@ export function CaseChrome({ view, connection, altitude, onAltitudeChange }: Cas
             cost 1.5M tokens; that belongs where the user can see it. */}
         <p className="case-chrome-spend" aria-label="Effort so far">
           {elapsed && <span>{elapsed}</span>}
-          {invocations > 0 && <span>{invocations} calls</span>}
+          {invocations > 0 && (
+            <span className={nearCap(invocations, invocationCap) ? "spend-near-cap" : undefined}>
+              {invocationCap > 0 ? `${invocations}/${invocationCap} calls` : `${invocations} calls`}
+            </span>
+          )}
           {tokens > 0 && <span>{(tokens / 1000).toFixed(0)}k tokens</span>}
         </p>
 

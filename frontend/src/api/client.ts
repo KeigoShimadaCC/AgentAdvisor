@@ -5,6 +5,23 @@ import type { FramingApproval } from "../generated/framing_approval";
 import type { FinalRecommendation } from "../generated/final_recommendation";
 import type { EffortHistory } from "../copy/effort";
 
+/** SPEC-025's CalibrationSummary, served by SPEC-046's `GET /api/calibration`. */
+export interface CalibrationSummary {
+  sample_size: number;
+  brier_score: number | null;
+  mean_forecast: number | null;
+  mean_realized: number | null;
+  interpretation: string;
+}
+
+export interface OutcomeBody {
+  summary: string;
+  followed: boolean;
+  realized: boolean;
+  forecast_name?: string | null;
+  forecast_probability?: number | null;
+}
+
 export interface CaseSummary {
   case_id: string;
   stage: string;
@@ -126,6 +143,16 @@ export const api = {
 
   /** Measured wall-clock history per effort profile (SPEC-050). */
   getEffortHistory: () => fetchJSON<EffortHistory>("/effort-history"),
+
+  /** The system's own forecasting track record (SPEC-051 renders SPEC-046's read). */
+  getCalibration: () => fetchJSON<CalibrationSummary>("/calibration"),
+
+  /** Record what actually happened for a decided case. */
+  recordOutcome: (caseId: string, body: OutcomeBody) =>
+    fetchJSON<{ case_id: string; recorded: boolean }>(
+      `/cases/${encodeURIComponent(caseId)}/outcome`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
 
   createCase: (prompt: string, effort: string = "default", slug?: string) =>
     fetchJSON<{ case_id: string; stage: string }>("/cases", {

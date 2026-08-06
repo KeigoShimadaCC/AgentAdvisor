@@ -2,11 +2,11 @@
 id: SPEC-051
 title: Presence and engagement — notifications, the away digest, reactions, calibration
 phase: 9
-status: draft
+status: implemented
 depends_on: [SPEC-046, SPEC-047, SPEC-048]
 parallel_with: [SPEC-052]
 north_star_refs: ["13", "15"]
-last_updated: 2026-08-05
+last_updated: 2026-08-06
 ---
 
 # SPEC-051 — Presence and engagement: notifications, the away digest, reactions, calibration
@@ -84,29 +84,41 @@ module was written to protect.
 
 ## Deliverables
 
-- [ ] `frontend/src/presence/title.ts`, `notify.ts` (permission, two classes, fallback banner)
-- [ ] `frontend/src/presence/AwayDigest.tsx` + its reducer-based gap computation
-- [ ] Live spend in the case chrome
-- [ ] `frontend/src/engagement/reactions.ts` + assumption/objection controls + revision pre-fill
-- [ ] `frontend/src/screens/Calibration/Calibration.tsx` + outcome prompt
-- [ ] Tests: `digest.test.ts`, `notify.test.ts`, `reactions.test.tsx`, `Calibration.test.tsx`
+- [x] `frontend/src/presence/title.ts`, `notify.ts`, `useCaseNotices.ts`, `NoticeBanner.tsx`
+- [x] `frontend/src/presence/AwayDigest.tsx` + `digest.ts`, the gap computation
+- [x] Live spend against its caps in the case chrome
+- [x] `frontend/src/engagement/reactions.ts` + `ReactionControls.tsx` + revision pre-fill
+- [x] `frontend/src/screens/Calibration/Calibration.tsx` + `OutcomePrompt.tsx`
+- [x] Tests: `presence.test.tsx` (26), `reactions.test.tsx` (12), `Calibration.test.tsx` (9)
+
+Deviations, all deliberate:
+
+- The tests are three files rather than four: `digest` and `notify` are both presence and share the
+  same fixtures, so splitting them would have duplicated the event builder for no isolation.
+- `useCaseNotices.ts` and `NoticeBanner.tsx` were not named in the sheet. The scope called for
+  permission handling and a fallback banner without saying where they live; a hook that fires each
+  notice once per state is the part that keeps SPEC-047's refetch-on-every-event from re-notifying
+  for the same gate on every projection update.
+- The digest reads the persisted cursor **once, on mount**. Reading it later would always return
+  "now", because the stream advances it — the bug that would have made this component silently
+  useless rather than visibly broken.
 
 ## Acceptance criteria
 
-- [ ] The document title reflects phase while running and a distinct gate state on arrival, and is
+- [x] The document title reflects phase while running and a distinct gate state on arrival, and is
       restored when the case surface unmounts.
-- [ ] No notification is issued without granted permission; with permission denied the in-app
+- [x] No notification is issued without granted permission; with permission denied the in-app
       fallback banner appears; with the watch preference selected, gate notifications are suppressed.
-- [ ] The away digest computed over a cursor-gap fixture matches expected counts for evidence,
+- [x] The away digest computed over a cursor-gap fixture matches expected counts for evidence,
       thesis changes, objections, gates and loops; with an empty gap it is not rendered at all.
-- [ ] Live spend in the chrome matches `EffortView` for invocations, tokens and wall clock, and
+- [x] Live spend in the chrome matches `EffortView` for invocations, tokens and wall clock, and
       shows each against its cap.
-- [ ] Reactions survive a reload, are scoped per case, and appear in the delivery revision note
+- [x] Reactions survive a reload, are scoped per case, and appear in the delivery revision note
       pre-fill; they write nothing into the case directory.
-- [ ] With fewer than five recorded outcomes the calibration screen renders the module's
+- [x] With fewer than five recorded outcomes the calibration screen renders the module's
       interpretation verbatim and shows no headline score as though it were meaningful; the case
       view never reads calibration.
-- [ ] Axe, visual-regression and terminology-guard passes for all new surfaces;
+- [x] Axe, visual-regression and terminology-guard passes for all new surfaces;
       `make frontend-check`, `make e2e-frontend` and `make check` green;
       `tests/test_pipeline_invariants.py` passes.
 
@@ -124,10 +136,69 @@ make check
 
 ## Verification results
 
-Not yet executed.
+| Command | Result |
+| --- | --- |
+| `cd frontend && npm test` | 27 files, **310 passed** (was 263; +47 for presence, reactions, calibration) |
+| `make frontend-check` | green |
+| `make frontend-build` | green — 366.98 kB JS |
+| `E2E_MODE=fixture …` (four browser projects) | **136 passed** in 4m12s |
+| `E2E_MODE=replay …` | **11 passed** — including the digest over a real cursor gap |
+| `E2E_MODE=stub …` | **6 passed** |
+| `uv run pytest tests/test_pipeline_invariants.py` | **7 passed** — no engine change |
+| `make check` | **946 passed**, 18 deselected |
+
+### The digest is verified against a real gap, not a synthetic one
+
+Unit tests fix the counting rules; replay mode is where the *gap* is real. The audit stream is
+delivered against a clock, so a cursor written before the run and read after it spans genuine
+events. Two replay tests cover both directions: a reader arriving at cursor 0 sees a summary, and a
+reader whose cursor is past the head sees nothing at all.
+
+### The bug the design avoided
+
+The persisted cursor is read **once, on mount**, into state. Read on every render it would always
+return "now" — the stream advances it continuously — and the digest would silently render nothing
+forever. That failure mode is invisible: the component would look like it was working correctly on
+a case where nothing had happened. It is the reason the cursor read is a lazy `useState` initialiser
+rather than a call in the render body.
+
+### What "no notification without permission" is actually asserted against
+
+Not a mock of the whole delivery path, which would assert the test's own structure. `notify()`
+returns `"sent" | "suppressed" | "fallback"`, so the tests assert the *decision*:
+
+- permission denied → `"fallback"`, and a subscriber receives the notice;
+- permission granted → `"sent"`, with the constructed notification captured;
+- watch preference + a gate → `"suppressed"`, and nothing is constructed;
+- watch preference + a **failure** → `"sent"` anyway, because a stopped case is not visible
+  progress and a watcher staring at a frozen screen is exactly who needs telling;
+- no `Notification` in the browser at all → `"unsupported"`, not a thrown error.
+
+The e2e test then exercises the real path with permissions cleared, and asserts the in-app banner
+appears rather than the page going silent.
+
+### Two things this spec found already broken
+
+1. **`POST /api/cases/{id}/outcome` had exactly one caller: a script.** The endpoint has existed
+   since SPEC-042 and the only way to feed the calibration record was from a terminal — so the loop
+   that makes the entire Brier apparatus mean anything was closed to the person who made the
+   decision. `OutcomePrompt` renders on any terminal case.
+2. **Spend had no denominator.** The chrome showed "31 calls", which is unremarkable at a cap of 200
+   and alarming at a cap of 35, and the user could not tell which. It now reads `31/200 calls`, and
+   colours when within a fifth of the cap.
+
+### Deferred, with its reason
+
+Showing the issue tree at the scope gate stays out of scope, as the sheet said: the tree is produced
+by `structuring`/`planning`, which run *after* `awaiting_framing_approval`. Rendering it there would
+require reordering stages, and the phase's constraint is that the backend pipeline flow does not
+change. `tests/test_pipeline_invariants.py` still passes, which is what makes that claim checkable
+rather than asserted.
 
 ## Open questions
 
-- Notification permission timing. SPEC-035 specified "first run start"; the UX review argued the
-  same moment for the same reason. Confirm no earlier prompt is wanted, since an unexplained
-  permission dialog on first load is the most common way this feature is refused permanently.
+- **Notification permission timing** — resolved as specified, at the moment a case is first
+  observed actually running (not terminal, not at a gate), never on load. `useCaseNotices` guards it
+  with a ref so it is asked once per mounted case surface. The reasoning that settles it: a refusal
+  is permanent from inside the page, so the only defensible moment to ask is one where the user has
+  just started something long-running and the request explains itself.

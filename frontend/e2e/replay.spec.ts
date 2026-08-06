@@ -175,3 +175,47 @@ modeDescribe("replay", "Replay mode — narrator", () => {
     await expect(page.locator(".case-map-phase-current")).toHaveCount(1);
   });
 });
+
+modeDescribe("replay", "Replay mode — the away digest over a real cursor gap (SPEC-051)", () => {
+  /**
+   * The digest's whole claim is that it summarises the gap between where a
+   * reader was and where the case is. Replay mode is the only place that gap is
+   * real: the audit stream is delivered against a clock, so a cursor written
+   * before the run and read after it spans genuine events.
+   */
+  test("summarises what happened between a stored cursor and the head", async ({ page }) => {
+    await page.goto("/");
+    // Arrive as a reader who had seen nothing.
+    await page.evaluate((caseId) => {
+      window.localStorage.setItem(`agentadvisor:cursor:${caseId}`, "0");
+    }, FIXTURE_COMPLETED);
+
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    const digest = page.locator(".away-digest");
+    await digest.waitFor({ state: "visible" });
+
+    const text = await digest.innerText();
+    // Counts come from the reducer, so assert on the shape rather than on
+    // fixture-specific totals that would make this a change-detector.
+    expect(text).toMatch(/evidence|objection|assumption|stage/i);
+    expect(text).not.toMatch(/\b0 (pieces|objections|assumptions|stages)\b/);
+
+    await page.getByRole("button", { name: "Dismiss" }).click();
+    await expect(digest).toHaveCount(0);
+  });
+
+  test("shows no digest to a reader already at the head", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate((caseId) => {
+      // A cursor past every event: there is nothing to catch up on.
+      window.localStorage.setItem(`agentadvisor:cursor:${caseId}`, "999999");
+    }, FIXTURE_COMPLETED);
+
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    await page.locator("main.app-main").waitFor({ state: "visible" });
+    await page.waitForTimeout(500);
+    // "Nothing happened while you were away" is a line that trains people to
+    // ignore the component.
+    await expect(page.locator(".away-digest")).toHaveCount(0);
+  });
+});

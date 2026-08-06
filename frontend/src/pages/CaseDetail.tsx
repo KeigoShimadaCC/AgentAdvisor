@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCaseView } from "../screens/shared/useCaseView";
+import { readStoredCursor } from "../api/sse";
 import { CaseDataContext } from "../screens/shared/caseContext";
 import { InspectorHost } from "../screens/inspector/InspectorHost";
 import { CitationText } from "../screens/inspector/CitationText";
@@ -18,6 +19,10 @@ import { AppShell } from "../screens/shell/AppShell";
 import { RoomPanel, isRoomKey } from "../screens/shell/RoomPanel";
 import { RoomRail } from "../screens/shell/RoomRail";
 import { Skeleton } from "../screens/shared/Skeleton";
+import { AwayDigest } from "../presence/AwayDigest";
+import { useCaseTitle } from "../presence/title";
+import { useCaseNotices } from "../presence/useCaseNotices";
+import { OutcomePrompt } from "../screens/Calibration/OutcomePrompt";
 import { showsAt } from "../screens/shell/altitude";
 import { BRIEF_SECTION_TITLES, EMPTY_TRUTHS, ROOMS } from "../copy/terms";
 import { provenanceVoice } from "../copy/voices";
@@ -46,6 +51,14 @@ export function CaseDetail() {
   const navigate = useNavigate();
   const { view, events, narration, connection, loading, error } = useCaseView(caseId);
   const [altitude, setAltitude] = useAltitude();
+
+  // SPEC-051. The cursor is read once, on mount, before the stream advances it —
+  // it is "where this reader was", and reading it later would always be "now".
+  const [arrivalCursor] = useState<number | null>(() =>
+    caseId ? readStoredCursor(caseId) : null,
+  );
+  useCaseTitle(view);
+  useCaseNotices(view);
 
   const settleKeys = useSettledSections(view?.brief_sections);
   const caseData = useMemo(() => (view ? { view, events } : null), [view, events]);
@@ -120,6 +133,7 @@ export function CaseDetail() {
               </section>
             )}
 
+            <AwayDigest events={events} sinceCursor={arrivalCursor} />
             <FailurePath view={view} />
             {/* Disagreement sits above the answer, not in a room: a blocked
                 signature or a Director split changes how the recommendation
@@ -162,6 +176,12 @@ export function CaseDetail() {
             )}
 
             {showsAt(altitude, "method") && <MarginNarration events={events} />}
+
+            {/* The outcome loop closes here (SPEC-051). Until now the only
+                caller of POST /outcome was a script, so the record that makes
+                the calibration score mean anything could only be fed from a
+                terminal. */}
+            {view.is_terminal && caseId && <OutcomePrompt caseId={caseId} />}
           </div>
         </AppShell>
       </InspectorHost>

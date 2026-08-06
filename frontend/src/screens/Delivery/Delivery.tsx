@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { CaseCrumb } from "../shell/CaseCrumb";
 import { Skeleton } from "../shared/Skeleton";
 import { useToast } from "../shared/Toast";
+import { readReactions, revisionNoteFrom, clearReactions } from "../../engagement/reactions";
 import { useCaseView } from "../shared/useCaseView";
 import { InspectorHost } from "../inspector/InspectorHost";
 import { CitationLink } from "../inspector/CitationLink";
@@ -35,7 +36,12 @@ export function Delivery() {
   const [finalLoading, setFinalLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [signed, setSigned] = useState(false);
-  const [revisionNote, setRevisionNote] = useState("");
+  // SPEC-051: three hours of passive reading accumulate into a position. What
+  // the reader marked as wrong or as under-weighted is what the note should
+  // open with, rather than an empty box at the one moment it matters.
+  const [revisionNote, setRevisionNote] = useState(() =>
+    caseId ? revisionNoteFrom(readReactions(caseId)) : "",
+  );
   const [revisionSent, setRevisionSent] = useState(false);
   const [confirmingSendBack, setConfirmingSendBack] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -90,6 +96,9 @@ export function Delivery() {
     try {
       await api.requestFinalRevision(caseId, revisionNote.trim());
       setRevisionSent(true);
+      // Spent: the marks have been said, and re-offering them on the next pass
+      // would put stale objections in a fresh note.
+      clearReactions(caseId);
       toast.show("Sent back with your note — synthesis will re-run.", "success");
     } catch (e) {
       const detail =

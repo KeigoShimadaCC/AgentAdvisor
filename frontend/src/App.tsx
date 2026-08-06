@@ -7,6 +7,8 @@ import { SignedRecord } from "./screens/ScopeCheckpoint/SignedRecord";
 import { Delivery } from "./screens/Delivery/Delivery";
 import { InspectorPage } from "./screens/inspector/InspectorPage";
 import { ToastHost } from "./screens/shared/Toast";
+import { Calibration } from "./screens/Calibration/Calibration";
+import { NoticeBanner } from "./presence/NoticeBanner";
 
 function NotFound() {
   return (
@@ -29,12 +31,15 @@ export function App() {
         <nav className="app-nav">
           <Link to="/" className="app-nav-link">Cases</Link>
           <Link to="/new" className="app-nav-link">New decision</Link>
+          <Link to="/calibration" className="app-nav-link">Track record</Link>
         </nav>
       </header>
+      <NoticeBanner />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<CaseLibrary />} />
           <Route path="/new" element={<NewDecision />} />
+          <Route path="/calibration" element={<Calibration />} />
           {/* One case surface (SPEC-048). `/brief` and the six room deep links
               were separate pages; they now resolve here, with rooms opening in
               the context panel, so every previously valid URL still works. */}
