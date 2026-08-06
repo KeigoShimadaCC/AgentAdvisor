@@ -10,6 +10,7 @@ from orchestrator.budget import (
     BudgetConfig,
     BudgetKind,
     BudgetLedger,
+    ModelTier,
     StopDecision,
     StopEvaluator,
     StopEvaluatorInputs,
@@ -236,3 +237,90 @@ def test_wall_clock_stop_uses_injected_clock() -> None:
 
     assert stop_decision.action == "stop"
     assert stop_decision.reasons == (StopReason.USER_DEADLINE_OR_DEPTH_LIMIT_REACHED,)
+
+
+# ── The high-capability ceiling can actually fire ────────────────────────────
+#
+# North star Section 13 caps "maximum high-capability model calls".  Counting only
+# frontier models left the cap unable to fire on any shipped configuration:
+# cursor runs every role on `low` models and droid on `medium`, so nothing ever
+# mapped to `high` and the counter sat at zero while seven roles declared
+# `model_tier: high`.  A ceiling enforced by a counter that cannot increment is
+# not a ceiling.
+
+
+def _tiered_ledger(**config: Any) -> tuple[CaseState, BudgetLedger]:
+    state = _state()
+    ledger = BudgetLedger(
+        state=state,
+        config=BudgetConfig(**config),
+        model_tier_map={"model-high": "high", "model-medium": "medium", "model-low": "low"},
+    )
+    return state, ledger
+
+
+def test_frontier_model_still_counts_against_the_ceiling() -> None:
+    """The original semantics survive, so a future frontier config stays correct."""
+
+    _, ledger = _tiered_ledger(max_agent_invocations=10, max_high_tier_calls=10)
+
+    assert ledger.counts_against_high_tier("model-high")
+    assert ledger.counts_against_high_tier("model-high", role_tier="low")
+
+
+def test_escalating_a_high_tier_role_counts_even_on_a_medium_model() -> None:
+    """The case the shipped config actually produces."""
+
+    _, ledger = _tiered_ledger(max_agent_invocations=10, max_high_tier_calls=10)
+
+    assert ledger.counts_against_high_tier("model-medium", role_tier="high")
+    assert ledger.counts_against_high_tier("model-low", role_tier=ModelTier.HIGH)
+
+
+def test_escalating_a_lower_tier_role_does_not_count() -> None:
+    _, ledger = _tiered_ledger(max_agent_invocations=10, max_high_tier_calls=10)
+
+    assert not ledger.counts_against_high_tier("model-medium", role_tier="medium")
+    assert not ledger.counts_against_high_tier("model-low", role_tier="low")
+    assert not ledger.counts_against_high_tier("model-medium")
+
+
+def test_the_ceiling_refuses_once_reached() -> None:
+    state, ledger = _tiered_ledger(max_agent_invocations=10, max_high_tier_calls=2)
+
+    assert ledger.try_consume(BudgetKind.HIGH_TIER_CALLS.value)
+    assert ledger.try_consume(BudgetKind.HIGH_TIER_CALLS.value)
+    assert not ledger.try_consume(BudgetKind.HIGH_TIER_CALLS.value)
+    assert state.budget_counters[BudgetKind.HIGH_TIER_CALLS.value] == 2
+
+
+def test_shipped_roles_reach_the_ceiling_through_their_declared_tier() -> None:
+    """The regression guard: no role's model maps to `high` on either backend.
+
+    If this stops being true the cap still works — `counts_against_high_tier`
+    returns True on the model alone — but the reason the role-tier arm exists
+    would have gone away, and that is worth noticing rather than assuming.
+    """
+
+    from orchestrator.artifacts import TaskRole
+    from orchestrator.pipeline import _DEFAULT_MODEL_TIER_MAP
+    from orchestrator.roles_config import load_role_config, models_for
+
+    high_tier_roles = []
+    for role in TaskRole:
+        try:
+            config = load_role_config(role)
+        except Exception:
+            continue
+        if config.model_tier == "high":
+            high_tier_roles.append(config)
+
+    assert high_tier_roles, "expected at least one role to declare model_tier: high"
+
+    for config in high_tier_roles:
+        for backend in ("cursor", "droid"):
+            escalation = models_for(config, backend).escalation_model
+            assert _DEFAULT_MODEL_TIER_MAP.get(escalation) != "high", (
+                f"{config.stem} on {backend} now escalates to a frontier model "
+                f"({escalation}); the model-based arm covers it and this guard is stale."
+            )

@@ -14,6 +14,7 @@ from orchestrator.artifacts import (
     EvidenceRecord,
     FinalRecommendation,
     ObjectionRecord,
+    PreliminaryRecommendation,
     ReviewDefectType,
     ReviewOutcome,
     ReviewReport,
@@ -37,6 +38,7 @@ from orchestrator.invoke_role import (
     register_cross_field_validation_hook,
 )
 from orchestrator.pipeline import SMALL_BUDGET
+from orchestrator.projection import project
 from orchestrator.roles_config import PermissionProfile, RoleConfig, family, load_role_config
 
 
@@ -501,3 +503,91 @@ def test_handle_review_does_not_crash_on_dangling_citations(
         for line in (case.root / "audit.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert any(event.event_type == "render_skipped" for event in audit_events)
+
+
+# ── The synthesizer's must-cite inputs survive the projection budget ─────────
+#
+# SPEC-020's real case failed here.  The synthesizer stated in its own output
+# that the preliminary recommendation, objection resolutions and pre-mortem
+# indicators "were truncated out of the inputs available to this synthesis",
+# and the review then blocked twice on uncited_claim and
+# undisclosed_open_objection.  A synthesizer cannot cite what it never
+# received, so that gate failed structurally rather than for model reasons.
+# The projection budget fills greedily in include order, and evidence records
+# sit ahead of all three.
+
+
+_SYNTHESIS_MUST_CITE = (
+    "decision_spec",
+    "artifact_index",
+    "objections",
+    "preliminary_recommendation",
+    "premortem_report",
+    "review_report",
+)
+
+
+def test_synthesizer_config_requires_every_must_cite_input() -> None:
+    config = load_role_config("synthesizer")
+
+    for key in _SYNTHESIS_MUST_CITE:
+        assert key in config.projection_include
+        assert key in config.projection_required, (
+            f"'{key}' is an input the synthesis output is checked against, so the projection "
+            "character budget must not be able to drop it."
+        )
+
+
+def test_synthesizer_must_cite_inputs_survive_a_budget_evidence_would_consume(
+    tmp_path: Path,
+) -> None:
+    """The guarantee end to end, through the shipped config rather than a literal list."""
+
+    config = load_role_config("synthesizer")
+    case = create_case("synthesis-budget-guard", cases_root=tmp_path)
+    _seed_case_inputs(case, _fixture_root())
+    # _seed_case_inputs writes the preliminary recommendation to outputs/, but the
+    # case store's canonical path for it is shared/ — so the projection cannot see
+    # the seeded copy. Write it where it is actually read from.
+    case.write_artifact(
+        load_model_from_yaml_path(
+            PreliminaryRecommendation, _fixture_root() / "preliminary_recommendation.yaml"
+        )
+    )
+    case.write_artifact(
+        load_model_from_yaml_path(ReviewReport, _fixture_root() / "review_report.fail.yaml")
+    )
+
+    # Enough evidence to exhaust the budget before the include list reaches the
+    # preliminary recommendation, which is where the real case sat.
+    template = _load_evidence_records(_fixture_root() / "evidence_records.yaml")[0]
+    for index in range(60):
+        case.write_artifact(
+            template.model_copy(update={"evidence_id": f"E-{900 + index}", "claim": "A" * 400})
+        )
+
+    unguarded = project(case, include=config.projection_include, budget_chars=20_000)
+    guarded = project(
+        case,
+        include=config.projection_include,
+        budget_chars=20_000,
+        required=config.projection_required,
+    )
+    unguarded_names = {item.filename for item in unguarded}
+    guarded_names = {item.filename for item in guarded}
+
+    # The defect, reproduced: the preliminary recommendation is crowded out.
+    # (artifact_index survives unguarded only because it sits ahead of
+    # evidence_records in the include list — ordering that nothing enforced
+    # until it became a declared requirement.)
+    assert "preliminary_recommendation.yaml" not in unguarded_names
+
+    # The fix, asserted for every must-cite artifact this case actually holds.
+    assert "decision_spec.yaml" in guarded_names
+    assert "artifact_index.yaml" in guarded_names
+    assert "preliminary_recommendation.yaml" in guarded_names
+    assert "review_report.yaml" in guarded_names
+    assert any(name.startswith("objection_record") for name in guarded_names)
+
+    # Crowding out did not disappear — it moved onto the substitutable inputs.
+    assert "_truncation_notice.yaml" in guarded_names
