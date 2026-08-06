@@ -101,6 +101,27 @@ _STAGE_TO_PHASE: dict[CaseStage, Phase] = {
 _TERMINAL_STAGES = frozenset({CaseStage.DONE, CaseStage.FAILED})
 
 
+def _decision_question(case: Case) -> str:
+    """The decision as a question, for the case surface's heading.
+
+    Prefers the framed `DecisionSpec` (what the system will actually answer),
+    falls back to intake, then to the raw prompt.  Returns "" rather than a
+    placeholder so the UI can decide what to show before framing has run.
+    """
+    try:
+        from orchestrator.artifacts import DecisionSpec, IntakeRecord
+
+        specs = case.list_artifacts(DecisionSpec)
+        if specs and specs[0].question:
+            return specs[0].question
+        records = case.list_artifacts(IntakeRecord)
+        if records:
+            return records[0].decision_question or records[0].raw_prompt
+    except Exception:  # noqa: BLE001 — a corrupt artifact must not break the view
+        pass
+    return ""
+
+
 def _phase_for_stage(stage: CaseStage) -> Phase:
     return _STAGE_TO_PHASE[stage]
 
@@ -472,6 +493,11 @@ class CaseView(BaseModel):
 
     view_version: int = 1
     case_id: str
+    # SPEC-048: the case surface's heading. Without it the UI rendered
+    # `case_id`, so users read a slug like `case-014-should-i-take-the-ser`
+    # where the decision belongs. Additive read-model field; nothing upstream
+    # changes.
+    decision_question: str = ""
     phase: Phase
     needs_you: NeedsYou
     stage: str
@@ -1427,6 +1453,7 @@ def build_case_view(case: Case) -> CaseView:
 
     return CaseView(
         case_id=case.root.name,
+        decision_question=_decision_question(case),
         phase=_phase_for_stage(state.stage),
         needs_you=needs_you_for_state(state),
         stage=state.stage.value,

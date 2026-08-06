@@ -58,12 +58,13 @@ modeDescribe("fixture", "Fixture mode — delivered brief journey", () => {
   test("brief shows all sections for the completed case", async ({ page }) => {
     await page.goto(`/cases/${FIXTURE_COMPLETED}/brief`);
 
-    // Brief sections container
-    const sections = page.locator(".brief-sections");
+    // The brief is a document of passages now, not a stack of section cards
+    // (SPEC-048); /brief resolves to the one case surface.
+    const sections = page.locator(".brief-document");
     await expect(sections).toBeVisible();
 
-    // At least some section articles render with non-pending status
-    const sectionArticles = sections.locator(".brief-section");
+    // At least some passages render with non-pending status
+    const sectionArticles = sections.locator(".brief-passage");
     const count = await sectionArticles.count();
     expect(count).toBeGreaterThan(0);
 
@@ -149,14 +150,17 @@ modeDescribe("fixture", "Fixture mode — rooms walkthrough", () => {
     test(`${room.label} room renders`, async ({ page }) => {
       await page.goto(`/cases/${FIXTURE_COMPLETED}/rooms/${room.key}`);
 
-      // Room shell header with the room label
-      const roomHeader = page.locator(".room-title");
-      await expect(roomHeader).toHaveText(room.label);
+      // A room deep link opens the context panel over the case surface
+      // (SPEC-048); the panel's own head carries the room name.
+      const panel = page.locator(".app-shell-panel");
+      await expect(panel.locator(".app-shell-panel-head h3")).toHaveText(room.label);
+
+      // The argument stays on screen behind the panel — that is the point.
+      await expect(page.locator(".app-shell-content .brief-document")).toBeVisible();
 
       // Room body should be present (not stuck on loading)
-      const roomBody = page.locator(".room-body");
+      const roomBody = panel.locator(".room-body");
       await expect(roomBody).toBeVisible();
-      // Should not show a persistent loading state
       await expect(roomBody.locator("text=Loading…")).toHaveCount(0);
     });
   }
@@ -209,6 +213,9 @@ modeDescribe("fixture", "Fixture mode — accessibility (axe)", () => {
     { name: "challenges room", url: `/cases/${FIXTURE_COMPLETED}/rooms/challenges` },
     { name: "plan room", url: `/cases/${FIXTURE_COMPLETED}/rooms/plan` },
     { name: "method room", url: `/cases/${FIXTURE_COMPLETED}/rooms/method` },
+    { name: "inspector", url: `/cases/${FIXTURE_COMPLETED}/inspector/E-001` },
+    { name: "signed record", url: `/cases/${FIXTURE_COMPLETED}/scope/signed` },
+    { name: "not found", url: "/no-such-route" },
   ];
 
   for (const screen of axeScreens) {
@@ -223,4 +230,120 @@ modeDescribe("fixture", "Fixture mode — accessibility (axe)", () => {
       expect(serious, `${screen.name} has ${serious.length} serious/critical violations`).toEqual([]);
     });
   }
+});
+
+modeDescribe("fixture", "Fixture mode — route consolidation (SPEC-048)", () => {
+  /**
+   * The case surface absorbed `/brief` and the six room pages. Consolidation is
+   * only safe if nothing that used to resolve stops resolving: a link in a
+   * notification, a bookmark, or an old export must not land on "That page does
+   * not exist".
+   */
+  const routes = [
+    `/cases/${FIXTURE_COMPLETED}`,
+    `/cases/${FIXTURE_COMPLETED}/brief`,
+    `/cases/${FIXTURE_COMPLETED}/rooms/sources`,
+    `/cases/${FIXTURE_COMPLETED}/rooms/assumptions`,
+    `/cases/${FIXTURE_COMPLETED}/rooms/options`,
+    `/cases/${FIXTURE_COMPLETED}/rooms/challenges`,
+    `/cases/${FIXTURE_COMPLETED}/rooms/plan`,
+    `/cases/${FIXTURE_COMPLETED}/rooms/method`,
+    `/cases/${FIXTURE_COMPLETED}/delivery`,
+    `/cases/${FIXTURE_COMPLETED}/inspector/E-001`,
+    `/cases/${FIXTURE_PARKED}/scope`,
+    `/cases/${FIXTURE_PARKED}/scope/signed`,
+  ];
+
+  for (const url of routes) {
+    test(`${url} still resolves`, async ({ page }) => {
+      await page.goto(url);
+      await page.locator("main.app-main").waitFor({ state: "visible" });
+      await expect(page.locator(".not-found")).toHaveCount(0);
+    });
+  }
+
+  test("no screen carries a back link, because the chrome never goes away", async ({ page }) => {
+    for (const url of routes) {
+      await page.goto(url);
+      await page.locator("main.app-main").waitFor({ state: "visible" });
+      await expect(page.locator(".back-link")).toHaveCount(0);
+    }
+  });
+
+  test("no screen renders a bare loading string", async ({ page }) => {
+    // Skeletons replaced `<p>Loading…</p>` everywhere. A screen that reverts
+    // gets caught here rather than in a design review six months later.
+    for (const url of routes) {
+      await page.goto(url);
+      await page.locator("main.app-main").waitFor({ state: "visible" });
+      await expect(page.getByText("Loading…", { exact: true })).toHaveCount(0);
+    }
+  });
+
+  test("the heading is the decision question, never the case id", async ({ page }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    const heading = page.locator(".case-chrome-question");
+    await expect(heading).toBeVisible();
+    const text = ((await heading.textContent()) ?? "").trim();
+    expect(text).not.toMatch(/^case-\d+-/);
+    expect(text).not.toContain(FIXTURE_COMPLETED);
+  });
+
+  test("terminology guard on the consolidated surfaces", async ({ page }) => {
+    for (const url of [
+      `/cases/${FIXTURE_COMPLETED}`,
+      `/cases/${FIXTURE_COMPLETED}/rooms/sources`,
+      `/cases/${FIXTURE_COMPLETED}/inspector/E-001`,
+      `/cases/${FIXTURE_PARKED}/scope/signed`,
+    ]) {
+      await page.goto(url);
+      await page.locator("main.app-main").waitFor({ state: "visible" });
+      await assertNoForbiddenTerms(page);
+    }
+  });
+});
+
+modeDescribe("fixture", "Fixture mode — reading altitude (SPEC-048)", () => {
+  test("Answer strips the apparatus, Method restores it, and the choice persists", async ({ page }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    await page.locator("main.app-main").waitFor({ state: "visible" });
+
+    await page.getByRole("button", { name: "Answer" }).click();
+    await expect(page.locator(".case-map")).toHaveCount(0);
+    await expect(page.locator(".provenance-stripe")).toHaveCount(0);
+    await expect(page.locator(".answer-recommendation")).toBeVisible();
+
+    await page.getByRole("button", { name: "Method" }).click();
+    await expect(page.locator(".case-map")).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Rooms" })).toBeVisible();
+
+    // A reader preference, not a per-case one: it survives a different case and
+    // a reload.
+    await page.goto(`/cases/${FIXTURE_PARKED}`);
+    await page.locator("main.app-main").waitFor({ state: "visible" });
+    await expect(page.getByRole("button", { name: "Method" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Method" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  test("a room opens beside the argument and closing it returns to the case", async ({ page }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    await page.locator("main.app-main").waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "Method" }).click();
+
+    await page.getByRole("link", { name: "Sources" }).click();
+    await expect(page.locator(".app-shell-panel")).toBeVisible();
+    // The argument is still there — the panel did not replace the page.
+    await expect(page.locator(".app-shell-content .brief-document")).toBeVisible();
+
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.locator(".app-shell-panel")).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/cases/${FIXTURE_COMPLETED}$`));
+  });
 });

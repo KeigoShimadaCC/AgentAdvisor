@@ -69,7 +69,7 @@ modeDescribe("replay", "Replay mode — SSE event ordering", () => {
 
     // The brief should eventually show sections (replay mode serves the
     // completed fixture, so sections should be present immediately).
-    const sections = page.locator(".brief-sections .brief-section");
+    const sections = page.locator(".brief-document .brief-passage");
     await expect(sections.first()).toBeVisible();
 
     // No section should show the "not yet" placeholder for the completed fixture.

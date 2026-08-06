@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api/client";
+import { useToast } from "./Toast";
 import { FAILURE_COPY } from "../../copy/terms";
 import type { CaseView } from "../../generated/case_view";
 
@@ -14,16 +15,33 @@ interface FailurePathProps {
 export function FailurePath({ view }: FailurePathProps) {
   const [resuming, setResuming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   async function resume() {
     setResuming(true);
     setError(null);
     try {
       await api.resumeCase(view.case_id);
+      toast.show("Resuming this case.", "success");
     } catch (e) {
-      setError((e as { detail?: string; error?: string }).detail ?? "Resume failed");
+      const detail = (e as { detail?: string; error?: string }).detail ?? "Resume failed";
+      setError(detail);
+      toast.show(detail, "error");
     } finally {
       setResuming(false);
+    }
+  }
+
+  // Accepting from the early-stop panel used to fire and say nothing at all,
+  // so the click was indistinguishable from a dead button.
+  async function acceptAsIs() {
+    try {
+      await api.approveDelivery(view.case_id, "user");
+      toast.show("Recommendation accepted as it stands.", "success");
+    } catch (e) {
+      const detail = (e as { detail?: string; error?: string }).detail ?? "Accept failed";
+      setError(detail);
+      toast.show(detail, "error");
     }
   }
 
@@ -62,7 +80,7 @@ export function FailurePath({ view }: FailurePathProps) {
             <button
               type="button"
               className="primary-action"
-              onClick={() => api.approveDelivery(view.case_id, "user")}
+              onClick={acceptAsIs}
             >
               {FAILURE_COPY.acceptAsIs}
             </button>

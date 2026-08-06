@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { RoomShell } from "../../shared/RoomShell";
+import { Skeleton } from "../../shared/Skeleton";
 import type { CaseView } from "../../../generated/case_view";
 import type { TranslatedEvent } from "../../../api/sse";
 import { api } from "../../../api/client";
@@ -255,7 +256,7 @@ function MethodBody({ view, events }: { view: CaseView; events: TranslatedEvent[
           />
           <button type="submit" className="secondary-action">View</button>
         </form>
-        {rawLoading && <p>Loading…</p>}
+        {rawLoading && <Skeleton shape="sheet" label="Loading the raw record" />}
         {rawContent != null && (
           <pre className="method-raw-view">{rawContent}</pre>
         )}

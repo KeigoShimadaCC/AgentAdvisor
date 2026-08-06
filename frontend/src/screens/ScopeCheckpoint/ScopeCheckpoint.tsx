@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { api, type ErrorResponse } from "../../api/client";
+import { CaseCrumb } from "../shell/CaseCrumb";
+import { Skeleton } from "../shared/Skeleton";
+import { useToast } from "../shared/Toast";
 import type { CaseView } from "../../generated/case_view";
 import type { IntakeRecord } from "../../generated/intake_record";
 import type { DecisionSpec } from "../../generated/decision_spec";
@@ -141,6 +144,7 @@ export function ScopeCheckpoint() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const toast = useToast();
 
   // ── Editable sheet state ────────────────────────────────────────────────
   const [restatement, setRestatement] = useState("");
@@ -332,6 +336,7 @@ export function ScopeCheckpoint() {
         setRevisionNotice(
           "Revised framing requested. The sheet will re-present with the updated spec.",
         );
+        toast.show("Revision requested — the sheet will re-present.", "success");
         // Re-load after the revision settles.
         await loadAll();
       } else {
@@ -340,12 +345,14 @@ export function ScopeCheckpoint() {
         const summaryHash = computeSummaryHash(content);
         const payload = buildApprovePayload(sheetState, summaryHash);
         await api.submitScopeCheckpoint(caseId, payload);
+        toast.show("Scope signed — the investigation is running.", "success");
         // Transition to the signed record view.
         navigate(`/cases/${caseId}/scope/signed`);
       }
     } catch (e) {
       const err = e as ErrorResponse;
       setError(err.detail ?? err.error);
+      toast.show(err.detail ?? err.error ?? "That did not go through.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -356,12 +363,13 @@ export function ScopeCheckpoint() {
   }
 
   // ── Render gates ──────────────────────────────────────────────────────────
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <Skeleton shape="sheet" label="Loading the scope sheet" />;
   if (error) return <p className="error" role="alert">{error}</p>;
   if (!spec) return <p className="error">The framing is not ready yet. Refresh in a moment.</p>;
 
   return (
     <div className="scope-checkpoint">
+      <CaseCrumb caseId={caseId} />
       {revisionNotice && (
         <p className="revision-notice" role="status">{revisionNotice}</p>
       )}
@@ -611,9 +619,6 @@ export function ScopeCheckpoint() {
         )}
       </section>
 
-      <p className="back-link">
-        <Link to={`/cases/${caseId}`}>Back to the case</Link>
-      </p>
     </div>
   );
 }

@@ -1,6 +1,8 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useCaseView } from "../shared/useCaseView";
 import { RecordInspector } from "./RecordInspector";
+import { CaseCrumb } from "../shell/CaseCrumb";
+import { Skeleton } from "../shared/Skeleton";
 
 /**
  * Standalone, route-addressable inspector at
@@ -14,8 +16,8 @@ export function InspectorPage() {
 
   return (
     <div className="inspector-page">
-      <Link to={`/cases/${caseId}`} className="back-link">← Back to case</Link>
-      {loading && <p>Loading…</p>}
+      <CaseCrumb caseId={caseId} />
+      {loading && <Skeleton shape="sheet" label="Loading the record" />}
       <div className="inspector-page-panel">
         <RecordInspector
           caseId={caseId}

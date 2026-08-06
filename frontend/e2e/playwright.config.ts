@@ -165,7 +165,7 @@ export default defineConfig({
       retries: 1, // reading-experience parity, allow one retry
       // Screenshots are engine-specific; webkit would need its own baselines
       // for no additional signal about the design system.
-      grepInvert: /visual baselines|token contrast/,
+      grepInvert: /visual baselines|token contrast|density guard/,
     },
   ],
 

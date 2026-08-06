@@ -135,9 +135,6 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
   padding: 0;
 }
 
-.back-link { margin-top: var(--space-lg); }
-.back-link a { color: var(--accent); }
-
 /* ── App nav ────────────────────────────────────────────────────────────── */
 
 .app-nav { display: flex; gap: 1rem; margin-left: auto; }
@@ -424,28 +421,8 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
 /* ── Rooms (SPEC-036) ─────────────────────────────────────────────────────── */
 
 .room { display: flex; flex-direction: column; gap: 1.25rem; }
-.room-header h2 { font-size: var(--text-xl); margin-bottom: 0.25rem; }
+.room-title { font-size: var(--text-lg); margin-bottom: 0.25rem; }
 .room-blurb { color: var(--text-muted); font-size: var(--text-md); }
-
-.room-tabs { border-bottom: 1px solid var(--border); }
-.room-tab-list { list-style: none; display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0; }
-.room-tab-item { display: flex; }
-.room-tab {
-  text-decoration: none;
-  color: var(--text-muted);
-  padding: 0.5rem 0.875rem;
-  border-bottom: 2px solid transparent;
-  font-size: var(--text-md-plus);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-.room-tab:hover { color: var(--accent); }
-.room-tab-active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-.room-tab-dot {
-  width: 0.5rem; height: 0.5rem; border-radius: 50%;
-  background: var(--state-needs-you); display: inline-block;
-}
 
 .room-body { display: flex; flex-direction: column; gap: 1rem; }
 
@@ -1490,3 +1467,263 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
   font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-2xs);
 }
 .case-map-cycle-active { color: var(--state-needs-you); font-weight: var(--weight-medium); }
+
+/* ── Reading room: shell, chrome, hierarchy (SPEC-048) ────────────────────── */
+
+/* A border means exactly two things: this needs your action, or this is
+   uncertain. Everything that was a bordered card and is neither loses its
+   border here. Fifty bordered boxes is wallpaper; two is information. */
+.brief-document .brief-passage,
+.case-surface .brief-section { border: none; background: none; padding: 0; }
+
+.app-shell { display: grid; gap: var(--space-xl); align-items: start; }
+@media (min-width: 60rem) {
+  .app-shell { grid-template-columns: minmax(0, 1fr) 15rem; }
+  .app-shell-rail { grid-column: 2; grid-row: 1; position: sticky; top: var(--space-lg); }
+  .app-shell-content { grid-column: 1; grid-row: 1; }
+  .app-shell.app-shell-panel-open { grid-template-columns: minmax(0, 1fr) 20rem; }
+  .app-shell.app-shell-panel-open .app-shell-rail { display: none; }
+  .app-shell-panel { grid-column: 2; grid-row: 1; position: sticky; top: var(--space-lg); }
+}
+.app-shell-panel {
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface-raised); max-height: 80vh; overflow-y: auto;
+}
+.app-shell-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app-shell-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-md); border-bottom: 1px solid var(--border);
+}
+.app-shell-panel-body { padding: var(--space-md); }
+.app-shell-panel-close {
+  background: none; border: none; color: var(--accent); cursor: pointer; font: inherit;
+}
+
+.case-chrome {
+  display: flex; flex-wrap: wrap; gap: var(--space-md);
+  align-items: flex-start; justify-content: space-between;
+  padding-bottom: var(--space-md); margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.case-chrome-question {
+  /* The answer to "what am I looking at". It replaces a rendered case_id slug,
+     and it is the largest thing in the frame because it is the subject. */
+  font-size: var(--text-xl); font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug); max-width: 46ch; text-wrap: balance;
+}
+.case-chrome-meta {
+  display: flex; gap: var(--space-md); align-items: center; flex-wrap: wrap;
+  margin-top: var(--space-2xs); font-size: var(--text-sm);
+}
+.case-chrome-back { color: var(--accent); }
+.case-chrome-needs {
+  font-size: var(--text-xs); border-radius: var(--radius-full);
+  padding: var(--space-3xs) var(--space-sm);
+  background: var(--state-needs-you-wash); color: var(--state-needs-you-text);
+}
+.case-chrome-connection { font-size: var(--text-sm); }
+.connection-reconnecting { color: var(--state-uncertain); }
+.connection-stale { color: var(--state-critical); font-weight: var(--weight-medium); }
+.case-chrome-controls { display: flex; flex-direction: column; gap: var(--space-sm); align-items: flex-end; }
+.case-chrome-spend {
+  display: flex; gap: var(--space-md); font-family: var(--font-mono);
+  font-size: var(--text-xs); color: var(--text-muted);
+}
+
+.altitude-control { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius-full); overflow: hidden; }
+.altitude-option {
+  font: inherit; font-size: var(--text-sm); border: none; background: none;
+  padding: var(--space-2xs) var(--space-md); cursor: pointer; color: var(--text-muted);
+}
+.altitude-option.selected { background: var(--accent); color: var(--accent-on); font-weight: var(--weight-medium); }
+.altitude-option:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.case-surface { display: flex; flex-direction: column; gap: var(--space-xl); }
+
+/* Needs-your-action: one of the two things a border is allowed to mean. */
+.action-card {
+  border: 1px solid var(--state-needs-you-border);
+  background: var(--state-needs-you-wash);
+  border-radius: var(--radius-md); padding: var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-md); align-items: flex-start;
+}
+.action-card-what { font-weight: var(--weight-medium); }
+
+.brief-document { display: flex; flex-direction: column; gap: var(--space-xl); }
+.brief-passage { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.brief-passage-label {
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+.brief-passage-text { max-width: 68ch; line-height: var(--leading-body); }
+/* The recommendation is the largest thing on the page, by a wide margin. It
+   used to render at 18px while a source-strength letter grade rendered at 24px
+   in the accent colour — a diagnostic metric outranking the answer. */
+.brief-passage[data-status] .brief-passage-text:first-of-type { font-size: var(--text-base); }
+.case-surface .answer-recommendation,
+.delivery .answer-recommendation {
+  font-size: var(--text-3xl); line-height: var(--leading-tight);
+  font-weight: var(--weight-semibold); max-width: 24ch; text-wrap: balance;
+}
+.source-strength-grade { font-size: var(--text-lg); }
+
+.skeleton { display: flex; flex-direction: column; gap: var(--space-lg); }
+.skeleton-block { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.skeleton-line { height: 0.75rem; border-radius: var(--radius-xs); background: var(--surface-sunken); }
+.skeleton-line-title { width: 30%; height: 0.6rem; }
+.skeleton-line-short { width: 60%; }
+
+.toast-host {
+  position: fixed; bottom: var(--space-lg); left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: var(--space-sm); z-index: 60;
+}
+.toast {
+  background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: var(--space-sm) var(--space-lg);
+  box-shadow: var(--elevation-2); font-size: var(--text-md);
+}
+.toast-success { border-color: var(--state-good-border); }
+.toast-error { border-color: var(--state-critical); }
+
+/* ── Room rail and breadcrumb chrome (SPEC-048) ───────────────────────────── */
+
+.room-rail { margin-top: var(--space-lg); }
+.room-rail-label {
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+  margin-bottom: var(--space-2xs);
+}
+.room-rail-list { list-style: none; padding: 0; display: flex; flex-direction: column; }
+.room-rail-link {
+  display: block; padding: var(--space-3xs) 0;
+  font-size: var(--text-md); color: var(--text-muted); text-decoration: none;
+}
+.room-rail-link:hover { color: var(--accent); }
+.room-rail-link.selected { color: var(--accent); font-weight: var(--weight-medium); }
+
+.case-crumb {
+  display: flex; gap: var(--space-2xs); align-items: baseline;
+  font-size: var(--text-sm); margin-bottom: var(--space-md);
+}
+.case-crumb-link { color: var(--accent); }
+.case-crumb-sep { color: var(--text-muted); }
+
+/* Passage internals, carried over from .brief-section-* when sections stopped
+   being cards. The status pill keeps its contrast pairing. */
+.brief-passage-status {
+  font-size: var(--text-xs); padding: 0.125rem 0.5rem; border-radius: var(--radius-full);
+  background: var(--surface-sunken); color: var(--text-muted); text-transform: capitalize;
+  font-weight: var(--weight-regular); margin-left: var(--space-sm);
+}
+.brief-passage-status.status-partial { background: var(--state-uncertain-wash); color: var(--state-uncertain); }
+.brief-passage-status.status-final { background: var(--state-good-wash); color: var(--state-good-text); }
+.brief-passage-placeholder { color: var(--text-muted); font-style: italic; }
+.brief-passage-settle { animation: settleIn 0.25s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .brief-passage-settle { animation: none; }
+}
+
+/* Grouping containers are not uncertainty and are not an action, so they carry
+   no border. What survives: .action-card, the uncertainty widgets, the failure
+   and early-stop panels, and the context panel's own edge. */
+.full-brief .brief-section,
+.brief-document .brief-passage {
+  border: none; background: none; padding: 0; margin-bottom: 0;
+}
+.app-shell-panel .room { gap: var(--space-md); }
+
+/* ── Border discipline (SPEC-048) ─────────────────────────────────────────── */
+/*
+ * A border is allowed to mean exactly two things: this needs your action, or
+ * this is uncertain. Everything below was a bordered card for grouping only —
+ * fifty-odd boxes across the app, which is the same as no boxes at all, except
+ * that it also makes the screen tiring to read. They keep their raised surface
+ * and their padding; they lose the edge.
+ *
+ * What still carries a border, and why: .action-card and the failure/early-stop
+ * panels (an action), the uncertainty widgets and .non-final-stamp (uncertainty),
+ * .altitude-control and form fields (a control's own affordance), .app-shell-panel
+ * (a region edge, not a card), and .signature-block (the scope sheet's action).
+ * e2e/density.spec.ts holds the line.
+ */
+.narrator,
+.case-map,
+.margin-narration,
+.working-view-card,
+.answer-card,
+.key-reasons,
+.tripwires,
+.integrity-slip,
+.scope-section,
+.option-row,
+.ground-rule-item,
+.needs-you-row {
+  border: none;
+}
+
+/* The scope sheet's sections lose their boxes but keep their separation: a
+   rule between sections reads as a document, a box around each reads as a form
+   built out of eight forms. */
+.scope-section + .scope-section {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-lg);
+}
+.signature-block { border: 1px solid var(--accent); border-radius: var(--radius-md); }
+.option-row-recommended { border-left: 3px solid var(--accent); padding-left: var(--space-md); }
+
+/* The same discipline inside the rooms. A room is a reference table, and a
+   reference table is read down a column — boxing each row makes it a grid of
+   cards that has to be read cell by cell. Rows keep a hairline divider, which
+   separates without enclosing. */
+.corpus-header,
+.cluster-bubble,
+.source-card,
+.facet-group,
+.assumption-row,
+.option-rank-group,
+.objection-row,
+.premortem-section,
+.premortem-mode,
+.second-opinion-section,
+.position-card,
+.plan-decision-question,
+.plan-coverage,
+.plan-mece,
+.plan-tree,
+.method-timeline,
+.method-gates,
+.method-invocations,
+.method-effort,
+.method-event-counts,
+.method-event-log,
+.method-raw {
+  border: none;
+}
+
+.source-card + .source-card,
+.assumption-row + .assumption-row,
+.option-rank-group + .option-rank-group,
+.objection-row + .objection-row,
+.position-card + .position-card {
+  border-top: 1px solid var(--border);
+}
+
+/* What survives in the rooms, and why: a recommended option and an open
+   objection are states the reader has to act on, and the warning callouts and
+   grade chips are statements of uncertainty. */
+.option-rank-recommended { border-left: 3px solid var(--accent); padding-left: var(--space-md); }
+.objection-status-open { border-left: 3px solid var(--state-needs-you); padding-left: var(--space-md); }
+
+/* Fifteen bordered count chips is the crowding this phase is about. A filled
+   chip reads as a chip without an outline around each one. */
+.event-count-list li { border: none; }
+
+/* The map in the rail (SPEC-048). Laid out as a horizontal strip it needs
+   ~54rem; the rail is 15rem, so in the rail it clipped every stage label to
+   "Reading your q…". In a column it reads top to bottom, which is also the
+   direction the case runs. */
+.app-shell-rail .case-map { padding: 0; overflow-x: visible; }
+.app-shell-rail .case-map-phases {
+  flex-direction: column; gap: var(--space-md); min-width: 0;
+}
+.app-shell-rail .case-map-phase { min-width: 0; }

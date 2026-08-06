@@ -385,10 +385,10 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-045 | Design system: tokens, type scale, theming, visual-regression harness | draft |
-| SPEC-046 | Service additions: progress events, non-blocking creation, projection reads | draft |
-| SPEC-047 | The live case: streaming truth, the narrator, and the case map | draft |
-| SPEC-048 | The reading room: shell, persistent chrome, hierarchy, altitudes | draft |
+| SPEC-045 | Design system: tokens, type scale, theming, visual-regression harness | implemented |
+| SPEC-046 | Service additions: progress events, non-blocking creation, projection reads | implemented |
+| SPEC-047 | The live case: streaming truth, the narrator, and the case map | implemented |
+| SPEC-048 | The reading room: shell, persistent chrome, hierarchy, altitudes | implemented |
 | SPEC-049 | The cast: voice attribution, margin objections, dissent | draft |
 | SPEC-050 | Commissioning and checkpoints | draft |
 | SPEC-051 | Presence and engagement: notifications, away digest, reactions, calibration | draft |

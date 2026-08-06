@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type CaseSummary } from "../api/client";
 import { stageLabel, NEEDS_YOU, type NeedsYouKey } from "../copy/terms";
+import { Skeleton } from "../screens/shared/Skeleton";
 
 /** Derive a needs-you state from the raw stage string (list endpoint). */
 function needsYouFromStage(stage: string): NeedsYouKey {
@@ -30,7 +31,7 @@ export function CaseLibrary() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <Skeleton shape="list" label="Loading your cases" />;
   if (error) return <p className="error">{error}</p>;
   if (cases.length === 0) {
     return (

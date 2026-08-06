@@ -1237,6 +1237,11 @@
       "title": "Case Id",
       "type": "string"
     },
+    "decision_question": {
+      "default": "",
+      "title": "Decision Question",
+      "type": "string"
+    },
     "effort": {
       "$ref": "#/$defs/EffortView"
     },

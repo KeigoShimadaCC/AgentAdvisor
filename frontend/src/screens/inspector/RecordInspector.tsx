@@ -12,6 +12,7 @@ import {
   assumptionTypeLabel,
 } from "../../copy/terms";
 import { GradeChip } from "../shared/GradeChip";
+import { Skeleton } from "../shared/Skeleton";
 
 interface RecordInspectorProps {
   caseId: string;
@@ -137,7 +138,11 @@ export function RecordInspector({ caseId, artifactId, events, onClose }: RecordI
             {showMachinery && (
               <div className="inspector-machinery-body">
                 <h4>{INSPECTOR_COPY.rawYaml}</h4>
-                <pre className="inspector-raw">{rawYaml ?? "Loading…"}</pre>
+                {rawYaml === null ? (
+                  <Skeleton shape="sheet" label="Loading the raw record" />
+                ) : (
+                  <pre className="inspector-raw">{rawYaml}</pre>
+                )}
                 <h4>{INSPECTOR_COPY.auditSlice}</h4>
                 {auditSlice.length === 0 ? (
                   <p className="screen-help">No audit events reference this record yet.</p>

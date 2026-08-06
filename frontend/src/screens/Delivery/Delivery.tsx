@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { CaseCrumb } from "../shell/CaseCrumb";
+import { Skeleton } from "../shared/Skeleton";
+import { useToast } from "../shared/Toast";
 import { useCaseView } from "../shared/useCaseView";
 import { InspectorHost } from "../inspector/InspectorHost";
 import { CitationLink } from "../inspector/CitationLink";
@@ -33,6 +36,7 @@ export function Delivery() {
   const [revisionNote, setRevisionNote] = useState("");
   const [revisionSent, setRevisionSent] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (!caseId) return;
@@ -44,7 +48,7 @@ export function Delivery() {
       .finally(() => setFinalLoading(false));
   }, [caseId]);
 
-  if (loading || finalLoading) return <p>Loading…</p>;
+  if (loading || finalLoading) return <Skeleton shape="brief" label="Loading the recommendation" />;
   if (error) return <p className="error" role="alert">{error}</p>;
   if (!view) return <p>No data.</p>;
 
@@ -61,8 +65,11 @@ export function Delivery() {
     try {
       await api.approveDelivery(caseId, "user");
       setSigned(true);
+      toast.show("Recommendation accepted and signed.", "success");
     } catch (e) {
-      setActionError((e as { detail?: string; error?: string }).detail ?? "Accept failed");
+      const detail = (e as { detail?: string; error?: string }).detail ?? "Accept failed";
+      setActionError(detail);
+      toast.show(detail, "error");
     } finally {
       setSubmitting(false);
     }
@@ -75,10 +82,12 @@ export function Delivery() {
     try {
       await api.requestFinalRevision(caseId, revisionNote.trim());
       setRevisionSent(true);
+      toast.show("Sent back with your note — synthesis will re-run.", "success");
     } catch (e) {
-      setActionError(
-        (e as { detail?: string; error?: string }).detail ?? "Send back failed",
-      );
+      const detail =
+        (e as { detail?: string; error?: string }).detail ?? "Send back failed";
+      setActionError(detail);
+      toast.show(detail, "error");
     } finally {
       setSubmitting(false);
     }
@@ -88,11 +97,9 @@ export function Delivery() {
     return (
       <InspectorHost events={events}>
         <div className="delivery signed">
+          <CaseCrumb caseId={caseId} label={FAILURE_COPY.backToCase} />
           <h2>Recommendation accepted</h2>
           <p>Signed by user at {new Date().toLocaleString()}.</p>
-          <p className="back-link">
-            <Link to={`/cases/${caseId}`}>{FAILURE_COPY.backToCase}</Link>
-          </p>
         </div>
       </InspectorHost>
     );
@@ -102,13 +109,11 @@ export function Delivery() {
     return (
       <InspectorHost events={events}>
         <div className="delivery revision-sent">
+          <CaseCrumb caseId={caseId} label={FAILURE_COPY.backToCase} />
           <h2>Revision requested</h2>
           <p>
             The case will re-run synthesis with your note. You can follow progress
             on the brief.
-          </p>
-          <p className="back-link">
-            <Link to={`/cases/${caseId}/brief`}>Go to brief</Link>
           </p>
         </div>
       </InspectorHost>
@@ -118,6 +123,7 @@ export function Delivery() {
   return (
     <InspectorHost events={events}>
       <div className="delivery">
+        <CaseCrumb caseId={caseId} label={FAILURE_COPY.backToCase} />
         <h2>Delivery</h2>
         <FailurePath view={view} />
 
@@ -211,9 +217,6 @@ export function Delivery() {
           </section>
         )}
 
-        <p className="back-link">
-          <Link to={`/cases/${caseId}`}>{FAILURE_COPY.backToCase}</Link>
-        </p>
       </div>
     </InspectorHost>
   );

@@ -8,6 +8,7 @@ export type Key = string;
 export type Status = 'pending' | 'partial' | 'final' | 'not_assessed';
 export type BriefSections = BriefSection[];
 export type CaseId = string;
+export type DecisionQuestion = string;
 export type InputTokens = number;
 export type InvocationAttempts = number;
 export type InvocationSuccesses = number;
@@ -96,7 +97,7 @@ export type WeightedRank = number | null;
 export type WeightedScore = number | null;
 export type Options = OptionView[];
 export type CoverageFraction = number;
-export type DecisionQuestion = string;
+export type DecisionQuestion1 = string;
 export type MeceJustification = string;
 export type Covered = boolean;
 export type Materiality2 = string;
@@ -153,6 +154,7 @@ export type ViewVersion = number;
 export interface CaseView {
   brief_sections?: BriefSections;
   case_id: CaseId;
+  decision_question?: DecisionQuestion;
   effort?: EffortView;
   history?: HistoryView;
   integrity?: IntegrityView;
@@ -308,7 +310,7 @@ export interface OptionView {
 }
 export interface PlanView {
   coverage_fraction?: CoverageFraction;
-  decision_question: DecisionQuestion;
+  decision_question: DecisionQuestion1;
   mece_justification?: MeceJustification;
   nodes?: Nodes;
 }
