@@ -15,11 +15,15 @@ last_updated: 2026-08-05
 
 Phase 8 builds objective weights and a deterministic ranking, an independent reviewer whose dissent
 blocks delivery, a diagnosticity matrix, a typed action plan, a monitoring plan with a risk register,
-and a private evidence channel — and **not one of SPEC-038 through SPEC-044 mentions the frontend,
-`CaseView`, or the UI anywhere**. Without this spec, every one of those is reachable only by reading
-YAML in `cases/`. This spec extends the projection to carry them and builds the screens that show
-them. It is the one sheet in phase 9 that hard-depends on phase 8, so the dependency risk is
-contained here rather than spread across four sheets.
+and a private evidence channel. Its sheets never mention the frontend, but its implementation did
+ship ~900 lines of it — so when phase 8 merged, three of those seven were already projected *and*
+rendered (objective weights, the typed action plan, the limitations statement).
+
+**Four remain unreachable except by reading YAML in `cases/`.** Two are projected but never drawn:
+the independent review verdict and the ACH matrix. Two are not even in the read model: the
+monitoring plan with its risk register, and `user_document` provenance from the private evidence
+channel. This spec closes those four and keeps the guard that stops the pattern recurring. It is the
+one sheet in phase 9 that hard-depends on phase 8, so the dependency risk is contained here.
 
 ## Motivation
 

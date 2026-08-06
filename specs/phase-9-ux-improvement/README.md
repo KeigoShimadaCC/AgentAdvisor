@@ -1,23 +1,34 @@
 # Phase 9 — UX Improvement
 
 **Status:** all twelve sheets written and `draft`; none approved. This document is the plan and the rationale; the sheets are the contract.
-**Spec range:** SPEC-045 → SPEC-056 (12 specs). SPEC-038–044 are phase 8 (pipeline improvement), `in_progress`.
+**Spec range:** SPEC-045 → SPEC-056 (12 specs). SPEC-038–044 are phase 8 (pipeline improvement), merged and `verified`.
 **Source:** the UX review at `report-and-findings/2026-08-04-ux-review.md` (11 areas, 19 sequenced recommendations),
-reconciled against phase 8 at `d179f2b`.
+reconciled against phase 8 at `d179f2b`, then re-checked against the merged phase 8 at `f8f0ce4`.
 
-> ### Phase 8 is about to ship seven invisible features
+> ### Phase 8's outputs: four of seven still have no screen
 >
-> Reviewed against the merged phase 8 drafts: **not one of SPEC-038–044 mentions the frontend,
-> `CaseView`, or the UI anywhere.** Phase 8 builds objective weights and a computed ranking, an
-> independent reviewer whose dissent blocks delivery, a diagnosticity matrix, a typed action plan, a
-> monitoring plan with a risk register, and a private evidence channel — and projects none of it into
-> the read model or onto a screen.
+> **Corrected 2026-08-05, when phase 8 merged.** The original claim here — that none of SPEC-038–044
+> reaches the UI — was read off the *spec sheets*, where the frontend is indeed never mentioned. The
+> implementation did more than its sheets: phase 8 shipped ~900 lines of frontend across Delivery,
+> the scope checkpoint and the interview cards. Stating it as "seven invisible features" was wrong,
+> and the PR that said so overstated it.
 >
-> This is the exact failure the UX review found with `calibration.py`: fully built, fully tested, no
-> endpoint, no screen, never shown to anyone. Phase 8 is set to repeat it seven times.
+> Measured against the merged tree rather than the sheets:
 >
-> Phase 9 therefore takes on a job it did not originally have: **SPEC-053 projects and renders phase
-> 8's outputs.** Without it, phase 8's value is reachable only by reading YAML in `cases/`.
+> | Phase 8 output | In `CaseView` | On a screen |
+> |---|---|---|
+> | Objective weights and computed ranking | yes | **yes** |
+> | Typed action plan (`NextAction`) | yes | **yes** |
+> | Limitations / "what could not be assessed" | yes | **yes** |
+> | Independent review verdict | yes | no |
+> | Diagnosticity (ACH) matrix | yes | no |
+> | Monitoring plan and risk register | no | no |
+> | Private evidence provenance (`user_document`) | no | no |
+>
+> So SPEC-053 shrinks rather than disappears: two outputs need rendering only, two need projection
+> *and* rendering, and three are done. The underlying risk was real — the `calibration.py` pattern of
+> building something fully and never surfacing it — but it applies to four items, not seven, and
+> `coverage.spec.ts` remains the mechanism that stops it recurring.
 
 ## Why this phase exists
 
@@ -62,7 +73,9 @@ so phase 9 renders rather than rebuilds.
 
 ## Reconciliation with phase 8
 
-Every phase 8 spec produces something a user should see. None of them says who renders it.
+Every phase 8 spec produces something a user should see. None of the *sheets* says who renders it;
+the implementation rendered three of the seven anyway. The rows below are the plan as written, with
+the post-merge status added.
 
 | Phase 8 spec | Produces | Phase 9 impact |
 |---|---|---|
@@ -74,10 +87,17 @@ Every phase 8 spec produces something a user should see. None of them says who r
 | 043 private evidence channel | User files in `cases/<id>/inputs/`; open intake questions; `source_type: user_document` | Supersedes phase 9's note channel entirely. **049** must render this provenance as its own voice — §15 requires distinguishing user-supplied information from agent interpretation. |
 | 044 phase 8 re-evaluation | Measurement of phase 8 | None. |
 
-**No file-level conflict.** Phase 8 touches none of `styles.css`, `useCaseView`, `SSEClient`, or the
-service endpoints, so SPEC-045 and SPEC-046 can start immediately and in parallel with phase 8. Only
-SPEC-053 hard-depends on phase 8 being verified — the dependency risk is deliberately isolated in
-one spec so a phase 8 slip blocks one sheet rather than three.
+**File-level conflicts, as actually observed on merge.** The prediction that phase 8 touched none of
+`styles.css`, `useCaseView`, `SSEClient` or the service endpoints was half right: it left the stream
+and the projection loader alone, but it did change `styles.css`, `app.py`, `schema_export.py` and the
+Playwright config. Merging cost four conflicts, all resolved additively, and the two guards SPEC-045
+and SPEC-046 introduced both fired on real drift — phase 8's new CSS referenced four token names the
+migration had removed, and its new pipeline stage tripped the invariants snapshot. That is the
+guards working, not a problem, but "no file-level conflict" was the wrong prediction and is corrected
+here.
+
+Only SPEC-053 hard-depends on phase 8 being verified — the dependency risk is deliberately isolated
+in one spec so a phase 8 slip blocks one sheet rather than three.
 
 ## Sizing: why 12 and not 17
 
