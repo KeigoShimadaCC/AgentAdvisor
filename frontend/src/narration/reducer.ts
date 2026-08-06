@@ -1,3 +1,4 @@
+import { voiceFor, roleVoice } from "../copy/voices";
 import type { TranslatedEvent } from "../api/sse";
 
 /**
@@ -98,6 +99,17 @@ function announce(
  * narrator shows is derived from `activity.since` at render time rather than
  * stored here, so folding the same events twice cannot drift.
  */
+/**
+ * Append what an announcement is *about*, when the event says so (SPEC-049).
+ *
+ * "The review did not pass" tells a reader that something is wrong and nothing
+ * about what. Where the payload names a target, saying it turns a status line
+ * into a sentence about the argument.
+ */
+function contesting(line: string, target: string | null): string {
+  return target ? `${line} At issue: ${target.replace(/_/g, " ")}.` : line;
+}
+
 export function reduceNarration(state: NarrationState, event: TranslatedEvent): NarrationState {
   const next: NarrationState = { ...state, cursor: Math.max(state.cursor, event.line_cursor) };
   const payload = event.raw_payload ?? {};
@@ -191,7 +203,10 @@ export function reduceNarration(state: NarrationState, event: TranslatedEvent): 
         announcements: announce(
           next,
           "loop",
-          `The challenge round found something worth fixing. Going back to research — repair round ${repair}.`,
+          contesting(
+            `${voiceFor("challenger")} found something worth fixing. Going back to research — repair round ${repair}.`,
+            str(payload.target_section) ?? str(payload.reason),
+          ),
           event.line_cursor,
         ),
       };
@@ -207,7 +222,10 @@ export function reduceNarration(state: NarrationState, event: TranslatedEvent): 
         announcements: announce(
           next,
           "loop",
-          `The review did not pass. Rewriting the synthesis — attempt ${resynthesis + 1}.`,
+          contesting(
+            `${voiceFor("reviewer")} did not pass the brief. Rewriting the synthesis — attempt ${resynthesis + 1}.`,
+            str(payload.defect_type) ?? str(payload.reason),
+          ),
           event.line_cursor,
         ),
       };
@@ -221,7 +239,10 @@ export function reduceNarration(state: NarrationState, event: TranslatedEvent): 
         announcements: announce(
           next,
           "loop",
-          `Scope revision ${rescope} requested. Re-framing the decision.`,
+          contesting(
+            `Scope revision ${rescope} requested. ${voiceFor("director_framing")} is re-framing the decision.`,
+            str(payload.reason),
+          ),
           event.line_cursor,
         ),
       };
@@ -287,32 +308,6 @@ export function reduceAll(
   return events.reduce(reduceNarration, from);
 }
 
-/** Human label for a role, kept beside the fold so both stay in step. */
-export const ROLE_VOICES: Record<string, string> = {
-  intake: "Intake",
-  director_framing: "Framing",
-  director: "The Director",
-  director_b: "The second Director",
-  structurer: "Structuring",
-  planner: "Planning",
-  researcher: "Research",
-  analyst: "Analysis",
-  assumption_analyst: "Assumptions",
-  ach: "Competing hypotheses",
-  premortem: "Pre-mortem",
-  challenger: "The Challenger",
-  auditor: "The Auditor",
-  reviewer: "Review",
-  independent_reviewer: "The independent reviewer",
-  synthesizer: "Synthesis",
-  orchestrator: "The orchestrator",
-};
-
-export function voiceFor(role: string | null | undefined): string {
-  if (!role) return "The system";
-  return ROLE_VOICES[role] ?? role.replace(/_/g, " ");
-}
-
 /**
  * The one present-tense line.
  *
@@ -337,3 +332,10 @@ export function narrationLine(state: NarrationState): string | null {
       return state.terminal ? "This case is complete." : null;
   }
 }
+
+/**
+ * Re-exported so SPEC-047's callers keep one import while the table itself
+ * lives in `copy/voices.ts`, where `voices.test.ts` checks it against the role
+ * enum in the Python source.
+ */
+export { voiceFor, roleVoice };

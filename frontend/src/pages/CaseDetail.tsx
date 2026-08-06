@@ -10,6 +10,8 @@ import { MarginNarration } from "../screens/Brief/MarginNarration";
 import { SealedAnswerCard } from "../screens/Brief/SealedAnswerCard";
 import { WorkingViewCard } from "../screens/Brief/WorkingViewCard";
 import { FailurePath } from "../screens/shared/FailurePath";
+import { Dissent, independentReviewFrom } from "../screens/Brief/Dissent";
+import { MarginNotes, placeObjections } from "../screens/Brief/MarginNotes";
 import { CaseMap, countersFromView } from "../screens/shared/CaseMap";
 import { CaseChrome, useAltitude } from "../screens/shell/CaseChrome";
 import { AppShell } from "../screens/shell/AppShell";
@@ -17,13 +19,9 @@ import { RoomPanel, isRoomKey } from "../screens/shell/RoomPanel";
 import { RoomRail } from "../screens/shell/RoomRail";
 import { Skeleton } from "../screens/shared/Skeleton";
 import { showsAt } from "../screens/shell/altitude";
-import {
-  BRIEF_SECTION_TITLES,
-  EMPTY_TRUTHS,
-  ROOMS,
-  provenanceLabel,
-} from "../copy/terms";
-import type { BriefSection } from "../generated/case_view";
+import { BRIEF_SECTION_TITLES, EMPTY_TRUTHS, ROOMS } from "../copy/terms";
+import { provenanceVoice } from "../copy/voices";
+import type { BriefSection, ObjectionView } from "../generated/case_view";
 
 /** Sections that carry the answer itself, and so survive at Answer altitude. */
 const ANSWER_SECTIONS = ["executive_recommendation", "decision_confidence"];
@@ -60,6 +58,15 @@ export function CaseDetail() {
   const needsAction = view.needs_you !== "none";
   const deep = showsAt(altitude, "reasoning");
   const openRoom = isRoomKey(room) ? room : undefined;
+
+  // Objections are placed against the passage they attack (SPEC-049); the ones
+  // naming a section this brief does not have are shown at the end rather than
+  // dropped.
+  const objections: ObjectionView[] = view.rooms?.challenges?.objections ?? [];
+  const { bySection, unplaced } = placeObjections(
+    objections,
+    sections.map((s) => s.key),
+  );
 
   return (
     <CaseDataContext.Provider value={caseData}>
@@ -114,6 +121,13 @@ export function CaseDetail() {
             )}
 
             <FailurePath view={view} />
+            {/* Disagreement sits above the answer, not in a room: a blocked
+                signature or a Director split changes how the recommendation
+                below should be read. */}
+            <Dissent
+              divergence={view.rooms?.challenges?.track_divergence}
+              independentReview={independentReviewFrom(view)}
+            />
             <SealedAnswerCard stage={view.stage} />
             {/* The transcript is a collapsed <details> here and the full
                 expandable log lives at Method: sixty lines of "Task T-001
@@ -133,9 +147,11 @@ export function CaseDetail() {
                       section={section}
                       deep={deep}
                       settle={settleKeys.has(section.key)}
+                      objections={deep ? (bySection.get(section.key) ?? []) : []}
                     />
                   ))
               )}
+              {deep && <MarginNotes objections={unplaced} unplaced />}
             </section>
 
             {deep && (
@@ -209,10 +225,12 @@ function BriefPassage({
   section,
   deep,
   settle,
+  objections,
 }: {
   section: BriefSection;
   deep: boolean;
   settle: boolean;
+  objections: ObjectionView[];
 }) {
   const title = BRIEF_SECTION_TITLES[section.key] ?? section.key;
   const isPending = section.status === "pending";
@@ -247,7 +265,12 @@ function BriefPassage({
         section.blocks?.map((block, i) => (
           <div key={i} className="brief-block">
             {deep && (
-              <span className="provenance-stripe">{provenanceLabel(block.provenance)}</span>
+              <span
+                className={`provenance-stripe provenance-${block.provenance}`}
+                title={provenanceVoice(block.provenance).blurb}
+              >
+                {provenanceVoice(block.provenance).label}
+              </span>
             )}
             <p
               className={
@@ -267,6 +290,8 @@ function BriefPassage({
             )}
           </div>
         ))}
+
+      <MarginNotes objections={objections} />
     </article>
   );
 }

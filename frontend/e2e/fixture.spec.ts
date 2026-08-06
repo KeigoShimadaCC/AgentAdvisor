@@ -347,3 +347,53 @@ modeDescribe("fixture", "Fixture mode — reading altitude (SPEC-048)", () => {
     await expect(page).toHaveURL(new RegExp(`/cases/${FIXTURE_COMPLETED}$`));
   });
 });
+
+modeDescribe("fixture", "Fixture mode — the cast (SPEC-049)", () => {
+  test("provenance renders as a voice, never as its enum value", async ({ page }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    // The shell paints before the case loads, so waiting on it is not enough.
+    await page.locator(".brief-document .brief-passage").first().waitFor({ state: "visible" });
+
+    const stripes = page.locator(".provenance-stripe");
+    expect(await stripes.count()).toBeGreaterThan(0);
+    const labels = await stripes.allTextContents();
+    for (const label of labels) {
+      expect(label.trim()).not.toMatch(/_/);
+      expect(label.trim()).not.toBe("Unattributed");
+    }
+    // The six the north star requires the interface to distinguish.
+    expect(labels.some((l) => /From a source|Read of the evidence|Assumed|Calculated|From you|The recommendation/.test(l))).toBe(true);
+  });
+
+  test("an objection whose target is not a brief section is shown, not dropped", async ({ page }) => {
+    // The fixture's only objection targets `preliminary_recommendation.rationale[0]`,
+    // which is not a brief section key — exactly the fallback path.
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    await page.locator(".brief-document .brief-passage").first().waitFor({ state: "visible" });
+
+    const unplaced = page.locator(".margin-notes-unplaced");
+    await expect(unplaced).toBeVisible();
+    await expect(unplaced).toContainText("Staged entry may miss upside");
+    await expect(unplaced).toContainText("The Challenger");
+    await expect(unplaced).toContainText(/rather than dropped/i);
+  });
+
+  test("no dissent surface when the two tracks agree", async ({ page }) => {
+    // The fixture has `agreement: true`. A dissent surface here would be the UI
+    // inventing disagreement.
+    await page.goto(`/cases/${FIXTURE_COMPLETED}`);
+    await page.locator(".brief-document .brief-passage").first().waitFor({ state: "visible" });
+    await expect(page.locator(".dissent")).toHaveCount(0);
+  });
+
+  test("the challenges room still carries the divergence detail, attributed", async ({ page }) => {
+    await page.goto(`/cases/${FIXTURE_COMPLETED}/rooms/challenges`);
+    await page.locator(".app-shell-panel").waitFor({ state: "visible" });
+
+    const panel = page.locator(".app-shell-panel");
+    await expect(panel.getByText("Agree", { exact: true })).toBeVisible();
+    await expect(panel.locator(".never-averaged-footer")).toBeVisible();
+    // Objections carry the Challenger's voice here too.
+    await expect(panel.locator(".objection-voice").first()).toHaveText("The Challenger");
+  });
+});

@@ -2,6 +2,7 @@ import { RoomShell } from "../../shared/RoomShell";
 import { HonestEmpty } from "../../shared/HonestEmpty";
 import { CitationLink } from "../../inspector/CitationLink";
 import type { CaseView, ObjectionView } from "../../../generated/case_view";
+import { voiceFor, roleVoice } from "../../../copy/voices";
 import {
   objectionStatusLabel,
   levelLabel,
@@ -110,7 +111,12 @@ function ChallengesBody({ view }: { view: CaseView }) {
         </section>
       )}
 
-      {/* Second opinion / dual track */}
+      {/* Second opinion / dual track.
+          SPEC-049: the divergence itself is promoted to the case surface, above
+          the answer, because a split between the two Directors changes how the
+          recommendation should be read and this room is one most users never
+          open. What stays here is the detail — the per-track positions and the
+          reconciliation — which is what a room is for. */}
       <section className="second-opinion-section" aria-label="Second opinion">
         <h3>Second opinion</h3>
         {trackDivergence ? (
@@ -130,12 +136,13 @@ function ChallengesBody({ view }: { view: CaseView }) {
               <div className="second-opinion-positions">
                 {trackDivergence.positions.map((pos, i) => {
                   const trackId = String(pos["track_id"] ?? `Track ${i + 1}`);
+                  const who = voiceFor(trackId);
                   const alt = String(pos["preferred_alternative"] ?? "—");
                   const reason = String(pos["top_reason"] ?? "—");
                   const conf = pos["recommendation_confidence"];
                   return (
                     <div key={i} className="position-card">
-                      <h4>{trackId}</h4>
+                      <h4>{who}</h4>
                       <p className="position-alternative">{alt}</p>
                       <p className="position-reason">{reason}</p>
                       {conf != null && (
@@ -168,6 +175,9 @@ function ObjectionRow({ objection }: { objection: ObjectionView }) {
   return (
     <li className={`objection-row objection-status-${objection.resolution_status}`}>
       <div className="objection-row-head">
+        <span className="objection-voice" title={roleVoice("challenger").blurb}>
+          {roleVoice("challenger").label}
+        </span>
         <span className={`objection-status-pill objection-status-pill-${objection.resolution_status}`}>
           {objectionStatusLabel(objection.resolution_status)}
         </span>

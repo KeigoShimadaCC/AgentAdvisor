@@ -209,3 +209,46 @@ describe("Delivery", () => {
     expect(screen.getByText(/Missing source/)).toBeInTheDocument();
   });
 });
+
+describe("a blocking reviewer dissent (SPEC-049)", () => {
+  const dissent = {
+    verdict: "dissent",
+    reasoning: "The evidence supports a smaller position.",
+    divergent_conclusion: "Take a half position and revisit after earnings.",
+  };
+
+  it("takes the signature away rather than rendering the dissent beside a live button", () => {
+    // SPEC-039 says a dissent blocks delivery. Showing the dissent while
+    // leaving Accept clickable would make the block advisory.
+    const view = makeView();
+    (view as unknown as { integrity: Record<string, unknown> }).integrity = {
+      gates: [],
+      independent_review: dissent,
+    };
+    renderDelivery(view);
+    return screen.findByText("Signature blocked").then(() => {
+      expect(
+        screen.queryByRole("button", { name: "Accept this recommendation" }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText(/Signing is blocked/i)).toBeInTheDocument();
+      // The conclusion the reviewer would reach instead is on screen, so the
+      // block is actionable rather than merely obstructive.
+      expect(
+        screen.getByText("Take a half position and revisit after earnings."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("leaves the signature alone when the reviewer concurs", async () => {
+    const view = makeView();
+    (view as unknown as { integrity: Record<string, unknown> }).integrity = {
+      gates: [],
+      independent_review: { verdict: "concur", reasoning: "Agreed." },
+    };
+    renderDelivery(view);
+    expect(
+      await screen.findByRole("button", { name: "Accept this recommendation" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Signature blocked")).not.toBeInTheDocument();
+  });
+});

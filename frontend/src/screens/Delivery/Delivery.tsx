@@ -8,6 +8,7 @@ import { InspectorHost } from "../inspector/InspectorHost";
 import { CitationLink } from "../inspector/CitationLink";
 import { CitationText } from "../inspector/CitationText";
 import { FailurePath } from "../shared/FailurePath";
+import { Dissent, independentReviewFrom, isBlockingDissent } from "../Brief/Dissent";
 import { ProbabilityBand } from "../../uncertainty/ProbabilityBand";
 import { ConfidenceBands } from "../../uncertainty/ConfidenceBands";
 import { SourceStrengthGrade } from "../../uncertainty/SourceStrengthGrade";
@@ -19,9 +20,9 @@ import {
   EMPTY_TRUTHS,
   FAILURE_COPY,
   TRIPWIRE_COPY,
-  provenanceLabel,
   ACTION_PLAN_COPY,
 } from "../../copy/terms";
+import { provenanceVoice } from "../../copy/voices";
 import type { FinalRecommendation } from "../../generated/final_recommendation";
 import type { CaseView, BriefSection } from "../../generated/case_view";
 import type { ProbabilityView } from "../../generated/uncertainty_view";
@@ -52,7 +53,12 @@ export function Delivery() {
   if (error) return <p className="error" role="alert">{error}</p>;
   if (!view) return <p>No data.</p>;
 
-  const canAccept = view.stage === "awaiting_final_approval";
+  // SPEC-039's independent reviewer sees the conclusion and the evidence but
+  // not the reasoning, and a dissent from it blocks delivery. Rendering the
+  // dissent while leaving the signature live would make the block advisory.
+  const independentReview = independentReviewFrom(view);
+  const blocked = isBlockingDissent(independentReview);
+  const canAccept = view.stage === "awaiting_final_approval" && !blocked;
   const hasReviseApproval = (view.history?.approvals ?? []).some(
     (a) => a.kind === "final" && a.decision === "revise",
   );
@@ -126,6 +132,10 @@ export function Delivery() {
         <CaseCrumb caseId={caseId} label={FAILURE_COPY.backToCase} />
         <h2>Delivery</h2>
         <FailurePath view={view} />
+        <Dissent
+          divergence={view.rooms?.challenges?.track_divergence}
+          independentReview={independentReview}
+        />
 
         {final && (
           <>
@@ -176,6 +186,16 @@ export function Delivery() {
 
             <FullBrief sections={view.brief_sections ?? []} />
           </>
+        )}
+
+        {blocked && view.stage === "awaiting_final_approval" && (
+          <section className="signature signature-blocked" aria-label="Signature">
+            <h3>Your signature</h3>
+            <p className="screen-help">
+              Signing is blocked while the independent reviewer's dissent stands. It is shown
+              above, with the conclusion that reviewer would reach instead.
+            </p>
+          </section>
         )}
 
         {canAccept && (
@@ -452,7 +472,12 @@ function FullBrief({ sections }: { sections: BriefSection[] }) {
           {section.status === "not_assessed" && <p>Not assessed.</p>}
           {section.blocks?.map((block, i) => (
             <div key={i} className="brief-block">
-              <span className="provenance-stripe">{provenanceLabel(block.provenance)}</span>
+              <span
+                className={`provenance-stripe provenance-${block.provenance}`}
+                title={provenanceVoice(block.provenance).blurb}
+              >
+                {provenanceVoice(block.provenance).label}
+              </span>
               <p><CitationText>{block.text}</CitationText></p>
               {block.citation_ids && block.citation_ids.length > 0 && (
                 <div className="brief-block-citations">

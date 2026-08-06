@@ -1727,3 +1727,123 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
   flex-direction: column; gap: var(--space-md); min-width: 0;
 }
 .app-shell-rail .case-map-phase { min-width: 0; }
+
+/* ── The cast: voices, margin notes, dissent (SPEC-049) ───────────────────── */
+
+/*
+ * Provenance was a grey uppercase enum. It is the north star's own division —
+ * sourced fact, interpretation, your input, assumption, calculation,
+ * recommendation — so it gets a colour that says which kind of claim you are
+ * reading, and a title carrying what that kind is for.
+ */
+.provenance-stripe { cursor: help; }
+.provenance-sourced_fact { color: var(--state-good-text); }
+.provenance-interpretation { color: var(--text-muted); }
+.provenance-assumption { color: var(--state-uncertain); }
+.provenance-calculation { color: var(--text-muted); }
+.provenance-user_input { color: var(--accent); }
+.provenance-recommendation { color: var(--accent); font-weight: var(--weight-medium); }
+
+/*
+ * Margin notes. On a wide screen an objection sits in the margin beside the
+ * passage it attacks, which is where a reader expects a note about a passage.
+ * Below that width it follows the passage inline, because a margin narrower
+ * than its content is not a margin.
+ */
+.margin-notes { display: flex; flex-direction: column; gap: var(--space-md); margin-top: var(--space-md); }
+.margin-note {
+  border-left: 3px solid var(--border);
+  padding-left: var(--space-md);
+  font-size: var(--text-sm);
+}
+/* Open and high-materiality is a live problem with the recommendation, and it
+   is the one objection state that has to be unmissable. It is an uncertainty,
+   which is one of the two meanings a border is allowed to carry. */
+.margin-note-live {
+  border-left-color: var(--state-needs-you);
+  background: var(--state-needs-you-wash);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+}
+.margin-note-resolved,
+.margin-note-dismissed { color: var(--text-muted); }
+.margin-note-who {
+  display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: baseline;
+  font-weight: var(--weight-medium);
+}
+.margin-note-status,
+.margin-note-materiality {
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
+  font-weight: var(--weight-regular);
+}
+.margin-note-claim { margin-top: var(--space-2xs); }
+.margin-note-reasoning { color: var(--text-muted); }
+.margin-note-record { margin-top: var(--space-2xs); }
+.margin-notes-unplaced { margin-top: var(--space-xl); }
+.margin-notes-orphan-note { font-size: var(--text-sm); color: var(--text-muted); font-style: italic; }
+
+@media (min-width: 75rem) {
+  .app-shell-content .brief-passage { position: relative; }
+  .app-shell-content .brief-passage > .margin-notes {
+    position: absolute; left: calc(100% + var(--space-lg)); top: 0;
+    width: 16rem; margin-top: 0;
+  }
+}
+
+/*
+ * Dissent. A Director split and a blocking reviewer dissent must not look
+ * alike: one says the case has two defensible readings, the other says this
+ * cannot be signed.
+ */
+.dissent { display: flex; flex-direction: column; gap: var(--space-lg); }
+.dissent-blocking {
+  border: 2px solid var(--state-critical);
+  background: var(--state-critical-wash);
+  border-radius: var(--radius-md); padding: var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-sm);
+}
+.dissent-blocking-stamp {
+  display: inline-block; margin-right: var(--space-sm);
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  background: var(--state-critical); color: var(--accent-on);
+  padding: var(--space-3xs) var(--space-sm); border-radius: var(--radius-sm);
+}
+.dissent-blocking-verdict { font-weight: var(--weight-semibold); font-size: var(--text-lg); }
+.dissent-blocking-alternative { font-weight: var(--weight-medium); }
+.dissent-consequence { font-weight: var(--weight-medium); color: var(--state-critical); }
+.dissent-label {
+  display: block; font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+}
+.dissent-voice-blurb { font-size: var(--text-sm); color: var(--text-muted); }
+.dissent-unsupported ul { list-style: disc; padding-left: var(--space-lg); }
+
+.dissent-split {
+  border-left: 3px solid var(--state-uncertain);
+  padding-left: var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-sm);
+}
+.dissent-split-stamp {
+  display: inline-block; margin-right: var(--space-sm);
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--state-uncertain);
+}
+.dissent-split-headline { font-weight: var(--weight-medium); }
+.dissent-positions {
+  display: grid; gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+.dissent-position { display: flex; flex-direction: column; gap: var(--space-3xs); }
+.dissent-position-who {
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+}
+.dissent-position-alternative { font-weight: var(--weight-semibold); }
+.dissent-position-reason { font-size: var(--text-sm); }
+.dissent-position-confidence { font-size: var(--text-sm); color: var(--text-muted); }
+.dissent-never-averaged { font-size: var(--text-sm); color: var(--text-muted); font-style: italic; }
+
+.objection-voice { font-weight: var(--weight-medium); cursor: help; }
+.signature-blocked { border-color: var(--state-critical); }

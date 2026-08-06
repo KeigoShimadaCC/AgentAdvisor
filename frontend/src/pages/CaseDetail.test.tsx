@@ -48,12 +48,12 @@ function makeView(overrides: Partial<CaseView> = {}): CaseView {
       {
         key: "executive_recommendation",
         status: "final",
-        blocks: [{ provenance: "synthesizer", text: "Take the term sheet.", citation_ids: ["E-1"] }],
+        blocks: [{ provenance: "recommendation", text: "Take the term sheet.", citation_ids: ["E-1"] }],
       },
       {
         key: "key_reasons",
         status: "final",
-        blocks: [{ provenance: "synthesizer", text: "Runway is the binding constraint." }],
+        blocks: [{ provenance: "interpretation", text: "Runway is the binding constraint." }],
       },
     ],
     ...overrides,
@@ -111,7 +111,7 @@ describe("altitude", () => {
     expect(screen.getByText("Take the term sheet.")).toBeInTheDocument();
     expect(screen.queryByText("Runway is the binding constraint.")).not.toBeInTheDocument();
     // Provenance and the case map are apparatus, not answer.
-    expect(screen.queryByText("synthesizer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Read of the evidence")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Where this case is")).not.toBeInTheDocument();
   });
 
@@ -121,7 +121,9 @@ describe("altitude", () => {
     await userEvent.click(screen.getByRole("button", { name: "Reasoning" }));
 
     expect(screen.getByText("Runway is the binding constraint.")).toBeInTheDocument();
-    expect(screen.getAllByText("synthesizer").length).toBeGreaterThan(0);
+    // Provenance renders as a voice, never as the enum (SPEC-049).
+    expect(screen.getAllByText("Read of the evidence").length).toBeGreaterThan(0);
+    expect(screen.queryByText("synthesizer")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Where this case is")).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Rooms" })).not.toBeInTheDocument();
   });
