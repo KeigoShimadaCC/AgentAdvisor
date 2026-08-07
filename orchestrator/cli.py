@@ -364,6 +364,32 @@ def cmd_report(args: argparse.Namespace, backend: AgentBackend | None = None) ->
     return EXIT_OK
 
 
+def cmd_deck(args: argparse.Namespace, backend: AgentBackend | None = None) -> int:
+    """Generate (or regenerate) the board deck for a completed case (SPEC-057).
+
+    Deterministic and model-free, so the backend is unused.
+    """
+    del backend
+    from orchestrator.deck import DeckError, build_deck
+
+    case = _open_case(args)
+    try:
+        result = build_deck(case, present=args.present)
+    except DeckError as exc:
+        raise UserError(str(exc)) from exc
+
+    print(f"Deck for {case.root.name}:")
+    print(f"  PowerPoint: {result.pptx}")
+    if result.pdf is not None:
+        print(f"  PDF:        {result.pdf}")
+    print(f"  Slides:     {result.html}")
+    if result.pngs:
+        print(f"  Images:     {len(result.pngs)} in {result.deck_dir / 'render'}")
+    for tier, reason in result.degradations.items():
+        print(f"  note: {tier} skipped ({reason})")
+    return EXIT_OK
+
+
 def cmd_watch(args: argparse.Namespace, backend: AgentBackend | None = None) -> int:
     """Report which monitoring checks are due (SPEC-042).
 
@@ -593,6 +619,16 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("case_id")
     add_common(report)
     report.set_defaults(func=cmd_report)
+
+    deck = subparsers.add_parser("deck", help="Generate the board deck for a completed case")
+    deck.add_argument("case_id")
+    deck.add_argument(
+        "--present",
+        action="store_true",
+        help="Use the larger presentation type scale instead of the default reading scale",
+    )
+    add_common(deck)
+    deck.set_defaults(func=cmd_deck)
 
     listing = subparsers.add_parser("list", help="List known cases")
     listing.add_argument("--json", action="store_true", help="Emit machine-readable JSON")

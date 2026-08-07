@@ -946,6 +946,13 @@ def test_pipeline_stub_e2e(stub_env: Case, tmp_path: Path):
     audit_lines = (case.root / "audit.jsonl").read_text().strip().split("\n")
     assert len(audit_lines) >= 10
 
+    # SPEC-057: the board deck is generated automatically when a case reaches DONE.
+    deck_dir = case.root / "outputs" / "deck"
+    assert (deck_dir / "slides.html").exists(), "deck slides.html was not generated at DONE"
+    assert (deck_dir / "deck.pptx.html").exists(), "editable deck was not generated at DONE"
+    audit_text = (case.root / "audit.jsonl").read_text(encoding="utf-8")
+    assert "deck_generated" in audit_text or "deck_generation_degraded" in audit_text
+
     # Backend invocations
     assert len(backend.invocations) >= 8
 
