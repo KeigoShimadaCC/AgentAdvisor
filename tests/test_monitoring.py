@@ -419,3 +419,104 @@ def test_monitoring_endpoint_reports_no_plan_without_erroring(tmp_path: Path) ->
         response = client.get(f"/api/cases/{case.root.name}/monitoring")
     assert response.status_code == 200
     assert response.json() == {"plan": None, "due": []}
+
+
+# ── A pinned "today" for fixtures (SPEC-056) ─────────────────────────────────
+#
+# Dueness is ``(today - delivered_at) >= cadence``, so a committed monitoring plan
+# renders differently as the calendar advances.  The e2e fixture showed "1 check is
+# due now" and would have said "2" from 2026-08-23, failing the delivery visual
+# baseline with no code change behind it.  These tests exist so that expiry cannot
+# come back silently.
+
+
+def _two_cadence_plan(case_id: str) -> MonitoringPlan:
+    """One 30-day and one 14-day indicator, delivered 2026-07-24.
+
+    Between +14 and +30 days exactly one is due, which is the state the committed
+    delivery baseline was captured in. The plan's own indicator IDs are kept, because
+    ``MonitoringPlan`` validates that every mitigation's ``triggered_by`` resolves —
+    renaming them orphans the mitigations.
+    """
+    base = _plan().model_copy(update={"case_id": case_id, "delivered_at": date(2026, 7, 24)})
+    kept = [
+        base.indicators[0].model_copy(update={"check_cadence_days": 30}),
+        base.indicators[1].model_copy(update={"check_cadence_days": 14}),
+    ]
+    kept_ids = {i.indicator_id for i in kept}
+    return base.model_copy(
+        update={
+            "indicators": kept,
+            "mitigations": [m for m in base.mitigations if set(m.triggered_by).issubset(kept_ids)],
+        }
+    )
+
+
+def test_as_of_freezes_dueness_against_the_calendar() -> None:
+    plan = _two_cadence_plan("case-001-fixture-001")
+    # The window the baseline lives in: one due, one not.
+    assert len(due_checks(plan, [], as_of=date(2026, 8, 7))) == 1
+    # ...and the day the real clock would have broken it.
+    assert len(due_checks(plan, [], as_of=date(2026, 8, 23))) == 2
+    # Pinning the date is therefore the difference between a reproducible fixture
+    # and one with a silent expiry.
+    assert len(due_checks(plan, [], as_of=date(2026, 8, 7))) == 1
+
+
+def test_service_honours_a_pinned_as_of(tmp_path: Path, monkeypatch: Any) -> None:
+    from fastapi.testclient import TestClient
+
+    from orchestrator.case_store import create_case
+    from orchestrator.service.app import create_app
+
+    cases_root = tmp_path / "cases"
+    case = create_case("watched", cases_root=cases_root)
+    MonitoringStore(tmp_path / "monitoring").write_plan(_two_cadence_plan(case.root.name))
+
+    # Pinned to the day *after* delivery, when neither cadence has elapsed and the
+    # honest answer is zero.
+    #
+    # The date matters, and an earlier version of this test got it wrong: pinning to
+    # 2026-08-07 asserted "1 due", which is also what the real clock said on the day
+    # the test was written — so it passed whether or not the pin was honoured, and
+    # would only have started failing after 2026-08-23, the very date it exists to
+    # defend. A pin in the past stays distinguishable forever, because the real clock
+    # only ever moves further from it.
+    monkeypatch.setenv("AGENTADVISOR_MONITORING_AS_OF", "2026-07-25")
+    app = create_app(cases_root, monitoring_root=tmp_path / "monitoring")
+    with TestClient(app) as client:
+        body = client.get(f"/api/cases/{case.root.name}/monitoring").json()
+    assert body["due"] == []
+
+
+def test_an_unset_or_malformed_as_of_falls_back_to_the_real_clock(monkeypatch: Any) -> None:
+    from orchestrator.service.app import _monitoring_as_of_from_env
+
+    monkeypatch.delenv("AGENTADVISOR_MONITORING_AS_OF", raising=False)
+    assert _monitoring_as_of_from_env() is None
+    # A malformed hook must not take down a real service, so it degrades to the
+    # real clock rather than raising at construction.
+    monkeypatch.setenv("AGENTADVISOR_MONITORING_AS_OF", "not-a-date")
+    assert _monitoring_as_of_from_env() is None
+    monkeypatch.setenv("AGENTADVISOR_MONITORING_AS_OF", "2026-08-07")
+    assert _monitoring_as_of_from_env() == date(2026, 8, 7)
+
+
+def test_a_real_deployment_still_uses_the_real_clock(tmp_path: Path, monkeypatch: Any) -> None:
+    from fastapi.testclient import TestClient
+
+    from orchestrator.case_store import create_case
+    from orchestrator.service.app import create_app
+
+    monkeypatch.delenv("AGENTADVISOR_MONITORING_AS_OF", raising=False)
+    cases_root = tmp_path / "cases"
+    case = create_case("watched", cases_root=cases_root)
+    # Delivered long ago against any cadence: everything is overdue today, which is
+    # only true if the service is reading the real clock.
+    plan = _two_cadence_plan(case.root.name).model_copy(update={"delivered_at": date(2020, 1, 1)})
+    MonitoringStore(tmp_path / "monitoring").write_plan(plan)
+
+    app = create_app(cases_root, monitoring_root=tmp_path / "monitoring")
+    with TestClient(app) as client:
+        body = client.get(f"/api/cases/{case.root.name}/monitoring").json()
+    assert len(body["due"]) == 2

@@ -252,18 +252,30 @@ recovered what the original actually contained: NVDA-specific indicators consist
 case, and one indicator rendering as `DUE NOW` against another that was not. Rebuilt to match, all
 13 visual baselines and all 8 coverage tests pass **with no baseline changes at all**.
 
-That reconstruction is what surfaced the second problem: **the delivery baseline has an expiry
-date.** Whether an indicator reads `DUE NOW` is computed as `(today − delivered_at).days >= cadence`
-against the real clock, so the fixture's stored date decides the rendering. The plan is delivered
-`2026-07-24` with cadences of 14 and 30 days, which is the only shape that yields the baseline's "1
-check is due now." On **2026-08-23** the 30-day indicator also comes due, the line becomes "2 checks
-are due now", a second `DUE NOW` badge appears — and the delivery baseline fails, with nothing in
-the codebase having changed.
+That reconstruction is what surfaced the second problem: **the fixture's rendering drifts with the
+calendar.** Whether an indicator reads `DUE NOW` is computed as `(today − delivered_at).days >=
+cadence` against the real clock, so the fixture's stored date decides what the Delivery screen says.
+The plan is delivered `2026-07-24` with cadences of 14 and 30 days, which is the only shape yielding
+the baseline's "1 check is due now." From **2026-08-23** the 30-day indicator also comes due, the
+line becomes "2 checks are due now" and a second `DUE NOW` badge appears — for a fixture whose data
+never changed.
 
-This is not the flake below; it is a dated fixture in a suite that asserts pixels. It belongs to
-SPEC-042/SPEC-053 rather than here. The durable fix is to let fixture mode pin an "as of" date —
-`due_checks` already takes an `as_of` parameter and only the service's caller passes the real clock
-— so the fixture's dueness stops depending on when the suite happens to run.
+> **Correction (2026-08-07, after the fix).** This section originally claimed the delivery *visual
+> baseline* would fail on that date. It would not, and the claim was not checked before it was
+> written. Driving the pinned date to `2026-09-01` renders the two-due state and the baseline still
+> **passes**: Playwright counts **8,687 differing pixels**, about **0.12%** of the image, against a
+> `maxDiffPixelRatio` of 1%. The drift is real and the fix is still right — a fixture whose output
+> depends on the day it runs is not a fixture — but the consequence stated here was wrong.
+>
+> It also exposes something about the gate itself, which is the more useful finding: an added badge
+> and a changed sentence are **invisible** to the visual suite at its current tolerance. The suite
+> catches layout shifts and reflows; it does not catch modest content changes. Nothing else in the
+> harness asserts that sentence, so today the drift would simply have gone unnoticed.
+
+The fix, applied after this report was first written: `due_checks` already accepted an `as_of`, and
+only the service's caller passed the real clock. `ServiceConfig` now carries `monitoring_as_of`,
+read from `AGENTADVISOR_MONITORING_AS_OF` and defaulting to the real clock, and the e2e fixture
+backend pins the date its baseline was captured against. Belongs to SPEC-042/SPEC-053.
 
 ### 5. The visual baselines are browser-*binary*-specific (harness — **documented**)
 

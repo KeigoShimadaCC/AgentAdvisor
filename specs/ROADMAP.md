@@ -499,14 +499,23 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
   tokenisation was corrected at the same time: main set it at `0.6875rem`, below the type scale,
   and the first fix reached for `--text-sm` (13px), making it larger than intended; it now uses
   `--text-xs` (12px), the nearest step.
-- (2026-08-07) **The delivery visual baseline expires on 2026-08-23 (found in SPEC-056).** Whether a
-  monitoring indicator renders `DUE NOW` is computed as `(today − delivered_at).days >= cadence`
-  against the real clock, so the e2e fixture's stored date decides the rendering. Its plan is
-  delivered `2026-07-24` with 14- and 30-day cadences, the only shape that yields the baseline's "1
-  check is due now." On 2026-08-23 the 30-day indicator also comes due, the line becomes "2 checks
-  are due now", a second badge appears, and the baseline fails with no code change. `due_checks`
-  already accepts an `as_of` parameter and only the service's caller passes the real clock, so the
-  fix is to let fixture mode pin it. Belongs to SPEC-042/SPEC-053.
+- (2026-08-07) **The e2e fixture's Delivery rendering drifts with the calendar — fixed; and the
+  visual gate is looser than assumed (found in SPEC-056).** Whether a monitoring indicator renders
+  `DUE NOW` is computed as `(today − delivered_at).days >= cadence` against the real clock, so the
+  fixture's stored date decides the rendering. Its plan is delivered `2026-07-24` with 14- and
+  30-day cadences, the only shape yielding "1 check is due now"; from 2026-08-23 the 30-day
+  indicator also comes due and the screen says "2 checks are due now" for data that never changed.
+  **Fixed:** `ServiceConfig` now carries `monitoring_as_of`, read from
+  `AGENTADVISOR_MONITORING_AS_OF` and defaulting to the real clock, and the fixture backend pins the
+  date its baseline was captured against.
+  **Correction:** this was first recorded as "the delivery visual baseline expires on 2026-08-23".
+  It does not. Driving the pin to `2026-09-01` renders the two-due state and the baseline still
+  passes — Playwright counts 8,687 differing pixels, ~0.12% of the image, against a
+  `maxDiffPixelRatio` of 1%. The claim was written without being checked. The more useful finding is
+  the one it hid: **an added badge and a changed sentence are invisible to the visual suite at its
+  current tolerance.** It catches layout shifts and reflows, not modest content changes, and nothing
+  else in the harness asserts that sentence — so the drift would simply have gone unnoticed.
+  Belongs to SPEC-042/SPEC-053.
 - (2026-08-07) **Two harness defects fixed during the sweep (SPEC-056).** `make e2e-frontend` had
   never worked from the repo root: each recipe line runs in its own shell, so the target's
   `cd frontend` applied only to `npm install` and the three test lines could not find the config.
