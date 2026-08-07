@@ -2224,3 +2224,102 @@ p, li, dd, dt, td, th, .brief-passage-text, .margin-note-claim, .honest-sentence
 }
 .mitigation-against { font-size: var(--text-sm); color: var(--text-muted); }
 .source-type-user_document { color: var(--accent); font-weight: var(--weight-medium); }
+
+/* ── The calibration language (SPEC-054) ──────────────────────────────────── */
+/*
+ * One grammar, three densities. Every uncertainty rendering in the app goes
+ * through `Measure`, so a band looks like a band on the answer, in a room, and
+ * beside a claim — which is the whole reason the mapping is data rather than
+ * five components' worth of CSS.
+ */
+
+.u-band, .u-grade, .u-countable, .u-range, .u-not_assessed {
+  display: flex; flex-direction: column; gap: var(--space-3xs);
+}
+.u-scale-inline {
+  flex-direction: row; align-items: baseline; gap: var(--space-2xs);
+  font-size: var(--text-sm);
+}
+.u-label {
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+}
+
+/* Bands: an ordinal position among named steps. */
+.u-band-steps { display: inline-flex; gap: 2px; }
+.u-band-step {
+  width: 1.25rem; height: 3px; border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+}
+.u-band-step.selected { background: var(--accent); }
+.confidence-band-label { font-weight: var(--weight-medium); }
+.confidence-basis, .source-strength-basis {
+  font-size: var(--text-sm); color: var(--text-muted); max-width: 44ch;
+}
+
+/* Grades: ordinal judgement as a letter, never a number. */
+.source-strength-grade {
+  font-family: var(--font-mono); font-weight: var(--weight-semibold);
+  font-size: var(--text-lg);
+}
+.u-scale-inline .source-strength-grade { font-size: var(--text-md); }
+.u-grade-meaning { font-size: var(--text-sm); color: var(--text-muted); max-width: 44ch; }
+
+/* Countable: marks you can count, because a percentage would invite arithmetic
+   against the other three measures. */
+.countable-dots { display: inline-flex; gap: 3px; align-items: center; }
+.u-dot {
+  width: 0.5rem; height: 0.5rem; border-radius: var(--radius-full);
+  background: var(--surface-sunken); border: 1px solid var(--border);
+}
+.u-dot.filled { background: var(--accent); border-color: var(--accent); }
+.stability-dots-caption { font-size: var(--text-sm); color: var(--text-muted); }
+
+/* Ranges: a point and an interval look different because they are different
+   claims about what is known. */
+.u-point { display: inline-flex; gap: var(--space-2xs); align-items: baseline; }
+.u-point-value { font-family: var(--font-mono); font-weight: var(--weight-medium); }
+.u-interval {
+  display: inline-flex; gap: var(--space-2xs); align-items: center;
+  font-family: var(--font-mono); color: var(--text-muted);
+}
+.u-interval-bar {
+  display: inline-block; width: 2.5rem; height: 2px;
+  background: linear-gradient(90deg, var(--border), var(--accent), var(--border));
+}
+.u-method { font-size: var(--text-xs); color: var(--text-muted); }
+
+/* The sentinel. Explicit, always. */
+.not-assessed-stamp {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
+}
+.not-assessed-reason { font-size: var(--text-sm); color: var(--text-muted); max-width: 44ch; }
+
+.uncertainty-summary {
+  display: flex; flex-wrap: wrap; gap: var(--space-xl);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.uncertainty-measure { display: flex; flex-direction: column; gap: var(--space-3xs); }
+
+/* Expand in place: the support for one sentence, without leaving the paragraph. */
+.why { display: inline; }
+.why-toggle {
+  background: none; border: none; padding: 0 var(--space-2xs);
+  color: var(--accent); cursor: pointer; font: inherit; font-size: var(--text-sm);
+  text-decoration: underline;
+}
+.why-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.why-body {
+  display: block; margin-top: var(--space-2xs); padding-left: var(--space-md);
+  border-left: 2px solid var(--border);
+  font-size: var(--text-sm);
+}
+.why-label {
+  display: block; font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+}
+.why-citations { display: block; margin-top: var(--space-2xs); }
+.why-adjustments ul { list-style: disc; padding-left: var(--space-lg); }
+.why-delta { font-family: var(--font-mono); color: var(--text-muted); }

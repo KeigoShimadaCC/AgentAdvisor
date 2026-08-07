@@ -1,43 +1,21 @@
-import { CONFIDENCE_BANDS, confidenceBand } from "../copy/terms";
-import { NotAssessedWidget } from "./NotAssessedWidget";
+import { Measure } from "./Measure";
+import { encodeConfidence, type Scale } from "./language";
 import type { AssessedConfidence, NotAssessed } from "../generated/uncertainty_view";
 
-interface ConfidenceBandsProps {
-  confidence: AssessedConfidence | NotAssessed | null | undefined;
-}
-
 /**
- * Five-step labeled confidence bands with the basis text below.
+ * Recommendation confidence, as a band (SPEC-054 rebuild).
+ *
+ * Semantics unchanged from SPEC-035: the same five steps, the same thresholds,
+ * the same basis text. What changed is that the rendering comes from the shared
+ * grammar, so this measure looks the same here, on the answer, and beside a
+ * claim.
  */
-export function ConfidenceBands({ confidence }: ConfidenceBandsProps) {
-  if (!confidence || confidence.kind === "not_assessed") {
-    return <NotAssessedWidget reason={confidence?.reason ?? "Not assessed"} />;
-  }
-
-  const assessed = confidence as AssessedConfidence;
-  const active = confidenceBand(assessed.value);
-
-  return (
-    <div className="confidence-bands">
-      <div className="confidence-band-list" role="radiogroup" aria-label="Confidence level">
-        {CONFIDENCE_BANDS.map((band) => {
-          const isActive = band.label === active.label;
-          return (
-            <div
-              key={band.key}
-              className={`confidence-band ${isActive ? "active" : ""}`}
-            >
-              <span
-                className="confidence-band-label"
-                aria-current={isActive ? "true" : "false"}
-              >
-                {band.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-      <p className="confidence-basis">{assessed.basis}</p>
-    </div>
-  );
+export function ConfidenceBands({
+  confidence,
+  scale = "full",
+}: {
+  confidence: AssessedConfidence | NotAssessed | null | undefined;
+  scale?: Scale;
+}) {
+  return <Measure encoding={encodeConfidence(confidence)} scale={scale} />;
 }

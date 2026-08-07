@@ -24,6 +24,8 @@ import { useCaseTitle } from "../presence/title";
 import { useCaseNotices } from "../presence/useCaseNotices";
 import { OutcomePrompt } from "../screens/Calibration/OutcomePrompt";
 import { ExportControls } from "../export/ExportControls";
+import { UncertaintySummary } from "../uncertainty/UncertaintySummary";
+import { Why } from "../uncertainty/Why";
 import { showsAt } from "../screens/shell/altitude";
 import { BRIEF_SECTION_TITLES, EMPTY_TRUTHS, ROOMS } from "../copy/terms";
 import { provenanceVoice } from "../copy/voices";
@@ -149,6 +151,11 @@ export function CaseDetail() {
               independentReview={independentReviewFrom(view)}
             />
             <SealedAnswerCard stage={view.stage} />
+
+            {/* SPEC-054: the same four measures the delivery screen carries, in
+                their summary scale. One vocabulary, three densities — a reader
+                who learns a band here knows it in a room. */}
+            <UncertaintySummary uncertainty={view.uncertainty} />
             {/* The transcript is a collapsed <details> here and the full
                 expandable log lives at Method: sixty lines of "Task T-001
                 started" in the reading column is the crowding this phase is
@@ -315,6 +322,9 @@ function BriefPassage({
                 {block.citation_ids.map((id) => (
                   <CitationLink key={id} id={id} />
                 ))}
+                {/* Support for this sentence, in place: following a citation
+                    should not cost the reader the paragraph they are in. */}
+                <Why subject="this claim" citations={block.citation_ids} />
               </div>
             )}
           </div>
