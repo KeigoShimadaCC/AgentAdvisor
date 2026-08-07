@@ -85,8 +85,12 @@ read or an emit.
 
 ## Acceptance criteria
 
-- [x] `make check`, `make frontend-check` and `make e2e-frontend` all green from a clean checkout,
-      with the e2e suite within SPEC-037's 10-minute budget on the reference machine.
+- [~] `make check`, `make frontend-check` and `make e2e-frontend` all green from a clean checkout,
+      with the e2e suite within SPEC-037's 10-minute budget on the reference machine. **`make check`
+      and `make frontend-check` met; the budget met at 589s.** `make e2e-frontend` was **not** run to
+      completion — the target includes the `webkit` project, whose browser is absent from this
+      container and cannot be downloaded behind the proxy, so the three modes were run scoped to the
+      five chromium-based projects instead. This needs a reference machine with webkit installed.
 - [~] Visual regression passes across light/dark × desktop/mobile with no unreviewed baseline
       changes; axe reports zero serious/critical on every route in both themes. **axe met** (15
       routes × both themes, zero serious/critical). **Visual: see below.**
@@ -128,7 +132,7 @@ Executed 2026-08-07. Full write-up: `report-and-findings/2026-08-07-phase-9-befo
 | `make check` | green — ruff + mypy clean, 968 passed, 105s |
 | `make frontend-check` | green — tsc clean, 64 schemas (0 drift), token guard clean, 414 passed |
 | `make frontend-build` | green — 393.63 kB JS / 78.17 kB CSS |
-| `make e2e-frontend` | green — fixture 189 / stub 6 / replay 12, **589s total** |
+| e2e, three modes | green on **5 of 6 projects** — fixture 189 / stub 6 / replay 12, **589s total**. `make e2e-frontend` itself cannot complete here: it runs the `webkit` project and that browser is absent and not installable behind the proxy, so the modes were run scoped to the chromium-based projects |
 | `tests/test_pipeline_invariants.py` | green — 7 passed |
 | `coverage.spec.ts` | green — 7 engine outputs plus its self-guard |
 | axe | zero serious/critical, 15 routes × both themes |
@@ -153,7 +157,8 @@ reasons on two surfaces), and two harness defects fixed here (`make e2e-frontend
 repo root; the visual baselines are browser-binary-specific).
 
 Not run: the `webkit` project (browser unavailable in this container and not installable behind the
-proxy), and the single real live-model case (manual and consented per SPEC-037).
+proxy — which also means `make e2e-frontend` as written cannot complete here), and the single real
+live-model case (manual and consented per SPEC-037).
 
 ## Open questions
 

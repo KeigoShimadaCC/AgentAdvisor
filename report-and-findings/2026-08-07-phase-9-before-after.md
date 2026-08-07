@@ -35,23 +35,38 @@ One acceptance criterion is **not met**: the visual suite does not pass twice co
 | Python lint, types, units | `make check` | **green** — ruff + mypy clean, **968 passed**, 105s |
 | Frontend types, tokens, units | `make frontend-check` | **green** — tsc clean, 64 schemas (0 drift), token guard clean, **414 passed** in 33 files |
 | Production build | `make frontend-build` | **green** — 393.63 kB JS / 78.17 kB CSS |
-| e2e, all three modes | `make e2e-frontend` | **green** after a harness fix — fixture 189, stub 6, replay 12 |
+| e2e, all three modes | see note below | **green on 5 of 6 projects** — fixture 189, stub 6, replay 12 |
 | Pipeline invariants | `uv run pytest tests/test_pipeline_invariants.py` | **green** — 7 passed |
 | Phase 8 coverage guard | `coverage.spec.ts` | **green** — 7 engine outputs, plus its self-guard |
 | Measurement instrument | `tests/test_phase9_measure.py` | **green** — 16 passed |
 
-**e2e budget.** All three modes, five browser projects: **589s (9m49s)** — inside SPEC-037's
-ten-minute budget, but only just. Fixture mode alone is 550s of that; stub (22s) and replay (18s)
-are nearly free. The budget is effectively spent on the fixture matrix, and the next sheet that adds
-a route to the axe or visual sweeps will breach it.
+**`make e2e-frontend` itself did not run to completion here, and cannot.** The target runs every
+project, including `webkit`, and that browser is absent from this container: it is not installed and
+`npx playwright install webkit` fails with `Download failure` behind the environment's proxy. What
+was actually executed is the three modes in one sequential pass, scoped to the five chromium-based
+projects, with `PW_CHROME` pointed at the headless shell:
+
+```
+PW_CHROME=<...>/chromium_headless_shell-1194/chrome-linux/headless_shell \
+E2E_MODE={fixture,stub,replay} npx playwright test --config=e2e/playwright.config.ts \
+  --project=chromium --project=chromium-dark --project=mobile --project=mobile-dark \
+  --project=reduced-motion
+```
+
+So the `make check` / `make frontend-check` rows above are literally the documented commands; this
+row is not. The webkit gap is an environment limitation rather than a code result — the functional
+journeys webkit covers were exercised on chromium — but "the full matrix is green" is a claim this
+sweep cannot make, and the criterion is met only for five of the six projects.
+
+**e2e budget.** Three modes, five projects: **589s (9m49s)** in the sequential pass — inside
+SPEC-037's ten-minute budget, but only just, and without webkit's share. Fixture mode is ~550s of
+that; stub (22s) and replay (18s) are nearly free. The budget is effectively spent on the fixture
+matrix, and the next sheet that adds a route to the axe or visual sweeps will breach it. (That
+sequential pass is also the one whose fixture leg hit the `room-method` flake below: 188 passed + 1
+failed. The clean fixture run, timed separately, was 550s for 189 passed.)
 
 **axe.** 15 routes × both themes (`chromium`, `chromium-dark`, `mobile-dark`), **zero serious or
 critical violations**.
-
-**Not run: webkit.** The `webkit` project could not execute in this container — the browser is not
-installed and `npx playwright install webkit` fails (`Download failure`) behind the environment's
-proxy. The functional journeys webkit covers ran on chromium. This is an environment limitation, not
-a code result, and the criterion "the full matrix" is met only for the five chromium-based projects.
 
 ## The measured claims
 

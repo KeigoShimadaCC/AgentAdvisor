@@ -63,7 +63,8 @@ them reads, emits, presentation strings, one projection addition and one paramet
 interface can account for **≥93.4%** of a real run's wall clock, against **≤6.6%** before; the case
 surface renders in ~200ms instead of waiting for framing; 7 phase 8 artifact types are reachable
 against 0. `make check` is green (**968 unit tests**), `make frontend-check` passes (**414**
-frontend tests), and the full e2e matrix runs in 589s across fixture, stub and replay with axe clean
+frontend tests), and the e2e matrix runs in 589s across fixture, stub and replay — on five of its
+six browser projects, webkit being absent from the verification container — with axe clean
 on 15 routes in both themes. Two product defects are filed and unfixed — a slug truncation that
 makes a class of prompts un-startable, and commissioning errors bypassing the failure taxonomy — and
 SPEC-055's "visual suite passes twice consecutively" budget is not yet met.
@@ -429,7 +430,10 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
   its supersession rule fails two of them. Sweep: `make check` 968 passed, `make frontend-check` 414
   passed, `make e2e-frontend` 589s across all three modes (inside SPEC-037's 10-minute budget, but
   the fixture matrix is 550s of it), axe zero serious/critical on 15 routes × both themes,
-  `coverage.spec.ts` green at 7 engine outputs. Full report:
+  `coverage.spec.ts` green at 7 engine outputs. `make e2e-frontend` itself was **not** run to
+  completion: the target includes the `webkit` project, whose browser is absent from this container
+  and cannot be downloaded behind the proxy, so the three modes were run scoped to the five
+  chromium-based projects and the matrix is green on five of six. Full report:
   `../report-and-findings/2026-08-07-phase-9-before-after.md`. **Phase 9 is done.**
 - (2026-08-07) **A class of prompts cannot start a case at all (found in SPEC-056).**
   `_slug_from_prompt` (`orchestrator/service/app.py:905`) strips leading and trailing hyphens and
