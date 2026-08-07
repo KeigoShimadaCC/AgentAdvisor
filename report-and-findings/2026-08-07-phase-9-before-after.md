@@ -1,0 +1,242 @@
+# SPEC-056 — Phase 9 re-evaluation: before/after on the new surface (findings)
+
+**Date:** 2026-08-07
+**Phase:** 9 (UX improvement), SPEC-045 → SPEC-056
+**Branch:** `claude/ux-saas-experience-i8hs0d`
+**Sheets verified:** SPEC-045 … SPEC-055 (eleven), closed by this one
+
+Phase 9's claim is that the product now communicates what it does, and it rests on a structural
+promise: that a UX phase changed no pipeline behaviour. This report is the evidence for both, plus
+the measurements the phase's UX claims stand or fall on. It records what did not improve and what
+could not be run as plainly as what did.
+
+## Summary
+
+The structural promise holds, and holds tightly: across phase 9's fourteen commits, `orchestrator/`
+moved by **+393 / −24 lines across six files**, every line of which is a new audit emit, a new read
+route, a projection addition, a presentation string, or one parameter. `tests/test_pipeline_invariants.py`
+passes.
+
+The headline UX claim is measured rather than asserted. On the profile of the repo's one real
+case — 45 invocations, 178.4 min in flight, 191 min wall clock — the interface could name the
+running role for **at most 6.6%** of the run before the phase and **at least 93.4%** after it.
+
+Four defects were found, two of them fixed here because they are defects *in the verification
+harness itself* and the sweep could not otherwise run. Two are product defects, filed and not fixed,
+per this sheet's rule that defects return to the spec that owns them. One of them — a whole class of
+prompts that cannot start a case at all — is the most serious finding in this report.
+
+One acceptance criterion is **not met**: the visual suite does not pass twice consecutively.
+
+## Verification sweep
+
+| Gate | Command | Outcome |
+|---|---|---|
+| Python lint, types, units | `make check` | **green** — ruff + mypy clean, **968 passed**, 105s |
+| Frontend types, tokens, units | `make frontend-check` | **green** — tsc clean, 64 schemas (0 drift), token guard clean, **414 passed** in 33 files |
+| Production build | `make frontend-build` | **green** — 393.63 kB JS / 78.17 kB CSS |
+| e2e, all three modes | `make e2e-frontend` | **green** after a harness fix — fixture 189, stub 6, replay 12 |
+| Pipeline invariants | `uv run pytest tests/test_pipeline_invariants.py` | **green** — 7 passed |
+| Phase 8 coverage guard | `coverage.spec.ts` | **green** — 7 engine outputs, plus its self-guard |
+| Measurement instrument | `tests/test_phase9_measure.py` | **green** — 16 passed |
+
+**e2e budget.** All three modes, five browser projects: **589s (9m49s)** — inside SPEC-037's
+ten-minute budget, but only just. Fixture mode alone is 550s of that; stub (22s) and replay (18s)
+are nearly free. The budget is effectively spent on the fixture matrix, and the next sheet that adds
+a route to the axe or visual sweeps will breach it.
+
+**axe.** 15 routes × both themes (`chromium`, `chromium-dark`, `mobile-dark`), **zero serious or
+critical violations**.
+
+**Not run: webkit.** The `webkit` project could not execute in this container — the browser is not
+installed and `npx playwright install webkit` fails (`Download failure`) behind the environment's
+proxy. The functional journeys webkit covers ran on chromium. This is an environment limitation, not
+a code result, and the criterion "the full matrix" is met only for the five chromium-based projects.
+
+## The measured claims
+
+SPEC-056 names five before/after comparisons. All five are recorded below with their method,
+including the one whose honest answer is weaker than the sheet implies.
+
+### 1. Proportion of wall clock with an accurate current activity
+
+**Before: at most 6.6%. After: at least 93.4%.**
+
+The method is implemented in `scripts/phase9_measure.py` and tested against hand-computable
+timelines in `tests/test_phase9_measure.py`. Walk the run second by second and ask whether the
+interface could name the role running *at that second*. It could if a role-naming event landed
+within SPEC-046's 20s cadence **and** no newer invocation has since started — an event describing a
+call that has already been superseded names the wrong role, so it does not count.
+
+The two timelines are computed from the same log, because every audit log ever written carries
+`role_invocation_attempt` with a `duration_ms`, and that is enough to place both:
+
+- *before* — one mark per invocation, at the instant it **returned**;
+- *after* — a mark when it **started**, one every 20s while it ran, one when it returned.
+
+This matters more than it looks. Measuring "before" by filtering SPEC-046's events out of a
+post-SPEC-046 log would answer a much easier question, since such logs only exist for runs that
+already had the fix.
+
+**Source data and its limits.** The figures come from the recorded profile of `case-014-career-startup-pivot`,
+the real case of SPEC-020: 45 invocations, 178.4 min summed in flight, 191 min wall clock. That
+case's `audit.jsonl` is gitignored and no longer on disk, so its per-invocation gaps are
+unrecoverable and the result is stated as the bounds those totals support — hence "at most" and "at
+least" rather than point values. Idle time is 12.6 min, which is less than 45 × 20s, so the old
+interface's ceiling is the idle time itself.
+
+Both bounds flatter the old interface. `role_invocation_attempt` fires when a call *returns*, so
+even within its 20s window it names what just finished rather than what is running.
+
+**The stub cannot substitute.** Running the measurement against a stub-mode log gives 79.5% before
+and 85.9% after — not because the phase achieved little, but because the stub returns in 10 ms, so
+only 6.4% of that run is spent inside a call and there is almost no darkness to remove. The measure
+is dominated by how long invocations actually take, which is exactly why a fast fixture cannot
+demonstrate the claim and why the real case's profile is the right input.
+
+### 2. Time from submitting a prompt to a rendered case surface
+
+**Measured in stub mode over three runs: surface at 193 / 229 / 298 ms; framing checkpoint reached
+at 674 / 707 / 781 ms.**
+
+The old surface rendered nothing until the case reached its framing checkpoint, so that instant is
+the comparable "before". The surface now renders at roughly a third of the time-to-framing.
+
+The stub understates this by construction. Time-to-surface depends only on the `202` from
+`POST /api/cases` and is therefore ~200 ms on any backend; time-to-framing is dominated by model
+latency. On the real case, the intake invocation alone took 0.7 min, so on a live backend the same
+comparison is ~200 ms against tens of seconds at minimum. The stub figure is a lower bound on the
+improvement, not an estimate of it.
+
+### 3. Is a second challenge round distinguishable from a stall?
+
+**Before: no. After: yes — counted and named.**
+
+`narration/reducer.ts` folds the stream into per-loop counters and emits an announcement naming the
+round: "repair round 1", then "repair round 2", asserted at `reducer.test.ts:117-133`. The case map
+draws all three cycles — `cycle-rescope`, `cycle-repair`, `cycle-re-review` — *before* any of them
+runs, so a loop the user has already been shown reads as a plan rather than a malfunction, with
+exactly one phase marked current (`replay.spec.ts:162-176`).
+
+### 4. Count of phase 8 artifact types reachable from a screen
+
+**Before: 0. After: 7.**
+
+`coverage.spec.ts` names each engine output, locates it in the DOM, and guards itself: a separate
+test asserts the coverage list mentions every phase 8 sheet, so deleting an entry to make the suite
+pass fails a different test. Covered: objective weights (SPEC-038), independent review verdict
+(SPEC-039), diagnosticity matrix (SPEC-040), typed action plan (SPEC-041), monitoring plan and risk
+register (SPEC-042), source-type voices including `user_document` (SPEC-043), calibration record
+(SPEC-025).
+
+### 5. Behaviour when the service dies mid-run
+
+**Before: a frozen brief presented as current. After: marked stale.**
+
+The dangerous shape is a plausible recommendation on screen with nothing keeping it current — a
+frozen brief and a finished brief look identical. `resilience.spec.ts` loads the projection with the
+event stream refused from the first attempt and asserts the chrome stops claiming the brief is live
+(`Reconnecting` / `out of date`), that an unreachable service renders as its own state rather than a
+red paragraph, and that the reassurance "nothing was lost" is present — a user seeing a blank app
+assumes their three-hour case is gone.
+
+## Backend-surface audit
+
+Phase 9's commits straddle phase 8's merge (`726baf8`), so a two-dot diff from the branch point
+pulls in all of phase 8 — the risk SPEC-056's own open question flagged. The audit therefore
+aggregates only phase 9's fourteen commits:
+
+`1e320de 241040c 272e56d 074d08b 69d7eea fbe09f4 e44faf3 c67bec8 b55d672 5d96fce 9aa4a99 690bd8f 7e249ca 5997384`
+
+| File | Δ | What changed |
+|---|---|---|
+| `orchestrator/invoke_role.py` | +134 / −10 | `role_invocation_started` and the `role_invocation_progress` heartbeat |
+| `orchestrator/service/app.py` | +125 / −6 | non-blocking creation, `GET /api/calibration`, `GET /api/effort-history` |
+| `orchestrator/service/caseview.py` | +111 / −3 | projection additions (independent review, next actions) |
+| `orchestrator/control.py` | +9 / −4 | one `worker_runner` parameter on `new_case` |
+| `orchestrator/service/lexicon_data.yaml` | +8 / −0 | presentation strings |
+| `orchestrator/artifacts/schema_export.py` | +6 / −1 | one schema registration |
+| **Total** | **+393 / −24** | **six files** |
+
+Every addition is a read, an emit, a presentation string, or a projection field. No stage, gate,
+transition, prompt, or artifact schema changed shape. The `worker_runner` parameter mirrors what
+`approve_framing` and `resume` already accepted. `tests/test_pipeline_invariants.py` passes.
+
+## Defects found
+
+### 1. A class of prompts cannot start a case at all (product — **not fixed**)
+
+`orchestrator/service/app.py:905` derives a slug by stripping punctuation, stripping leading and
+trailing hyphens, and *then* truncating to 40 characters. When the 40-character cut lands on a word
+boundary the slug ends in a hyphen, and `create_case` rejects it (`case_store.py:484`).
+
+Found by accident: the prompt "Should I migrate the billing service to a new provider?" produces
+`should-i-migrate-the-billing-service-to-` and the case cannot be created. Any prompt whose
+truncation boundary falls on a space hits this. The fix is to strip after truncating rather than
+before; it is one line, but this sheet does not absorb defects, so it is filed rather than applied.
+
+### 2. Commissioning errors bypass the failure taxonomy (product — **not fixed**)
+
+The same failure renders as a raw serialized response body in a red paragraph at the foot of
+`/new` — `{"error":"validation_error","detail":"...","case_stage":null}` — rather than through
+SPEC-055's `Failure` component. `NewDecision.tsx:173` still uses `<p className="error">`, which is
+precisely the "red paragraph" that `resilience.spec.ts` forbids elsewhere. Related: raw enum values
+leak to users as stop reasons on two surfaces (`FailurePath.tsx:73`, `Delivery.tsx:423`), e.g.
+`no_critical_evidence_gaps_remain`; the terminology guard's forbidden list does not include these
+values and the lexicon has no entry for them.
+
+### 3. `make e2e-frontend` never worked from the repo root (harness — **fixed**)
+
+Each `make` recipe line runs in its own shell, so the target's `cd frontend` applied only to the
+`npm install` line; the three test lines ran from the repo root and could not find the config. The
+sheet's own verification plan runs through this target. Fixed by giving each line its own `cd`.
+
+### 4. The visual baselines are browser-*binary*-specific (harness — **documented**)
+
+Pointing `PW_CHROME` at the full `chrome` binary rather than the headless shell fails 27 baselines
+at once. The cause is font synthesis: bold headings render fractionally differently and the page
+ends up ~5px taller, while body text is pixel-identical. Content is otherwise unchanged, so the
+obvious response is to re-baseline — which would silently discard the visual gate. Recorded in
+`playwright.config.ts` next to the `PW_CHROME` escape hatch that invites the mistake.
+
+## Acceptance criteria not met
+
+**The visual suite does not pass twice consecutively (SPEC-055's budget).** Across three full
+fixture-matrix runs on the correct binary: one clean (189 passed), one failing `room-method`, one
+failing `room-options`. Roughly one route per run, and not the same route.
+
+The signature is identical in every case and worth recording, because two plausible explanations are
+already eliminated:
+
+- The captured page height oscillates between **5017 px and 5022 px** on consecutive captures inside
+  Playwright's own stability check, until it times out. Content is otherwise identical.
+- It is **not** DOM instability: sampled every 200 ms for 2.4s under the visual test's exact
+  conditions, `scrollHeight` is a constant 5022 on both affected routes.
+- It is **not** a viewport-feedback loop from `max-height: 80vh` on `.app-shell-panel`: with the
+  viewport driven to 720 / 5017 / 5022 px the document height stays 5022, and the harness already
+  overrides that rule to `none` during capture.
+- It is **not** the binary difference of defect 4, which is a stable 5px and was eliminated by using
+  the headless shell.
+
+What remains is the `fullPage` capture path itself: the image height disagrees with the DOM height
+that produced it. This belongs to SPEC-055, which owns the visual harness and its budgets.
+
+**One real case run end to end (deliverable — not executed).** SPEC-037 established that live-model
+e2e stays manual and consented because it spends real API usage, and SPEC-056 keeps that out of
+scope for everything beyond this single run. It was not run unilaterally. The closest available
+evidence is stub mode's full lifecycle — `POST /api/cases` → scope checkpoint → both signatures →
+`done`, with artifacts asserted from disk rather than from the screen — which exercises every stage
+and both gates but no model latency. The activity-coverage claim is therefore computed from
+SPEC-020's recorded real-case profile rather than from a fresh run, as described above.
+
+## Conclusion
+
+The structural promise is verified and narrow: six backend files, every change a read or an emit.
+The phase's central UX claim is measured, not asserted, and the measurement is falsifiable — the
+instrument has its own tests, and deliberately removing its supersession rule fails two of them.
+
+The phase did not make a three-hour case shorter. It made the waiting legible: from an interface
+that could account for at most 6.6% of a real run to one that accounts for at least 93.4% of it.
+
+Two things are honestly outstanding: a one-line product defect that blocks a class of prompts
+entirely, and a visual gate that is not yet stable enough to satisfy its own budget.

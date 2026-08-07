@@ -39,8 +39,11 @@ frontend-build:
 e2e-frontend-install:
 	cd frontend && npm install && npx playwright install --with-deps chromium webkit
 
+# Each recipe line runs in its own shell, so every line needs its own `cd`:
+# without it the three test lines ran from the repo root and could not find the
+# config (SPEC-056).
 e2e-frontend:
 	cd frontend && npm install
-	E2E_MODE=fixture npx playwright test --config=e2e/playwright.config.ts
-	E2E_MODE=stub npx playwright test --config=e2e/playwright.config.ts
-	E2E_MODE=replay npx playwright test --config=e2e/playwright.config.ts
+	cd frontend && E2E_MODE=fixture npx playwright test --config=e2e/playwright.config.ts
+	cd frontend && E2E_MODE=stub npx playwright test --config=e2e/playwright.config.ts
+	cd frontend && E2E_MODE=replay npx playwright test --config=e2e/playwright.config.ts

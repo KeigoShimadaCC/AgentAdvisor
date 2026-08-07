@@ -23,6 +23,14 @@ const E2E_MODE = process.env.E2E_MODE ?? "fixture";
 // environment's pre-installed browser does not match the pinned Playwright
 // version. Hoisted so every Chrome-based project in the SPEC-045 matrix picks
 // it up, not just the first one.
+//
+// It must point at the **headless shell** (`chrome-headless-shell` /
+// `headless_shell`), not at the full `chrome` binary. SPEC-045's baselines were
+// captured with the shell, and the two synthesise bold type differently: the
+// full binary renders every bold heading a fraction differently and the page
+// ends up ~5px taller, which fails 27 baselines at once on the case surface.
+// The trap is that the obvious response is to re-baseline, which would silently
+// throw the visual gate away (found in SPEC-056).
 const chromeBinary = process.env.PW_CHROME
   ? { launchOptions: { executablePath: process.env.PW_CHROME } }
   : {};
