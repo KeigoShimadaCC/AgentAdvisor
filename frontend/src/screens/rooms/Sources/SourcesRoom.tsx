@@ -13,6 +13,7 @@ import {
   ROOMS,
   SOURCES_COPY,
 } from "../../../copy/terms";
+import { sourceVoice } from "../../../copy/voices";
 
 /** Filters a user can apply to the source corpus. */
 type FilterKey = "all" | "high" | "medium" | "low" | "flagged";
@@ -251,7 +252,10 @@ function SourceCard({ source, expanded, onToggle }: SourceCardProps) {
 
       <dl className="source-card-meta">
         <dt>Publisher</dt><dd>{source.publisher}</dd>
-        <dt>Type</dt><dd>{sourceTypeLabel(source.source_type)}</dd>
+        <dt>Type</dt>
+        <dd className={`source-type source-type-${source.source_type}`} title={sourceVoice(source.source_type).blurb}>
+          {sourceVoice(source.source_type).label}
+        </dd>
         <dt>Published</dt><dd>{source.publication_date}</dd>
         <dt>Origin group</dt><dd>{source.independence_group}</dd>
         {source.authority_score != null && (

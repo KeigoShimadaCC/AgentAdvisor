@@ -1367,12 +1367,7 @@ table.case-list th { font-weight: 600; color: var(--text-muted); font-size: var(
 .monitoring-panel { margin-top: 1.5rem; }
 .monitoring-warning { color: var(--text-muted); font-size: var(--text-sm); font-style: italic; }
 .monitoring-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
-.monitoring-item {
-  padding: 0.625rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-.monitoring-item.due { border-color: var(--accent); }
+.monitoring-item { padding: 0.625rem 0; }
 .monitoring-observable { font-weight: 600; }
 .monitoring-due-badge {
   margin-left: 0.5rem;
@@ -2151,3 +2146,81 @@ p, li, dd, dt, td, th, .brief-passage-text, .margin-note-claim, .honest-sentence
  */
 .app-main > * { min-width: 0; max-width: 100%; }
 .brief-passage-text { max-width: min(68ch, 100%); }
+
+/* ── Phase 8 made visible (SPEC-053) ──────────────────────────────────────── */
+
+.ach-matrix { display: flex; flex-direction: column; gap: var(--space-sm); }
+.ach-scroll { overflow-x: auto; }
+.ach-table { width: 100%; border-collapse: collapse; font-size: var(--text-md); }
+.ach-table th, .ach-table td {
+  text-align: left; padding: var(--space-2xs) var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+.ach-table th { color: var(--text-muted); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.ach-rank { font-family: var(--font-mono); font-weight: var(--weight-semibold); }
+.ach-weight { font-family: var(--font-mono); }
+.ach-row-eliminated { color: var(--text-muted); }
+.ach-eliminated-mark { color: var(--state-critical); font-size: var(--text-sm); }
+.ach-none { color: var(--text-muted); font-style: italic; }
+.ach-uninformative { margin-top: var(--space-md); }
+.ach-uninformative-label {
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+}
+.ach-uninformative-ids { display: flex; flex-wrap: wrap; gap: var(--space-2xs); margin-top: var(--space-2xs); }
+
+.action-plan { display: flex; flex-direction: column; gap: var(--space-md); }
+.action-plan-list { list-style: none; padding: 0; display: flex; flex-direction: column; }
+.action-plan-item { padding: var(--space-md) 0; }
+.action-plan-item + .action-plan-item { border-top: 1px solid var(--border); }
+.action-plan-what { font-weight: var(--weight-medium); font-size: var(--text-md-plus); }
+/* The first step is what makes a plan start, so it gets weight the action does
+   not: one is a decision, the other is something to do today. */
+.action-plan-first-step { margin-top: var(--space-2xs); }
+.action-plan-label {
+  display: block; font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+}
+.action-plan-meta {
+  display: flex; flex-wrap: wrap; gap: var(--space-lg); margin-top: var(--space-sm);
+  font-size: var(--text-sm);
+}
+.action-plan-meta dt {
+  font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+}
+.action-plan-why { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-2xs); }
+
+.monitoring-plan { display: flex; flex-direction: column; gap: var(--space-md); }
+.monitoring-due-summary { color: var(--state-needs-you-text); font-weight: var(--weight-medium); }
+.monitoring-list { list-style: none; padding: 0; display: flex; flex-direction: column; }
+.monitoring-item { padding: var(--space-md) 0; }
+.monitoring-item + .monitoring-item { border-top: 1px solid var(--border); }
+/* Overdue is an action, which is one of the two meanings a border may carry. */
+.monitoring-item.due {
+  border-left: 3px solid var(--state-needs-you); padding-left: var(--space-md);
+  background: var(--state-needs-you-wash); border-radius: var(--radius-sm);
+}
+.monitoring-observable { font-weight: var(--weight-medium); }
+.monitoring-due-badge {
+  margin-left: var(--space-sm); font-family: var(--font-mono); font-size: var(--text-2xs);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  background: var(--state-needs-you); color: var(--accent-on);
+  padding: var(--space-3xs) var(--space-sm); border-radius: var(--radius-sm);
+}
+.monitoring-detail { display: grid; grid-template-columns: auto 1fr; gap: var(--space-2xs) var(--space-md); margin-top: var(--space-2xs); font-size: var(--text-sm); }
+.monitoring-detail dt { color: var(--text-muted); }
+.monitoring-warning { color: var(--state-uncertain); font-size: var(--text-md); }
+
+.risk-register { margin-top: var(--space-lg); }
+.risk-register-open { color: var(--state-uncertain); font-size: var(--text-md); }
+.mitigation-list { list-style: none; padding: 0; display: flex; flex-direction: column; }
+.mitigation { padding: var(--space-sm) 0; }
+.mitigation + .mitigation { border-top: 1px solid var(--border); }
+.mitigation-not_started { border-left: 3px solid var(--state-uncertain); padding-left: var(--space-md); }
+.mitigation-meta {
+  display: flex; flex-wrap: wrap; gap: var(--space-md); font-size: var(--text-sm);
+  color: var(--text-muted); margin-top: var(--space-3xs);
+}
+.mitigation-against { font-size: var(--text-sm); color: var(--text-muted); }
+.source-type-user_document { color: var(--accent); font-weight: var(--weight-medium); }

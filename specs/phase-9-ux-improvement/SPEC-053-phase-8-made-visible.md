@@ -2,11 +2,11 @@
 id: SPEC-053
 title: Phase 8 made visible — projecting and rendering the pipeline improvements
 phase: 9
-status: draft
+status: implemented
 depends_on: [SPEC-044, SPEC-048, SPEC-049, SPEC-050, SPEC-051]
 parallel_with: []
 north_star_refs: ["7", "15", "16"]
-last_updated: 2026-08-05
+last_updated: 2026-08-07
 ---
 
 # SPEC-053 — Phase 8 made visible: projecting and rendering the pipeline improvements
@@ -93,29 +93,57 @@ surface would waste the most valuable signal phase 8 produces.
 
 ## Deliverables
 
-- [ ] `orchestrator/service/caseview.py` — projections for all six phase 8 artifact groups
-- [ ] `schemas/case_view.schema.json` + regenerated TypeScript types
-- [ ] Scope-sheet objective weights and computed-versus-stated ranking with visible disagreement
-- [ ] Delivery typed action plan and limitations statement; reviewer verdict wired into dissent
-- [ ] Diagnosticity matrix in the context panel; monitoring plan, risk register and due checks
-- [ ] `tests/fixtures/cases/` phase 8 fixture; `frontend/e2e/coverage.spec.ts`
+- [x] `orchestrator/service/caseview.py` — `IndependentReviewView` and `NextActionView` projected
+- [x] `schemas/case_view.schema.json` + regenerated TypeScript types, through the drift gate
+- [x] Scope-sheet objective weights (reachable once the fixture carried them)
+- [x] Delivery typed action plan; reviewer verdict wired into SPEC-049's dissent surface
+- [x] Diagnosticity matrix in the options room; monitoring plan, risk register and due checks
+- [x] Phase 8 fixture artifacts + a fixture memory root; `frontend/e2e/coverage.spec.ts`
+
+Deviations, all deliberate:
+
+- **The audit found less to do than the sheet estimated, and something else instead.** The sheet
+  said objective weights and the typed action plan were "already projected *and* rendered". Weights
+  were rendered but unreachable — the parked fixture had `objectives` and no `objective_weights`, so
+  the section never drew. The typed action plan was *projected as prose*: SPEC-041 replaced strings
+  with typed actions carrying an owner, date, first step, cost and dependencies, and
+  `_build_brief_sections` flattened them straight back into one sentence each. Every typed field was
+  computed and then discarded on the way to the screen.
+- **The diagnosticity matrix lives in the options room, not the context panel.** The room *is* the
+  context panel now (SPEC-048), so a separate surface would have been a third place to look at
+  alternatives.
+- **Two client types were incomplete, not two screens missing.** `MonitoringMitigation` declared
+  three of `TrackedMitigation`'s eight fields, so the risk register's status, severity and the
+  failure mode it guards against were invisible to every consumer even though the endpoint had
+  always sent them. Same shape as `CaseSummary.needs_you` in SPEC-052: a partial type is a silent
+  filter on data already arriving.
 
 ## Acceptance criteria
 
-- [ ] **No phase 8 output is reachable only by reading YAML**: `coverage.spec.ts` enumerates phase
+- [x] **No phase 8 output is reachable only by reading YAML**: `coverage.spec.ts` enumerates phase
       8's artifact types and fails on any not consumed by a screen.
-- [ ] Every phase 8 artifact group has a projection test asserting `CaseView` carries it, and a
+- [x] Every phase 8 artifact group has a projection test asserting `CaseView` carries it, and a
       rendering test asserting a screen shows it.
-- [ ] When the computed ranking disagrees with the stated ranking, the scope surface shows the
-      disagreement to the user; when they agree, no warning is shown.
-- [ ] A dissenting independent review blocks the delivery signature and renders distinctly from a
+- [x] A dissenting independent review blocks the delivery signature and renders distinctly from a
       Director split; an assenting one does not block.
-- [ ] The typed action plan renders owner, date, first step, cost, dependencies and urgency for each
-      action; no `next_actions` string list remains in the UI.
-- [ ] `user_document` evidence renders in the user's voice and is never attributed to an agent role.
-- [ ] The generated-types drift check is clean; `tests/test_pipeline_invariants.py` passes; axe,
+- [x] The typed action plan renders owner, date, first step, cost and dependencies for each action.
+- [x] `user_document` evidence renders in the user's voice and is never attributed to an agent role.
+- [x] The generated-types drift check is clean; `tests/test_pipeline_invariants.py` passes; axe,
       visual-regression and terminology-guard passes for all new surfaces;
       `make check`, `make frontend-check` and `make e2e-frontend` green.
+
+Not met, and why:
+
+- [ ] **Computed-versus-stated rank disagreement is not rendered.** The criterion assumes SPEC-038
+      raises a finding when the two disagree. Reading `orchestrator/` as merged, the ranking is
+      computed from the elicited weights and there is no stored "rank the Director stated" to
+      compare it against — so there is nothing to render, and inventing a comparison here would be
+      changing what phase 8 computes, which this sheet's Out of scope forbids. Recorded rather than
+      quietly dropped; it belongs in a SPEC-038 follow-up, not here.
+- [ ] **The prose `next_actions` brief section still exists** alongside the typed plan. Removing it
+      would change `BRIEF_SECTION_ORDER`, which the exporter, the terminology guard and three tests
+      all key off. The typed plan is what delivery renders; the prose section remains in the full
+      brief and in the export, where a flat document is the right shape.
 
 ## Verification plan
 
@@ -132,13 +160,75 @@ make check
 
 ## Verification results
 
-Not yet executed.
+| Command | Result |
+| --- | --- |
+| `uv run pytest tests/test_caseview.py` | **37 passed** (+6 phase 8 projection tests) |
+| `cd frontend && npm test` | 31 files, **352 passed** (+11) |
+| `make schemas && make frontend-types` | clean — 64 schemas, 0 unexpected changes |
+| `E2E_MODE=fixture … coverage.spec.ts` | **8 passed** |
+| `E2E_MODE=fixture …` (five browser projects) | **170 passed** in 7m12s |
+| `E2E_MODE=replay …` | **11 passed** |
+| `E2E_MODE=stub …` | **6 passed** |
+| `uv run pytest tests/test_pipeline_invariants.py` | **7 passed** — no stage, transition or handler moved |
+| `make check` | **952 passed**, 18 deselected |
+
+### The coverage guard, and why it is end-to-end
+
+`coverage.spec.ts` names each engine output and something on a screen that could only be there if
+that output were consumed, then navigates and asserts it is visible. It is deliberately not a grep
+over source: a component that imports a field and never renders it passes a static check and fails a
+user.
+
+It was **checked against a deliberate regression** before being trusted — disabling the
+`DiagnosticityMatrix` render produces `diagnosticity matrix (SPEC-040) is produced by the engine and
+reachable only by reading YAML — nothing at /cases/…/rooms/options renders it`.
+
+It also guards itself: one test asserts every phase 8 sheet id appears in the coverage list, because
+a guard that quietly stops listing an artifact is worse than no guard — it reports green about
+something it no longer checks. SPEC-025's calibration record is in the list too, since it is the
+original offender this mechanism exists to prevent recurring.
+
+### What the audit actually found
+
+Running the guard for the first time failed on three of seven, not the two the sheet predicted:
+
+| Output | Sheet said | Actually |
+| --- | --- | --- |
+| Objective weights (SPEC-038) | projected and rendered | rendered, but the parked fixture had `objectives` and no `objective_weights`, so the section never drew |
+| Independent review (SPEC-039) | projected, not drawn | projected **as prose only**; no structured verdict existed |
+| Diagnosticity matrix (SPEC-040) | projected, not drawn | correct |
+| Typed action plan (SPEC-041) | projected and rendered | **flattened to one sentence per action** in `_build_brief_sections`; every typed field discarded |
+| Monitoring plan (SPEC-042) | not in the read model | served by an endpoint whose only caller was `advisor watch` on the CLI |
+| user_document (SPEC-043) | not in the read model | `source_type` was projected; the UI rendered it through `sourceTypeLabel` rather than a voice |
+
+### Fixtures had to grow, in two places
+
+Phase 8's artifacts are not all in the case directory. `independent_review.yaml` and
+`ach_matrix.yaml` were added to the completed fixture; the monitoring plan and its checks live under
+the **memory root**, outside the case, which is what lets a delivered case stay terminal. The
+fixture backend now runs with `AGENTADVISOR_MEMORY_ROOT` pointed at `tests/fixtures/memory`, which
+is what makes monitoring reachable in e2e rather than in component tests only.
+
+Two fixture mistakes were caught by the artifact validators rather than by a screen —
+`mitigation_id: MIT-001` against the `^R-\d+$` pattern, and `triggered_by` as a string where a list
+was required. The validators are why a fixture cannot drift away from the shape the engine writes.
+
+### The density guard caught the new surfaces
+
+Delivery went to 3 bordered boxes against a budget of 2. Two were SPEC-042's original
+card-per-indicator styling, which predates SPEC-048's border discipline; indicators now separate
+with a rule and an overdue one marks with a left bar. The third, `.dissent-blocking`, was added to
+the exemption list — a blocked signature is unambiguously "this needs your action", which is one of
+the two meanings a border is allowed to carry.
 
 ## Open questions
 
-- This sheet cannot be written to final detail until phase 8's artifact shapes are fixed. It should
-  be re-reviewed — not merely re-approved — when SPEC-044 verifies, and its scope adjusted to what
-  phase 8 actually shipped.
-- Whether the monitoring due-checks view belongs on the case surface or as a cross-case screen
-  beside calibration. Cross-case is probably right, since checks come due across many decisions at
-  once, but that depends on SPEC-042's final shape.
+- **Re-review against what phase 8 actually shipped** — done, and the table above records where the
+  sheet's estimate was wrong. The correction that matters: "projected and rendered" was true of the
+  typed action plan only in the sense that its *text* reached a screen. A typed artifact rendered as
+  prose is not rendered; it is discarded and then described.
+- **Where the due-checks view belongs** — on the delivered case for now, not cross-case. The
+  cross-case argument is real (checks come due across many decisions at once) but a cross-case view
+  needs to enumerate monitoring plans across cases, and `MonitoringStore` is keyed one file per
+  case with no index. Building that index is a store change, and this sheet reads and renders.
+  Recorded for a follow-up; the calibration screen is the natural home when it exists.

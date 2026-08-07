@@ -4,6 +4,7 @@ import { EVBar } from "../../shared/EVBar";
 import { HonestEmpty } from "../../shared/HonestEmpty";
 import type { CaseView, OptionView } from "../../../generated/case_view";
 import { ROOMS } from "../../../copy/terms";
+import { DiagnosticityMatrix } from "./DiagnosticityMatrix";
 
 export function OptionsRoom() {
   return (
@@ -83,6 +84,9 @@ function OptionsBody({ view }: { view: CaseView }) {
           </ul>
         </section>
       )}
+
+      {/* SPEC-053: phase 8 computed this and projected it, and nothing drew it. */}
+      {room && <DiagnosticityMatrix room={room} />}
     </div>
   );
 }

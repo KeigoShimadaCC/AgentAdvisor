@@ -379,12 +379,15 @@ modeDescribe("fixture", "Fixture mode — the cast (SPEC-049)", () => {
     await expect(unplaced).toContainText(/rather than dropped/i);
   });
 
-  test("no dissent surface when the two tracks agree", async ({ page }) => {
-    // The fixture has `agreement: true`. A dissent surface here would be the UI
-    // inventing disagreement.
+  test("no Director split is shown when the two tracks agree", async ({ page }) => {
+    // The fixture has `agreement: true`, so there is no split — inventing one
+    // would be as bad as hiding a real one. It *does* carry a dissenting
+    // independent review (SPEC-053's fixture), and that is a different voice
+    // with a different consequence, so the two are asserted separately.
     await page.goto(`/cases/${FIXTURE_COMPLETED}`);
     await page.locator(".brief-document .brief-passage").first().waitFor({ state: "visible" });
-    await expect(page.locator(".dissent")).toHaveCount(0);
+    await expect(page.locator(".dissent-split")).toHaveCount(0);
+    await expect(page.locator(".dissent-blocking")).toBeVisible();
   });
 
   test("the challenges room still carries the divergence detail, attributed", async ({ page }) => {

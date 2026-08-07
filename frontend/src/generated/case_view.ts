@@ -39,6 +39,11 @@ export type Findings = {
 export type Outcome = string;
 export type Stage = string;
 export type Gates = GateSummaryView[];
+export type DivergentConclusion = string | null;
+export type EvidenceIds = string[];
+export type Reasoning = string;
+export type UnsupportedClaims = string[];
+export type Verdict = string;
 export type ReviewAccepted = boolean | null;
 export type ReviewBlockingFindings = {
   [k: string]: unknown;
@@ -49,6 +54,15 @@ export type ReviewDefects = {
 export type ReviewOutcome = string | null;
 export type IsTerminal = boolean;
 export type NeedsYou = 'scope_checkpoint' | 'delivery_checkpoint' | 'interrupted' | 'none';
+export type Action = string;
+export type ActionId = string;
+export type ByDate = string;
+export type DependsOn = string[];
+export type EstimatedCost = string | null;
+export type FirstStep = string;
+export type Owner = string;
+export type WhyNow = string;
+export type NextActions = NextActionView[];
 export type Phase = 'intake' | 'framing' | 'investigation' | 'challenge' | 'synthesis' | 'complete';
 export type AssumptionId = string;
 export type Claim = string;
@@ -63,7 +77,7 @@ export type Assumptions = AssumptionView[];
 export type Claim1 = string;
 export type Materiality1 = string;
 export type ObjectionId = string;
-export type Reasoning = string;
+export type Reasoning1 = string;
 export type ResolutionStatus = string;
 export type TargetSection = string;
 export type Objections = ObjectionView[];
@@ -160,6 +174,7 @@ export interface CaseView {
   integrity?: IntegrityView;
   is_terminal: IsTerminal;
   needs_you: NeedsYou;
+  next_actions?: NextActions;
   phase: Phase;
   rooms?: RoomsView;
   stage: Stage2;
@@ -229,6 +244,7 @@ export interface ThesisRevisionView {
 export interface IntegrityView {
   disclosure?: Disclosure;
   gates?: Gates;
+  independent_review?: IndependentReviewView | null;
   review_accepted?: ReviewAccepted;
   review_blocking_findings?: ReviewBlockingFindings;
   review_defects?: ReviewDefects;
@@ -238,6 +254,39 @@ export interface GateSummaryView {
   findings?: Findings;
   outcome: Outcome;
   stage: Stage;
+}
+/**
+ * SPEC-039's second opinion, structured (SPEC-053).
+ *
+ * Phase 8 rendered this into a ``brief_sections`` entry as prose, which meant
+ * the one verdict that can *block delivery* was reachable only by reading a
+ * paragraph. A blocking state has to be a field, or every consumer has to
+ * parse English to find out whether it may show a signature button.
+ */
+export interface IndependentReviewView {
+  divergent_conclusion?: DivergentConclusion;
+  evidence_ids?: EvidenceIds;
+  reasoning: Reasoning;
+  unsupported_claims?: UnsupportedClaims;
+  verdict: Verdict;
+}
+/**
+ * SPEC-041's typed action, projected (SPEC-053).
+ *
+ * Phase 8 replaced a list of strings with a typed artifact carrying an owner,
+ * a date, a first step, a cost and dependencies — and the projection flattened
+ * it straight back into one sentence per action. Every typed field was
+ * computed and then discarded on the way to the screen.
+ */
+export interface NextActionView {
+  action: Action;
+  action_id: ActionId;
+  by_date: ByDate;
+  depends_on?: DependsOn;
+  estimated_cost?: EstimatedCost;
+  first_step: FirstStep;
+  owner: Owner;
+  why_now: WhyNow;
 }
 export interface RoomsView {
   assumptions?: AssumptionsRoom;
@@ -269,7 +318,7 @@ export interface ObjectionView {
   claim: Claim1;
   materiality: Materiality1;
   objection_id: ObjectionId;
-  reasoning: Reasoning;
+  reasoning: Reasoning1;
   resolution_status: ResolutionStatus;
   target_section: TargetSection;
 }

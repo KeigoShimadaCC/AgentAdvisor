@@ -67,6 +67,11 @@ if (E2E_MODE === "replay") {
 } else {
   // fixture (default)
   backendCommand = `${advisorUi} --port ${BACKEND_PORT} --cases-root tests/fixtures/cases`;
+  // SPEC-053: monitoring plans and the calibration record live under the memory
+  // root, outside the case directory, so a fixture case cannot carry them.
+  // Pointing the memory root at a committed fixture is what makes the
+  // monitoring surfaces reachable in e2e rather than component tests only.
+  backendEnv = { AGENTADVISOR_MEMORY_ROOT: path.join(repoRoot, "tests", "fixtures", "memory") };
 }
 
 export default defineConfig({

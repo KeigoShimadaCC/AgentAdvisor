@@ -87,10 +87,22 @@ export interface MonitoringIndicator {
   would_imply: string;
 }
 
+/**
+ * SPEC-053 completed this. The endpoint has always sent the whole
+ * `TrackedMitigation` artifact — `model_dump(mode="json")` on the plan — and
+ * this interface declared three of its eight fields, so the risk register's
+ * status, severity and the failure mode it guards against were invisible to
+ * every consumer. The same drift as `CaseSummary.needs_you`: a partial type is
+ * a silent filter on data that is already arriving.
+ */
 export interface MonitoringMitigation {
   mitigation_id: string;
   mitigation: string;
   owner: string;
+  failure_mode: string;
+  severity: string;
+  status: "not_started" | "in_place" | "not_applicable" | string;
+  triggered_by: string[];
 }
 
 export interface MonitoringDueCheck {

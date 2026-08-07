@@ -40,6 +40,7 @@ const EXEMPT_SUBTREE = [
   ".failure-path", // needs your action
   ".early-stop", // needs your action
   ".signature-block", // needs your action
+  ".dissent-blocking", // needs your action — a signature is blocked until you resolve it
   ".uncertainty-widget", // is uncertain
   ".not-assessed", // is uncertain
   ".non-final-stamp", // is uncertain

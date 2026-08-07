@@ -10,6 +10,8 @@ import { CitationLink } from "../inspector/CitationLink";
 import { CitationText } from "../inspector/CitationText";
 import { FailurePath } from "../shared/FailurePath";
 import { Dissent, independentReviewFrom, isBlockingDissent } from "../Brief/Dissent";
+import { MonitoringPlanView } from "../Monitoring/MonitoringPlanView";
+import { ActionPlan } from "./ActionPlan";
 import { ProbabilityBand } from "../../uncertainty/ProbabilityBand";
 import { ConfidenceBands } from "../../uncertainty/ConfidenceBands";
 import { SourceStrengthGrade } from "../../uncertainty/SourceStrengthGrade";
@@ -178,6 +180,9 @@ export function Delivery() {
               )}
             </section>
 
+            {/* SPEC-053: the typed plan, not the flattened sentences. */}
+            <ActionPlan actions={view.next_actions ?? []} />
+
             <Tripwires triggers={final.recommendation_change_triggers} />
 
             {/* The action-plan slot (SPEC-050). `MonitoringPanel` has existed
@@ -186,7 +191,7 @@ export function Delivery() {
                 returns null when a case has no plan, which is the normal case
                 for an in-flight decision. SPEC-053 fills the rest of the slot
                 with phase 8 SPEC-041's typed action plan. */}
-            {caseId && <MonitoringPanel caseId={caseId} />}
+            {caseId && <MonitoringPlanView caseId={caseId} />}
 
             <details className="uncertainty-disclosure">
               <summary>How sure is this?</summary>
@@ -328,83 +333,6 @@ function Tripwires({ triggers }: { triggers?: string[] }) {
           <li key={i}><CitationText>{t}</CitationText></li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-/**
- * SPEC-042 — what to watch after delivery, and the prepared responses.
- *
- * Replaces nothing: the tripwire list stays, because it is the recommendation's own
- * statement of what would change it. This shows the *tracked* version — observables with
- * thresholds and cadences — plus which checks are overdue right now.
- */
-function MonitoringPanel({ caseId }: { caseId: string }) {
-  const [data, setData] = useState<MonitoringResponse | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .getMonitoring(caseId)
-      .then((res) => {
-        if (!cancelled) setData(res);
-      })
-      .catch(() => {
-        // A missing plan is the normal case for an in-flight decision, not an error.
-        if (!cancelled) setData({ plan: null, due: [] });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [caseId]);
-
-  if (!data?.plan || data.plan.indicators.length === 0) return null;
-  const { plan, due } = data;
-  const dueIds = new Set(due.map((d) => d.indicator_id));
-
-  return (
-    <section className="monitoring-panel" aria-label={ACTION_PLAN_COPY.monitoringTitle}>
-      <h3>{ACTION_PLAN_COPY.monitoringTitle}</h3>
-      <p className="section-help">{ACTION_PLAN_COPY.monitoringHelp}</p>
-      {!plan.concretized && (
-        <p className="monitoring-warning">{ACTION_PLAN_COPY.notConcretized}</p>
-      )}
-      <ul className="monitoring-list">
-        {plan.indicators.map((indicator) => (
-          <li
-            key={indicator.indicator_id}
-            className={`monitoring-item${dueIds.has(indicator.indicator_id) ? " due" : ""}`}
-          >
-            <span className="monitoring-observable">{indicator.observable}</span>
-            {dueIds.has(indicator.indicator_id) && (
-              <span className="monitoring-due-badge">{ACTION_PLAN_COPY.dueLabel}</span>
-            )}
-            <dl className="monitoring-detail">
-              <dt>{ACTION_PLAN_COPY.thresholdLabel}</dt>
-              <dd>{indicator.threshold}</dd>
-              <dt>{ACTION_PLAN_COPY.cadenceLabel}</dt>
-              <dd>{indicator.check_cadence_days} days</dd>
-              <dt>{ACTION_PLAN_COPY.wouldImplyLabel}</dt>
-              <dd>{indicator.would_imply}</dd>
-            </dl>
-          </li>
-        ))}
-      </ul>
-      {plan.mitigations.length > 0 && (
-        <>
-          <h4>{ACTION_PLAN_COPY.mitigationsTitle}</h4>
-          <ul className="mitigation-list">
-            {plan.mitigations.map((m) => (
-              <li key={m.mitigation_id}>
-                <span className="mitigation-text">{m.mitigation}</span>
-                <span className="mitigation-owner">
-                  {ACTION_PLAN_COPY.ownerLabel}: {m.owner}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
     </section>
   );
 }

@@ -1,26 +1,22 @@
 import { voiceFor, roleVoice } from "../../copy/voices";
-import type { CaseView, TrackDivergenceView } from "../../generated/case_view";
+import type {
+  CaseView,
+  TrackDivergenceView,
+  IndependentReviewView as ProjectedIndependentReview,
+} from "../../generated/case_view";
 
 /**
- * The reviewer that can block delivery (phase 8, SPEC-039).
+ * The reviewer that can block delivery (phase 8 SPEC-039, projected by SPEC-053).
  *
- * Not yet a field on `CaseView`: the artifact is written and rendered into the
- * `independent_review` brief section, but the structured verdict is SPEC-053's
- * projection. `independentReviewFrom` is the single point that changes when it
- * lands — everything below already consumes this shape, and the component tests
- * exercise it against fixtures.
+ * SPEC-049 shipped this component against a shape the projection did not yet
+ * carry, with `independentReviewFrom` as the single adapter that would change
+ * when it landed. It has landed: `IntegrityView.independent_review` is a real
+ * field now, so this reads it directly and the cast is gone.
  */
-export interface IndependentReviewView {
-  verdict: "concur" | "dissent" | string;
-  reasoning: string;
-  divergent_conclusion?: string | null;
-  unsupported_claims?: string[];
-  evidence_ids?: string[];
-}
+export type IndependentReviewView = ProjectedIndependentReview;
 
 export function independentReviewFrom(view: CaseView): IndependentReviewView | null {
-  const integrity = view.integrity as { independent_review?: IndependentReviewView } | undefined;
-  return integrity?.independent_review ?? null;
+  return view.integrity?.independent_review ?? null;
 }
 
 /** Whether a dissent is standing that must stop a signature. */
