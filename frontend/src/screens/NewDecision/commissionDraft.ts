@@ -1,5 +1,6 @@
 import type { EffortKey } from "../../copy/terms";
 import type { Altitude } from "../shell/altitude";
+import { safeStorage } from "../../lib/safeStorage";
 
 /**
  * What the user typed, kept across a reload (SPEC-050).
@@ -29,9 +30,9 @@ export const EMPTY_DRAFT: CommissionDraft = {
 };
 
 export function readDraft(): CommissionDraft {
+  const raw = safeStorage.get(STORAGE_KEY);
+  if (!raw) return EMPTY_DRAFT;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY_DRAFT;
     const parsed = JSON.parse(raw) as Partial<CommissionDraft>;
     return {
       prompt: typeof parsed.prompt === "string" ? parsed.prompt : "",
@@ -46,18 +47,10 @@ export function readDraft(): CommissionDraft {
 }
 
 export function writeDraft(draft: CommissionDraft): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
-  } catch {
-    /* see readDraft */
-  }
+  safeStorage.set(STORAGE_KEY, JSON.stringify(draft));
 }
 
 /** Called once the case exists: the draft has served its purpose. */
 export function clearDraft(): void {
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    /* see readDraft */
-  }
+  safeStorage.remove(STORAGE_KEY);
 }

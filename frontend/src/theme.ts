@@ -1,3 +1,4 @@
+import { safeStorage } from "./lib/safeStorage";
 /**
  * The theme control (SPEC-045's mechanism, SPEC-052's control).
  *
@@ -27,12 +28,8 @@ function isTheme(value: unknown): value is ThemeChoice {
 }
 
 export function readTheme(): ThemeChoice {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return isTheme(raw) ? raw : DEFAULT_THEME;
-  } catch {
-    return DEFAULT_THEME;
-  }
+  const raw = safeStorage.get(STORAGE_KEY);
+  return isTheme(raw) ? raw : DEFAULT_THEME;
 }
 
 /** Stamp the root element. `system` removes the attribute so the media query wins. */
@@ -43,11 +40,7 @@ export function applyTheme(choice: ThemeChoice): void {
 }
 
 export function writeTheme(choice: ThemeChoice): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, choice);
-  } catch {
-    /* storage unavailable is a downgrade to the default, never a failure */
-  }
+  safeStorage.set(STORAGE_KEY, choice);
   applyTheme(choice);
 }
 

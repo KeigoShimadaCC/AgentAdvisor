@@ -19,6 +19,8 @@ import { AppShell } from "../screens/shell/AppShell";
 import { RoomPanel, isRoomKey } from "../screens/shell/RoomPanel";
 import { RoomRail } from "../screens/shell/RoomRail";
 import { Skeleton } from "../screens/shared/Skeleton";
+import { Failure } from "../screens/shared/Failure";
+import { StalledCase } from "../screens/shared/StalledCase";
 import { AwayDigest } from "../presence/AwayDigest";
 import { useCaseTitle } from "../presence/title";
 import { useCaseNotices } from "../presence/useCaseNotices";
@@ -52,7 +54,8 @@ const ANSWER_SECTIONS = ["executive_recommendation", "decision_confidence"];
 export function CaseDetail() {
   const { caseId, room } = useParams<{ caseId: string; room: string }>();
   const navigate = useNavigate();
-  const { view, events, narration, connection, loading, error } = useCaseView(caseId);
+  const { view, events, narration, connection, loading, error, failure, retry, stalled } =
+    useCaseView(caseId);
   const [altitude, setAltitude] = useAltitude();
 
   // SPEC-051. The cursor is read once, on mount, before the stream advances it —
@@ -72,6 +75,7 @@ export function CaseDetail() {
   const caseData = useMemo(() => (view ? { view, events } : null), [view, events]);
 
   if (loading) return <Skeleton shape="brief" label="Loading the case" />;
+  if (failure) return <Failure error={failure} onRetry={retry} />;
   if (error) return <p className="error" role="alert">{error}</p>;
   if (!view || !caseData) return <p>No data.</p>;
 
@@ -141,6 +145,7 @@ export function CaseDetail() {
               </section>
             )}
 
+            {stalled && caseId && <StalledCase caseId={caseId} />}
             <AwayDigest events={events} sinceCursor={arrivalCursor} />
             <FailurePath view={view} />
             {/* Disagreement sits above the answer, not in a room: a blocked

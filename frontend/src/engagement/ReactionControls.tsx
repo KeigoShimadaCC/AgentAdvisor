@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   readReactions,
   toggleReaction,
@@ -32,6 +32,18 @@ export function ReactionControls({
   kinds = ["looks_wrong", "matters"],
 }: ReactionControlsProps) {
   const [reactions, setReactions] = useState<Reaction[]>(() => readReactions(caseId));
+
+  // SPEC-055: two tabs on one case must not disagree about what was marked.
+  // Altitude already reconciled this way; reactions did not, so a mark made in
+  // one tab was invisible in the other until a reload — and the delivery gate
+  // would then pre-fill from whichever tab happened to be used.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === `agentadvisor:reactions:${caseId}`) setReactions(readReactions(caseId));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [caseId]);
 
   return (
     <div className="reaction-controls" role="group" aria-label={`Mark ${targetId}`}>

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type CaseSummary } from "../api/client";
+import { api, type CaseSummary, type ErrorResponse } from "../api/client";
 import { stageLabel, NEEDS_YOU, type NeedsYouKey } from "../copy/terms";
 import { Skeleton } from "../screens/shared/Skeleton";
+import { Failure } from "../screens/shared/Failure";
 
 /**
  * The library as a workspace (SPEC-052).
@@ -64,20 +65,27 @@ export function CaseLibrary() {
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorResponse | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    setLoading(true);
     api
       .listCases()
-      .then(setCases)
-      .catch((e: Error) => setError(e.message))
+      .then((next) => {
+        setCases(next);
+        setError(null);
+      })
+      .catch((e: ErrorResponse) => setError(e))
       .finally(() => setLoading(false));
-  }, []);
+  }, [attempt]);
 
   const groups = useMemo(() => groupCases(filterCases(cases, query)), [cases, query]);
 
   if (loading) return <Skeleton shape="list" label="Loading your cases" />;
-  if (error) return <p className="error">{error}</p>;
+  // SPEC-055: "the service is not running" is a different fact from "you have
+  // no cases", and the empty state below must not stand in for it.
+  if (error) return <Failure error={error} onRetry={() => setAttempt((n) => n + 1)} />;
   if (cases.length === 0) {
     return (
       <div className="case-library-empty">

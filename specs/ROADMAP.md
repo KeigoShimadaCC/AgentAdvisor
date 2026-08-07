@@ -395,7 +395,7 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
 | SPEC-052 | Distribution: export, share, replay onboarding, library, mobile | implemented |
 | SPEC-053 | Phase 8 made visible: projecting and rendering the pipeline improvements | implemented |
 | SPEC-054 | The calibration language: one uncertainty vocabulary at every altitude | implemented |
-| SPEC-055 | Resilience: degraded states, storage failure, announcement policy, budgets | draft |
+| SPEC-055 | Resilience: degraded states, storage failure, announcement policy, budgets | implemented |
 | SPEC-056 | Phase 9 re-evaluation | draft |
 
 **Findings**

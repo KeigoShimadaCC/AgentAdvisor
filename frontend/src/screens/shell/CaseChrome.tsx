@@ -3,6 +3,7 @@ import { ALTITUDES, useAltitude, type Altitude } from "./altitude";
 import { NEEDS_YOU } from "../../copy/terms";
 import type { ConnectionState } from "../../api/sse";
 import type { CaseView } from "../../generated/case_view";
+import { liveRegionProps } from "../../lib/announce";
 
 interface CaseChromeProps {
   view: CaseView;
@@ -67,7 +68,10 @@ export function CaseChrome({ view, connection, altitude, onAltitudeChange }: Cas
             <span className={`case-chrome-needs pill-${view.needs_you}`}>{needs.badge}</span>
           )}
           {connectionNote && (
-            <span className={`case-chrome-connection connection-${connection}`} role="status">
+            <span
+              className={`case-chrome-connection connection-${connection}`}
+              {...liveRegionProps("chrome.connection")}
+            >
               {connectionNote}
             </span>
           )}
@@ -77,6 +81,8 @@ export function CaseChrome({ view, connection, altitude, onAltitudeChange }: Cas
       <div className="case-chrome-controls">
         {/* Spend, in the frame rather than buried in the Method room. A run can
             cost 1.5M tokens; that belongs where the user can see it. */}
+        {/* A heartbeat: spend rises continuously and announcing it would be
+            noise. Labelled for lookup, never announced (SPEC-055). */}
         <p className="case-chrome-spend" aria-label="Effort so far">
           {elapsed && <span>{elapsed}</span>}
           {invocations > 0 && (

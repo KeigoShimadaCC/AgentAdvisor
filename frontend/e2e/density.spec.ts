@@ -91,7 +91,19 @@ async function borderedCount(page: Page): Promise<number> {
 
 async function settle(page: Page): Promise<void> {
   // NOT networkidle: every case route holds an SSE stream open.
+  //
+  // And not the app shell alone: it paints before the case loads, so on a
+  // loaded machine this returned while the screen was still a skeleton and the
+  // answer-dominance check found no `.answer-recommendation`. A guard that
+  // flakes gets muted rather than fixed, so it waits for real content.
   await page.locator("main.app-main").waitFor({ state: "visible" });
+  await page
+    .locator(".brief-document, .library-cards, .scope-lead, .delivery, .new-decision")
+    .first()
+    .waitFor({ state: "visible", timeout: 15_000 })
+    .catch(() => {
+      /* a route with none of these (not-found) is settled once the shell is up */
+    });
   await page.waitForTimeout(250);
 }
 

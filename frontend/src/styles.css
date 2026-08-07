@@ -2323,3 +2323,35 @@ p, li, dd, dt, td, th, .brief-passage-text, .margin-note-claim, .honest-sentence
 .why-citations { display: block; margin-top: var(--space-2xs); }
 .why-adjustments ul { list-style: disc; padding-left: var(--space-lg); }
 .why-delta { font-family: var(--font-mono); color: var(--text-muted); }
+
+/* ── Resilience (SPEC-055) ────────────────────────────────────────────────── */
+
+/* A failure is an action — there is something for the user to do — so it is one
+   of the two things a border is allowed to mean. */
+.failure {
+  border: 1px solid var(--state-critical); background: var(--state-critical-wash);
+  border-radius: var(--radius-md); padding: var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-md);
+  align-items: flex-start; max-width: 60ch;
+}
+.failure-unavailable { border-color: var(--state-uncertain); background: var(--state-uncertain-wash); }
+.failure-locked { border-color: var(--state-needs-you); background: var(--state-needs-you-wash); }
+.failure h2 { font-size: var(--text-lg); }
+.failure-what { max-width: 56ch; }
+.failure-actions { display: flex; flex-wrap: wrap; gap: var(--space-md); align-items: center; }
+.failure-detail {
+  font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-muted);
+  max-width: 56ch;
+}
+
+.stalled-case {
+  border: 1px solid var(--state-uncertain-border); background: var(--state-uncertain-wash);
+  border-radius: var(--radius-md); padding: var(--space-lg);
+  display: flex; flex-direction: column; gap: var(--space-sm); align-items: flex-start;
+}
+.stalled-case-what { font-weight: var(--weight-medium); max-width: 60ch; }
+
+.settings-not-persistent {
+  border-left: 3px solid var(--state-uncertain); padding-left: var(--space-md);
+  color: var(--state-uncertain); max-width: 60ch;
+}

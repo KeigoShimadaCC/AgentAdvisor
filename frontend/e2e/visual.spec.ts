@@ -47,17 +47,75 @@ modeDescribe("fixture", "Fixture mode — visual baselines", () => {
       // The elapsed timer in LiveActivity ticks every second, so a screenshot
       // taken mid-tick would differ from its baseline for reasons that have
       // nothing to do with styling. Freeze anything that renders a duration.
+      /*
+       * The narrator is hidden wholesale, not just its timer (SPEC-055).
+       *
+       * Its content is a function of stream arrival timing — the line, the
+       * counters and the announcements all change as events replay — so it is
+       * not a stable screenshot subject at all, and Playwright's own "two
+       * consecutive stable screenshots" check said so. Freezing only
+       * ".narrator-elapsed" was treating the symptom.
+       *
+       * Nothing is lost: the reducer and component tests cover what the
+       * narrator renders, deterministically, from a fixed event list. A
+       * screenshot could only ever assert that some sentence was on screen at
+       * some moment.
+       *
+       * The old freeze list named ".live-activity-elapsed" and
+       * ".method-elapsed", neither of which exists in the app any more — which
+       * is why the one element that actually ticked every second was the one
+       * not frozen, and why room-method passed alone and failed in the matrix.
+       */
       await page.addStyleTag({
-        content: `
-          .live-activity-elapsed,
-          .method-elapsed { visibility: hidden !important; }
-        `,
+        // `display: none` for the narrator, not `visibility: hidden`:
+        // visibility still reserves layout, and the narrator's *height* grows
+        // as announcements accumulate, which shifted everything below it and
+        // kept the page unstable even while the text was invisible. The spend
+        // line has a fixed height, so hiding it is enough.
+        content:
+          ".narrator { display: none !important; }" +
+          // Sticky positioning plus `fullPage` is a known source of a one-off
+          // few-pixel height difference: the captured page was 5,022px on a
+          // failing run and 5,017px on a passing one, with *identical content*
+          // — the diff was a band at the bottom edge and nothing else. Pinning
+          // the sticky regions makes the page height deterministic, and has the
+          // side benefit that the baseline shows the whole panel rather than
+          // whatever fitted in 80vh.
+          ".app-shell-panel, .app-shell-rail { position: static !important;" +
+          " max-height: none !important; }" +
+          ".case-chrome-spend, .live-activity-elapsed, .method-elapsed" +
+          " { visibility: hidden !important; }",
       });
       // NOT networkidle: every case route holds an SSE stream open, so the
       // network is never idle and the wait would time out on 9 of 13 routes.
-      // Wait for the app shell plus a paint instead.
       await page.locator("main.app-main").waitFor({ state: "visible" });
-      await page.waitForTimeout(250);
+
+      // And NOT the app shell alone (SPEC-055). The shell paints before the
+      // case loads, so under load — the full matrix, not a single spec — this
+      // returned while a room panel was still a skeleton, and the screenshot
+      // caught a half-rendered page. That is precisely the flake this suite
+      // must not have: it passed alone and failed in the matrix, which is how a
+      // visual gate gets muted rather than fixed.
+      await page
+        .locator(
+          ".app-shell-panel .room-body, .brief-document, .library-cards, .scope-lead, " +
+            ".delivery, .new-decision, .not-found",
+        )
+        .first()
+        .waitFor({ state: "visible", timeout: 20_000 })
+        .catch(() => {
+          /* a route with none of these is settled once the shell is up */
+        });
+      // Longer than SPEC-047's refetch debounce, deliberately.
+      //
+      // `useCaseView` refetches the projection 250ms after the last content
+      // event, and the old settle wait here was *also* 250ms — so under load
+      // the screenshot and the refetch's re-render raced, and roughly one full
+      // matrix run in five failed on a random route. Each individual route
+      // passed twelve times in a row when run alone, which is exactly what a
+      // load-sensitive race looks like and exactly how a visual gate earns a
+      // reputation for being flaky and gets muted.
+      await page.waitForTimeout(1_200);
       await expect(page).toHaveScreenshot(`${route.name}.png`, { fullPage: true });
     });
   }

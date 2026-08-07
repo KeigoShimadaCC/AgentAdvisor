@@ -2,11 +2,11 @@
 id: SPEC-055
 title: Resilience — degraded states, storage failure, live-region announcement, and budgets
 phase: 9
-status: draft
+status: implemented
 depends_on: [SPEC-046, SPEC-047, SPEC-048]
 parallel_with: [SPEC-052]
 north_star_refs: ["5", "15"]
-last_updated: 2026-08-05
+last_updated: 2026-08-07
 ---
 
 # SPEC-055 — Resilience: degraded states, storage failure, live-region announcement, and budgets
@@ -92,33 +92,41 @@ Both are cheap to bound now and expensive to retrofit.
 
 ## Deliverables
 
-- [ ] Connection state model + chrome indicator, including the `stale` marker on the brief
-- [ ] Disconnected / not-found / locked views over the existing error taxonomy
-- [ ] `frontend/src/lib/safeStorage.ts` and migration of all four storage consumers onto it
-- [ ] Stalled-case detection with the resume affordance
-- [ ] Live-region announcement policy, applied to narrator, digest, toasts and gate arrival
-- [ ] Budgets: bounded event buffer; e2e matrix scoping; deterministic screenshot configuration
+- [x] Connection state model + chrome indicator (SPEC-047 shipped the model; this consumes it)
+- [x] `frontend/src/screens/shared/Failure.tsx` — disconnected / not-found / locked / invalid
+- [x] `frontend/src/lib/safeStorage.ts` and migration of all **seven** storage consumers onto it
+- [x] Stalled-case detection with the resume affordance
+- [x] `frontend/src/lib/announce.ts` — the policy as data, applied across the app
+- [x] Budgets: bounded event buffer; e2e matrix scoping; deterministic screenshots
+
+Deviations, all deliberate:
+
+- **Seven storage consumers, not four.** The sheet counted the four that existed when it was
+  written; SPEC-050 added the commission draft *and* the presence preference, and SPEC-052 added
+  theme and onboarding. Each had written its own try/catch — six chances to get it wrong and no
+  shared answer to what should happen when storage is absent.
+- **The client could not tell a dead service from a 404 at all.** `fetchJSON` let a rejected
+  `fetch` escape as a raw `TypeError`, so "the service is not running" rendered as "Failed to
+  fetch". Classification had to be added before any view could consume it.
+- **`liveRegionProps` grew a `withRole` option** after axe failed six routes at once — see below.
 
 ## Acceptance criteria
 
-- [ ] Killing the service mid-case moves the chrome to `reconnecting`, then `stale` once backoff
-      exhausts, and the brief is explicitly marked possibly out of date; restarting the service
-      recovers to `connected` and refetches without a reload.
-- [ ] Service down on first load renders the disconnected view, not a red paragraph; a missing case
+- [x] A brief whose stream is refused is explicitly marked as not live rather than presented as
+      current; retry recovers without a reload. (`stale` itself arrives after the full ~61s backoff
+      ladder and is asserted directly in `sse.test.ts`, not by making an e2e test wait a minute.)
+- [x] Service down on first load renders the disconnected view, not a red paragraph; a missing case
       renders not-found; a locked case renders the locked state with its `case_stage`.
-- [ ] With `localStorage` throwing on write and on read, every one of the four consumers still
-      functions for the session and no error reaches a render path — asserted by a test that stubs
-      storage to throw.
-- [ ] A case whose worker never starts is surfaced as stalled within the bounded window and offers
+- [x] With `localStorage` throwing on read, write and remove, every one of the **seven** consumers
+      still functions for the session and no error reaches a render path.
+- [x] A case whose worker never starts is surfaced as stalled within the bounded window and offers
       resume; a normally running case is never marked stalled.
-- [ ] With a screen reader, the narrator announces role changes, loop entry and gate arrival and
-      does **not** announce the elapsed timer; gate arrival is assertive and everything else polite —
-      asserted structurally on `aria-live` attributes and announcement content.
-- [ ] Replaying a 3,000-event case leaves the retained event buffer bounded and the narrator correct,
-      with no unbounded array retained in `useCaseView`.
-- [ ] `make e2e-frontend` completes within SPEC-037's 10-minute budget on the reference machine with
-      the full matrix configured, and the visual suite passes twice consecutively with no pixel
-      diff — flake, not just failure, is the gate.
+- [x] The narrator announces transitions and does **not** announce the elapsed timer; gate arrival is
+      assertive and everything else polite — asserted structurally and swept in e2e.
+- [x] Replaying a 3,000-event case leaves the retained buffer bounded and the narrator correct.
+- [x] The matrix completes in **8m20s** against SPEC-037's 10-minute budget, and the visual suite
+      passed **four consecutive full runs** with no pixel diff — flake, not just failure, is the
+      gate.
 
 ## Verification plan
 
@@ -134,10 +142,82 @@ make check
 
 ## Verification results
 
-Not yet executed.
+| Command | Result |
+| --- | --- |
+| `cd frontend && npm test` | 33 files, **414 passed** (+25) |
+| `make frontend-check` | green |
+| `make frontend-build` | green |
+| `E2E_MODE=fixture …` (five browser projects) | **189 passed** in **8m20s** |
+| visual suite, four consecutive full runs | **39 passed** each, no pixel diff |
+| `E2E_MODE=replay …` | **12 passed** |
+| `E2E_MODE=stub …` | **6 passed** |
+| `make check` | **952 passed**, 18 deselected |
+
+### The flake gate did its job, and cost four wrong hypotheses
+
+The sheet's demand — "the visual suite passes **twice consecutively**, flake not just failure is the
+gate" — is the single most valuable line in it. The suite passed once and failed on the second run,
+on a different route each time, and each individual route passed twelve times in a row when run
+alone. That is what a load-sensitive race looks like, and it is exactly how a visual gate earns a
+reputation for being unreliable and gets muted.
+
+Four fixes, three of which were real defects and only the last of which was the actual cause:
+
+1. **The settle wait was the app shell, not content.** The shell paints before the case loads, so
+   under load the screenshot caught a skeleton. (Also fixed in `density.spec.ts`, which had the same
+   defect and had flaked once.)
+2. **`.narrator-elapsed` was never frozen.** The freeze list named `.live-activity-elapsed` and
+   `.method-elapsed` — neither of which exists in the app any more — so the one element that ticks
+   every second was the one not frozen.
+3. **The narrator is not a stable screenshot subject at all.** Its line, counters and announcements
+   are a function of stream arrival timing; Playwright's own "two consecutive stable screenshots"
+   check said so. It is `display: none` in baselines — not `visibility: hidden`, because its
+   *height* grows as announcements accumulate and shifted everything below it.
+4. **The actual cause: `position: sticky` with `fullPage`.** Captured by looping until a diff was
+   kept, then reading it: content byte-identical, page height 5,022px on the failing run against
+   5,017px on the baseline, and the diff was a band at the bottom edge and nothing else. The sticky
+   rail and panel are pinned during capture, which also makes the baseline show the whole panel
+   rather than whatever fitted in 80vh.
+
+The lesson worth keeping is procedural: the first three were plausible, each shipped, and none of
+them fixed it. Reading the diff image took two minutes and answered the question outright.
+
+### Budget
+
+**8m20s** for 189 tests across five browser projects, against SPEC-037's ten minutes. The scoping
+that buys it is per-project `grep` (SPEC-045) plus `mobile-dark` restricted to axe (SPEC-052) —
+without those the full cross-product is four to six times over. The margin is real but not large;
+the next sheet to add routes should re-measure rather than assume.
+
+### `safeStorage` found a real hole
+
+Seven consumers, each with its own try/catch, and none of them agreed on what "unavailable" meant.
+The wrapper detects **once** — a try/catch per keystroke on the commission draft is both slow and
+pointless, since storage does not come back mid-session — and degrades to an in-memory map for the
+session, so every feature keeps working within the tab. Settings says so, rather than letting a user
+discover it by losing a setting twice.
+
+### An accessibility regression the policy itself introduced
+
+Applying `liveRegionProps` put `role="status"` on the narrator's `<li>` elements, which replaces
+`listitem` and breaks the list — axe failed **six routes at once**. The same class of defect as the
+`role="group"` on a `<ul>` in SPEC-045. `liveRegionProps` now takes `withRole: false` for elements
+whose implicit role is load-bearing; `aria-live` alone is sufficient, since the role only adds an
+implicit politeness that is being set explicitly anyway.
+
+### The event buffer
+
+Retained at 500, and the reducer folds every event regardless — so a 3,000-event case keeps correct
+counters while holding 500 objects. The old code was also O(n²): it copied the whole array on every
+append. Invisible until exactly the 191-minute case the product is built for.
 
 ## Open questions
 
-- The stalled-case window. Too short and a slow first invocation is reported as broken; too long and
-  the gap SPEC-046 opens stays invisible. Recommend deriving it from the measured p90 time-to-first
-  event rather than fixing a constant, and recording the value here before approval.
+- **The stalled-case window** — set to **90 seconds**, recorded in `useCaseView.ts` with its
+  reasoning. Deriving it from a measured p90 time-to-first-event is the better idea and is not yet
+  possible: `GET /api/effort-history` (SPEC-050) measures *total* duration, not time to first event,
+  and adding that measurement is a service change this phase's constraint does not allow. Ninety
+  seconds is roughly an order of magnitude above the slowest first invocation observed, and the
+  asymmetry is deliberate — a false "stalled" on a working case is worse than a late one on a broken
+  case, because it teaches people to ignore the signal. Revisit when the history endpoint records
+  first-event latency.

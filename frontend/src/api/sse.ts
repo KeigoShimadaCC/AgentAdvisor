@@ -1,3 +1,4 @@
+import { safeStorage } from "../lib/safeStorage";
 export interface TranslatedEvent {
   event_type: string;
   message: string;
@@ -47,32 +48,19 @@ export function cursorStorageKey(caseId: string): string {
  * about a case they have never opened.
  */
 export function hasStoredCursor(caseId: string): boolean {
-  try {
-    return window.localStorage.getItem(cursorStorageKey(caseId)) !== null;
-  } catch {
-    return false;
-  }
+  return safeStorage.get(cursorStorageKey(caseId)) !== null;
 }
 
 export function readStoredCursor(caseId: string): number {
-  try {
-    const raw = window.localStorage.getItem(cursorStorageKey(caseId));
-    const parsed = raw === null ? 0 : Number.parseInt(raw, 10);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
-  } catch {
-    // Storage can be unavailable (private mode, quota, disabled). A lost cursor
-    // is a downgrade to replaying from 0, never a failure. SPEC-055 generalises
-    // this into a storage wrapper.
-    return 0;
-  }
+  // A lost cursor is a downgrade to replaying from 0, never a failure —
+  // `safeStorage` (SPEC-055) is where that guarantee now lives.
+  const raw = safeStorage.get(cursorStorageKey(caseId));
+  const parsed = raw === null ? 0 : Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
 function writeStoredCursor(caseId: string, cursor: number): void {
-  try {
-    window.localStorage.setItem(cursorStorageKey(caseId), String(cursor));
-  } catch {
-    /* see readStoredCursor */
-  }
+  safeStorage.set(cursorStorageKey(caseId), String(cursor));
 }
 
 export class SSEClient {

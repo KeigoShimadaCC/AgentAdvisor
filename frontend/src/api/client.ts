@@ -40,6 +40,8 @@ export interface ErrorResponse {
   error: string;
   detail: string;
   case_stage?: string | null;
+  /** HTTP status, or 0 when the request never reached the service (SPEC-055). */
+  status?: number;
 }
 
 /** Payload for the scope-checkpoint POST (SPEC-034). */
@@ -67,13 +69,27 @@ export interface ArtifactEnvelope<T> {
 const API_BASE = "/api";
 
 async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${API_BASE}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...init,
+    });
+  } catch {
+    // SPEC-055: a rejected fetch means the request never reached the service —
+    // it is not running. That is a different fact from a 404 or a 409, and it
+    // used to escape as a raw TypeError and render as "Failed to fetch".
+    throw {
+      error: "service_unavailable",
+      detail: "The AgentAdvisor service is not responding.",
+      status: 0,
+    } as ErrorResponse;
+  }
   if (!resp.ok) {
-    const body = await resp.json().catch(() => ({ error: "request_failed", detail: resp.statusText }));
-    throw body as ErrorResponse;
+    const body = await resp
+      .json()
+      .catch(() => ({ error: "request_failed", detail: resp.statusText }));
+    throw { ...(body as ErrorResponse), status: resp.status } as ErrorResponse;
   }
   return resp.json() as Promise<T>;
 }

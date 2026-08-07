@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type ErrorResponse } from "../../api/client";
 import { SSEClient, type ConnectionState, type TranslatedEvent } from "../../api/sse";
 import { INITIAL_NARRATION, reduceNarration, type NarrationState } from "../../narration/reducer";
@@ -7,6 +7,43 @@ import type { CaseView } from "../../generated/case_view";
 /** How long to wait for a burst of events to settle before refetching. */
 const REFETCH_DEBOUNCE_MS = 250;
 
+/**
+ * How many raw events to retain (SPEC-055).
+ *
+ * The buffer used to be unbounded and copied on every append, which is O(n²)
+ * work and O(n) memory in the length of a case — invisible until a 191-minute
+ * run with SPEC-046's twenty-second progress heartbeats, at which point the tab
+ * is holding thousands of objects and re-allocating the array for each new one.
+ *
+ * Nothing is lost that anyone reads: the narrator's reducer folds *every* event
+ * into state as it arrives, so counters, loops and announcements are computed
+ * from the whole stream regardless of what is retained. What the buffer feeds
+ * is the transcript and the margin — both of which show the recent end — and
+ * the inspector, which fetches records by id rather than scanning.
+ */
+const MAX_RETAINED_EVENTS = 500;
+
+/**
+ * How long a freshly created case may produce nothing before it is called
+ * stalled (SPEC-055).
+ *
+ * SPEC-046 made creation return 202 as soon as the case is durable, which is
+ * right — but it opened a gap between "created" and "running" that nothing
+ * watched. A worker that dies at startup leaves a case that looks like it is
+ * about to begin, forever.
+ *
+ * The value is derived from what actually happens rather than chosen: the
+ * fixture case's first audit event lands well inside a second, and the stub
+ * pipeline's inside two. Ninety seconds is roughly an order of magnitude above
+ * the slowest first invocation observed on a real backend, which is the margin
+ * that keeps a slow start from being reported as a failure. It is deliberately
+ * generous: a false "stalled" on a working case is worse than a late one on a
+ * broken case, because it teaches people to ignore the signal.
+ */
+export const STALL_WINDOW_MS = 90_000;
+
+export { MAX_RETAINED_EVENTS };
+
 export interface CaseViewState {
   view: CaseView | null;
   events: TranslatedEvent[];
@@ -14,6 +51,12 @@ export interface CaseViewState {
   connection: ConnectionState;
   loading: boolean;
   error: string | null;
+  /** SPEC-055: the typed failure, so a screen can tell "not running" from "not found". */
+  failure: ErrorResponse | null;
+  /** Retry after a failure, without a reload. */
+  retry: () => void;
+  /** SPEC-055: created, but nothing has happened for {@link STALL_WINDOW_MS}. */
+  stalled: boolean;
 }
 
 /**
@@ -41,6 +84,9 @@ export function useCaseView(caseId: string | undefined): CaseViewState {
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<ErrorResponse | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [stalled, setStalled] = useState(false);
 
   // Refs so the debounce survives re-renders without re-subscribing the stream.
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,6 +99,8 @@ export function useCaseView(caseId: string | undefined): CaseViewState {
 
     setLoading(true);
     setError(null);
+    setFailure(null);
+    setStalled(false);
     setEvents([]);
     setNarration(INITIAL_NARRATION);
 
@@ -89,7 +137,10 @@ export function useCaseView(caseId: string | undefined): CaseViewState {
         if (!cancelled) setView(v);
       })
       .catch((e: ErrorResponse) => {
-        if (!cancelled) setError(e.detail ?? e.error);
+        if (!cancelled) {
+          setError(e.detail ?? e.error);
+          setFailure(e);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -100,10 +151,26 @@ export function useCaseView(caseId: string | undefined): CaseViewState {
       refetchTimer.current = setTimeout(fetchView, REFETCH_DEBOUNCE_MS);
     };
 
+    // Armed on mount and disarmed by the first event. A case that is already
+    // running has events immediately, so this only ever fires on the gap
+    // non-blocking creation opened.
+    let stallTimer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      if (!cancelled) setStalled(true);
+    }, STALL_WINDOW_MS);
+
     const sse = new SSEClient(caseId, {
       onEvent: (event) => {
         if (cancelled) return;
-        setEvents((prev) => [...prev, event]);
+        if (stallTimer !== null) {
+          clearTimeout(stallTimer);
+          stallTimer = null;
+          setStalled(false);
+        }
+        setEvents((prev) => {
+          const next = prev.length >= MAX_RETAINED_EVENTS ? prev.slice(1) : prev.slice();
+          next.push(event);
+          return next;
+        });
         setNarration((prev) => reduceNarration(prev, event));
         // Only content-bearing events move the projection.
         if (!event.technical) scheduleRefetch();
@@ -117,16 +184,19 @@ export function useCaseView(caseId: string | undefined): CaseViewState {
     return () => {
       cancelled = true;
       if (refetchTimer.current !== null) clearTimeout(refetchTimer.current);
+      if (stallTimer !== null) clearTimeout(stallTimer);
       sse.disconnect();
     };
     // `view` is read inside fetchView's catch only to decide whether an error is
     // fatal; including it would resubscribe the stream on every projection
     // update, which is exactly what this hook exists to avoid.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseId]);
+  }, [caseId, attempt]);
+
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
   return useMemo(
-    () => ({ view, events, narration, connection, loading, error }),
-    [view, events, narration, connection, loading, error],
+    () => ({ view, events, narration, connection, loading, error, failure, retry, stalled }),
+    [view, events, narration, connection, loading, error, failure, retry, stalled],
   );
 }

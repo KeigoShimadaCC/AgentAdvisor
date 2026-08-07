@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { safeStorage } from "../../lib/safeStorage";
 
 /**
  * Reading altitude (SPEC-048).
@@ -27,21 +28,12 @@ function isAltitude(value: unknown): value is Altitude {
 }
 
 export function readAltitude(): Altitude {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return isAltitude(raw) ? raw : DEFAULT_ALTITUDE;
-  } catch {
-    // Storage unavailable is a downgrade to the default, never a failure.
-    return DEFAULT_ALTITUDE;
-  }
+  const raw = safeStorage.get(STORAGE_KEY);
+  return isAltitude(raw) ? raw : DEFAULT_ALTITUDE;
 }
 
 export function writeAltitude(altitude: Altitude): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, altitude);
-  } catch {
-    /* see readAltitude */
-  }
+  safeStorage.set(STORAGE_KEY, altitude);
 }
 
 /** Cross-tab and cross-component sync without a store. */

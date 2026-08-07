@@ -1,3 +1,4 @@
+import { safeStorage } from "../lib/safeStorage";
 /**
  * Marking things as you read (SPEC-051).
  *
@@ -37,23 +38,20 @@ function storageKey(caseId: string): string {
 }
 
 export function readReactions(caseId: string): Reaction[] {
+  const raw = safeStorage.get(storageKey(caseId));
+  if (!raw) return [];
   try {
-    const raw = window.localStorage.getItem(storageKey(caseId));
-    if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? (parsed as Reaction[]) : [];
   } catch {
-    // A corrupt store is no reactions, never a broken screen.
+    // A corrupt value is no reactions, never a broken screen. Storage
+    // availability is `safeStorage`'s problem; malformed JSON is this one's.
     return [];
   }
 }
 
 function write(caseId: string, reactions: Reaction[]): void {
-  try {
-    window.localStorage.setItem(storageKey(caseId), JSON.stringify(reactions));
-  } catch {
-    /* see readReactions */
-  }
+  safeStorage.set(storageKey(caseId), JSON.stringify(reactions));
 }
 
 /** Toggle a reaction on a target. Returns the new list. */
@@ -75,11 +73,7 @@ export function hasReaction(reactions: Reaction[], targetId: string, kind: React
 }
 
 export function clearReactions(caseId: string): void {
-  try {
-    window.localStorage.removeItem(storageKey(caseId));
-  } catch {
-    /* see readReactions */
-  }
+  safeStorage.remove(storageKey(caseId));
 }
 
 /**

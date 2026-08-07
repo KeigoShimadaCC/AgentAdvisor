@@ -1,3 +1,4 @@
+import { safeStorage } from "../../lib/safeStorage";
 /**
  * Watch or be pinged (SPEC-050).
  *
@@ -16,17 +17,9 @@ const STORAGE_KEY = "agentadvisor:presence";
 const DEFAULT_PRESENCE: Presence = "watch";
 
 export function getPresence(): Presence {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === "notify" ? "notify" : DEFAULT_PRESENCE;
-  } catch {
-    return DEFAULT_PRESENCE;
-  }
+  return safeStorage.get(STORAGE_KEY) === "notify" ? "notify" : DEFAULT_PRESENCE;
 }
 
 export function setPresence(presence: Presence): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, presence);
-  } catch {
-    /* storage unavailable is a downgrade to the default, never a failure */
-  }
+  safeStorage.set(STORAGE_KEY, presence);
 }

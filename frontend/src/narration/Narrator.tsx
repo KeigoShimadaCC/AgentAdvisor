@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { TranslatedEvent } from "../api/sse";
 import { narrationLine, type NarrationState } from "./reducer";
+import { liveRegionProps } from "../lib/announce";
 
 interface NarratorProps {
   narration: NarrationState;
@@ -66,7 +67,7 @@ export function Narrator({ narration, events, showTranscript = true }: NarratorP
   return (
     <section className="narrator" aria-label="What is happening now">
       {line && (
-        <p className="narrator-line" aria-live="polite">
+        <p className="narrator-line" {...liveRegionProps("narrator.line")}>
           <span className={`narrator-dot${working ? " pulsing" : ""}`} aria-hidden="true" />
           <span className="narrator-text">{line}</span>
           {working && Number.isFinite(elapsedS) && elapsedS > 0 && (
@@ -81,7 +82,7 @@ export function Narrator({ narration, events, showTranscript = true }: NarratorP
       )}
 
       {counters.length > 0 && (
-        <p className="narrator-counters" aria-hidden="true">
+        <p className="narrator-counters" {...liveRegionProps("narrator.counters")}>
           {counters.join(" · ")}
         </p>
       )}
@@ -89,7 +90,16 @@ export function Narrator({ narration, events, showTranscript = true }: NarratorP
       {narration.announcements.length > 0 && (
         <ul className="narrator-announcements">
           {narration.announcements.slice(-3).map((a) => (
-            <li key={a.id} className={`narrator-announcement narrator-announcement-${a.kind}`}>
+            <li
+              key={a.id}
+              className={`narrator-announcement narrator-announcement-${a.kind}`}
+              // A gate interrupts; everything else waits its turn (SPEC-055).
+              // No role: these are <li>, and `role="status"` would replace
+              // `listitem` and break the list for a screen reader.
+              {...liveRegionProps(a.kind === "gate" ? "gate" : "narrator.announcement", {
+                withRole: false,
+              })}
+            >
               {a.text}
             </li>
           ))}

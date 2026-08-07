@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { digestSince, digestLines } from "./digest";
 import type { TranslatedEvent } from "../api/sse";
+import { liveRegionProps } from "../lib/announce";
 
 interface AwayDigestProps {
   events: TranslatedEvent[];
@@ -30,7 +31,11 @@ export function AwayDigest({ events, sinceCursor }: AwayDigestProps) {
   if (dismissed || lines.length === 0) return null;
 
   return (
-    <section className="away-digest" aria-label="What happened while you were away">
+    <section
+      className="away-digest"
+      aria-label="What happened while you were away"
+      {...liveRegionProps("digest")}
+    >
       <div className="away-digest-head">
         <h3>While you were away</h3>
         <button

@@ -8,6 +8,7 @@ import { EFFORT_PROFILES, type EffortKey } from "../../copy/terms";
 import { readTheme, writeTheme, THEMES, type ThemeChoice } from "../../theme";
 import { restartOnboarding } from "../Onboarding/onboarding";
 import { useToast } from "../shared/Toast";
+import { safeStorage } from "../../lib/safeStorage";
 
 /**
  * One home for every preference the phase introduced (SPEC-052).
@@ -49,6 +50,15 @@ export function Settings() {
         These are preferences about how you like to work. None of them change what a case does or
         what it records.
       </p>
+      {/* SPEC-055: with storage unavailable everything below still works for
+          this tab and none of it survives a reload. Saying so is better than a
+          user discovering it by losing a setting twice. */}
+      {!safeStorage.isPersistent() && (
+        <p className="settings-not-persistent" role="status">
+          This browser is not allowing AgentAdvisor to store anything, so these choices will apply
+          for this tab only and reset when you close it.
+        </p>
+      )}
 
       <Group legend="Appearance" help="Applies immediately, everywhere.">
         {THEMES.map((t) => (

@@ -1,3 +1,4 @@
+import { safeStorage } from "../../lib/safeStorage";
 /**
  * Whether the tour has been seen (SPEC-052).
  *
@@ -7,27 +8,15 @@
 const STORAGE_KEY = "agentadvisor:onboarded";
 
 export function hasOnboarded(): boolean {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === "yes";
-  } catch {
-    // Storage unavailable means we cannot remember, and showing the tour to
-    // someone who has seen it is a smaller harm than never showing it.
-    return false;
-  }
+  // Storage unavailable means we cannot remember, and showing the tour to
+  // someone who has seen it is a smaller harm than never showing it.
+  return safeStorage.get(STORAGE_KEY) === "yes";
 }
 
 export function markOnboarded(): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, "yes");
-  } catch {
-    /* see hasOnboarded */
-  }
+  safeStorage.set(STORAGE_KEY, "yes");
 }
 
 export function restartOnboarding(): void {
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    /* see hasOnboarded */
-  }
+  safeStorage.remove(STORAGE_KEY);
 }
