@@ -87,7 +87,15 @@ if (E2E_MODE === "replay") {
   // root, outside the case directory, so a fixture case cannot carry them.
   // Pointing the memory root at a committed fixture is what makes the
   // monitoring surfaces reachable in e2e rather than component tests only.
-  backendEnv = { AGENTADVISOR_MEMORY_ROOT: path.join(repoRoot, "tests", "fixtures", "memory") };
+  backendEnv = {
+    AGENTADVISOR_MEMORY_ROOT: path.join(repoRoot, "tests", "fixtures", "memory"),
+    // SPEC-056: the fixture monitoring plan has a fixed delivery date, and dueness is
+    // `(today - delivered_at) >= cadence`, so what the Delivery screen renders drifts
+    // with the calendar. Left on the real clock the committed baseline said "1 check is
+    // due now" and would have said "2" from 2026-08-23 — a visual failure with no code
+    // change behind it. Pinning the date is what makes the fixture reproducible.
+    AGENTADVISOR_MONITORING_AS_OF: "2026-08-07",
+  };
 }
 
 // ── Projects ─────────────────────────────────────────────────────────────────

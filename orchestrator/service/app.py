@@ -17,7 +17,7 @@ import os
 import re
 import threading
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -93,6 +93,24 @@ _ACTIVE_STAGES: frozenset[CaseStage] = frozenset(
 )
 
 _logger = logging.getLogger("orchestrator.service.auto_resume")
+
+
+def _monitoring_as_of_from_env() -> date | None:
+    """An explicit "today" for monitoring dueness, or ``None`` for the real clock.
+
+    Set ``AGENTADVISOR_MONITORING_AS_OF`` to an ISO date to freeze it. This exists for
+    fixtures: a committed monitoring plan has a fixed delivery date, so what it renders
+    drifts as the calendar advances, and a visual baseline captured against it has a
+    silent expiry. An unparseable value is ignored rather than raising — a malformed
+    test hook must not take down a real service.
+    """
+    raw = os.getenv("AGENTADVISOR_MONITORING_AS_OF")
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw.strip())
+    except ValueError:
+        return None
 
 
 def _is_resumable(case: Case) -> bool:
@@ -248,6 +266,7 @@ class ServiceConfig:
         replay_dir: Path | None = None,
         speed: float = 60.0,
         monitoring_root: Path | None = None,
+        monitoring_as_of: date | None = None,
     ) -> None:
         self.cases_root = cases_root or default_cases_root()
         self.replay_dir = replay_dir
@@ -255,6 +274,16 @@ class ServiceConfig:
         # SPEC-042: monitoring plans live outside the case tree, under the memory root.
         # Injectable so tests never touch the real one.
         self.monitoring_root = monitoring_root
+        # The date "is this check due?" is answered against. ``None`` means the real
+        # clock, which is what any real deployment wants.
+        #
+        # A fixture cannot want that. Dueness is ``(today - delivered_at) >= cadence``,
+        # so a plan with a fixed delivery date changes what it renders as the calendar
+        # advances: the committed e2e fixture showed "1 check is due now" and would have
+        # said "2 checks are due now" from 2026-08-23, breaking the delivery visual
+        # baseline with no code change behind it (found in SPEC-056). Pinning the date
+        # is what makes a dated fixture reproducible.
+        self.monitoring_as_of = monitoring_as_of or _monitoring_as_of_from_env()
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -540,7 +569,7 @@ def _register_routes(application: FastAPI, config: ServiceConfig) -> None:
         plan = store.read_plan(case_id)
         if plan is None:
             return JSONResponse(content={"plan": None, "due": []})
-        due = due_checks(plan, store.checks(case_id))
+        due = due_checks(plan, store.checks(case_id), as_of=config.monitoring_as_of)
         return JSONResponse(
             content={
                 "plan": plan.model_dump(mode="json"),
