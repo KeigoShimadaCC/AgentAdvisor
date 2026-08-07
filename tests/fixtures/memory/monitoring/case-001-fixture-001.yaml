@@ -1,43 +1,35 @@
 case_id: case-001-fixture-001
 concretized: true
-delivered_at: '2026-07-28'
-horizon: 6 months
+delivered_at: '2026-07-24'
+horizon: 12 months
 indicators:
-- check_cadence_days: 90
+- check_cadence_days: 30
   implicated_alternative: Buy the ETF
   indicator_id: M-001
-  observable: Quarterly revenue concentration in the top customer
-  schema_version: 1
-  source: premortem_failure_mode
-  source_ref: FM-001
-  threshold: above 35% for two consecutive quarters
-  would_imply: The concentration risk the pre-mortem named is materialising
-- check_cadence_days: 30
-  implicated_alternative: null
-  indicator_id: M-002
-  observable: Fab utilisation reported in the quarterly filing
+  observable: NVDA quarterly revenue growth, year over year
   schema_version: 1
   source: change_trigger
   source_ref: CT-001
-  threshold: below 70%
-  would_imply: Demand has softened faster than the base case assumed
+  threshold: Falls below 60% for two consecutive quarters
+  would_imply: The growth case underpinning the premium has broken; shift to the ETF.
+- check_cadence_days: 14
+  implicated_alternative: null
+  indicator_id: M-002
+  observable: NVDA forward P/E versus its own 5-year average
+  schema_version: 1
+  source: change_trigger
+  source_ref: CT-002
+  threshold: Exceeds 55x
+  would_imply: Valuation has run further ahead of fundamentals; pause the remaining
+    tranches.
 mitigations:
-- failure_mode: FM-001
-  mitigation: Cap the single-name position at 15% of the portfolio
+- failure_mode: growth-decelerated-faster-than-modeled
+  mitigation: Cap the position at 15% of the portfolio regardless of conviction.
   mitigation_id: R-001
-  owner: the decision owner
+  owner: user
   schema_version: 1
   severity: high
-  status: in_place
-  triggered_by:
-  - M-001
-- failure_mode: FM-002
-  mitigation: Re-run the comparison if utilisation breaches the floor
-  mitigation_id: R-002
-  owner: the decision owner
-  schema_version: 1
-  severity: medium
   status: not_started
   triggered_by:
-  - M-002
+  - M-001
 schema_version: 1

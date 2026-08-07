@@ -235,6 +235,26 @@ coverage tests pass, and now they pass from a clean checkout.
 It is worth stating what this means for the rest of the sweep: a guard is only as good as its
 reproducibility, and this one had been asserting something no one else could verify.
 
+**And the fixture had to be reconstructed from the baseline, which exposed a second problem.** A
+first regenerated plan was schema-valid but generic, and the delivery visual baseline caught it
+immediately — 209,103 pixels different, confined to the monitoring block. Reading the baseline image
+recovered what the original actually contained: NVDA-specific indicators consistent with the fixture
+case, and one indicator rendering as `DUE NOW` against another that was not. Rebuilt to match, all
+13 visual baselines and all 8 coverage tests pass **with no baseline changes at all**.
+
+That reconstruction is what surfaced the second problem: **the delivery baseline has an expiry
+date.** Whether an indicator reads `DUE NOW` is computed as `(today − delivered_at).days >= cadence`
+against the real clock, so the fixture's stored date decides the rendering. The plan is delivered
+`2026-07-24` with cadences of 14 and 30 days, which is the only shape that yields the baseline's "1
+check is due now." On **2026-08-23** the 30-day indicator also comes due, the line becomes "2 checks
+are due now", a second `DUE NOW` badge appears — and the delivery baseline fails, with nothing in
+the codebase having changed.
+
+This is not the flake below; it is a dated fixture in a suite that asserts pixels. It belongs to
+SPEC-042/SPEC-053 rather than here. The durable fix is to let fixture mode pin an "as of" date —
+`due_checks` already takes an `as_of` parameter and only the service's caller passes the real clock
+— so the fixture's dueness stops depending on when the suite happens to run.
+
 ### 5. The visual baselines are browser-*binary*-specific (harness — **documented**)
 
 Pointing `PW_CHROME` at the full `chrome` binary rather than the headless shell fails 27 baselines

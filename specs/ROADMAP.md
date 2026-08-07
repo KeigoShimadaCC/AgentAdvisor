@@ -485,7 +485,18 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
   reset and took the file with it, turning a green test red with no code change. Fixed: the ignore
   rule now exempts `tests/fixtures/memory/`, and a regenerated plan is committed — built through
   `MonitoringPlan` and written by `MonitoringStore`, so it is schema-valid by construction rather
-  than hand-rolled YAML. All eight coverage tests pass from a clean checkout.
+  than hand-rolled YAML. All eight coverage tests pass from a clean checkout. The fixture's content
+  had to be reconstructed from the delivery visual baseline, which caught a first generic attempt at
+  209,103 differing pixels; rebuilt to match, all 13 baselines and 8 coverage tests pass with no
+  baseline changes.
+- (2026-08-07) **The delivery visual baseline expires on 2026-08-23 (found in SPEC-056).** Whether a
+  monitoring indicator renders `DUE NOW` is computed as `(today − delivered_at).days >= cadence`
+  against the real clock, so the e2e fixture's stored date decides the rendering. Its plan is
+  delivered `2026-07-24` with 14- and 30-day cadences, the only shape that yields the baseline's "1
+  check is due now." On 2026-08-23 the 30-day indicator also comes due, the line becomes "2 checks
+  are due now", a second badge appears, and the baseline fails with no code change. `due_checks`
+  already accepts an `as_of` parameter and only the service's caller passes the real clock, so the
+  fix is to let fixture mode pin it. Belongs to SPEC-042/SPEC-053.
 - (2026-08-07) **Two harness defects fixed during the sweep (SPEC-056).** `make e2e-frontend` had
   never worked from the repo root: each recipe line runs in its own shell, so the target's
   `cd frontend` applied only to `npm install` and the three test lines could not find the config.
