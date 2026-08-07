@@ -477,6 +477,15 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
   `max-height: 80vh` on `.app-shell-panel` is not feeding back; and it is not the binary difference
   below. What remains is the `fullPage` capture path, where the image height disagrees with the DOM
   height that produced it. Returns to SPEC-055, which owns the visual harness.
+- (2026-08-07) **SPEC-053's coverage guard rested on a gitignored fixture (found in SPEC-056).** The
+  phase 8 coverage guard asserts SPEC-042's monitoring plan is on a screen. That plan lives under a
+  memory root rather than in the case tree, and `.gitignore`'s bare `memory/` rule silently excluded
+  the e2e fixture the guard reads — so it passed only on machines where the untracked file happened
+  to exist, and failed on a clean checkout. It surfaced by accident when the verification container
+  reset and took the file with it, turning a green test red with no code change. Fixed: the ignore
+  rule now exempts `tests/fixtures/memory/`, and a regenerated plan is committed — built through
+  `MonitoringPlan` and written by `MonitoringStore`, so it is schema-valid by construction rather
+  than hand-rolled YAML. All eight coverage tests pass from a clean checkout.
 - (2026-08-07) **Two harness defects fixed during the sweep (SPEC-056).** `make e2e-frontend` had
   never worked from the repo root: each recipe line runs in its own shell, so the target's
   `cd frontend` applied only to `npm install` and the three test lines could not find the config.

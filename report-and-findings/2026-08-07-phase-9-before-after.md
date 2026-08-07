@@ -21,12 +21,13 @@ The headline UX claim is measured rather than asserted. On the profile of the re
 case — 45 invocations, 178.4 min in flight, 191 min wall clock — the interface could name the
 running role for **at most 6.6%** of the run before the phase and **at least 93.4%** after it.
 
-Four defects were found. Two are product defects, filed and not fixed, per this sheet's rule that
+Five defects were found. Two are product defects, filed and not fixed, per this sheet's rule that
 defects return to the spec that owns them; one of them — a whole class of prompts that cannot start
-a case at all — is the most serious finding in this report. The other two are defects *in the
-verification harness itself*, which the sweep could not run without: one was fixed here, and the
-other turned out to have been fixed on `main` a day earlier by an independent sweep that tripped
-over exactly the same thing.
+a case at all — is the most serious finding in this report. The other three are defects *in the
+verification harness itself*, which the sweep could not run without: one was fixed here, one turned
+out to have been fixed on `main` a day earlier by an independent sweep that tripped over exactly the
+same thing, and one — a coverage guard resting on a gitignored fixture, green only on machines where
+an untracked file happened to exist — was found by accident and fixed.
 
 One acceptance criterion is **not met**: the visual suite does not pass twice consecutively.
 
@@ -215,7 +216,26 @@ discovery rather than a phase 9 contribution. That two independent sweeps trippe
 recipe within a day is itself the useful signal: the target is on no CI path, so nothing but a human
 running it end to end ever exercises it.
 
-### 4. The visual baselines are browser-*binary*-specific (harness — **documented**)
+### 4. SPEC-053's coverage guard depended on an untracked fixture (harness — **fixed**)
+
+The phase 8 coverage guard asserts the monitoring plan (SPEC-042) is on a screen. That plan lives
+under a *memory root* rather than in the case tree, and `.gitignore` carried a bare `memory/` rule —
+so the e2e fixture it reads was silently never committed. The guard passed only on a machine where
+that untracked file happened to exist locally, and failed outright on a clean checkout.
+
+This surfaced by accident: the verification container reset mid-session and took the untracked file
+with it, turning a green test red with no code change. Without that, the sweep would have reported
+the guard green on the strength of a file no reviewer, CI run, or fresh clone would ever have.
+
+Fixed by narrowing the ignore rule to exempt `tests/fixtures/memory/` and committing a regenerated
+plan — built through `MonitoringPlan` and written by `MonitoringStore`, so it is a schema-valid
+artifact produced by the same writer the service reads with, not hand-rolled YAML. All eight
+coverage tests pass, and now they pass from a clean checkout.
+
+It is worth stating what this means for the rest of the sweep: a guard is only as good as its
+reproducibility, and this one had been asserting something no one else could verify.
+
+### 5. The visual baselines are browser-*binary*-specific (harness — **documented**)
 
 Pointing `PW_CHROME` at the full `chrome` binary rather than the headless shell fails 27 baselines
 at once. The cause is font synthesis: bold headings render fractionally differently and the page
