@@ -17,15 +17,17 @@ those files, never by retyping numbers a model reported in conversation.
 | Objections | `shared/objections/O-*.yaml` |
 | Pre-mortem | `shared/premortem_report.yaml` |
 | Preliminary recommendation | `shared/preliminary_recommendation.yaml` |
-| **Final recommendation** | `shared/final_recommendation.yaml` |
+| **Final recommendation** | `outputs/final_recommendation.yaml` |
 | Quantitative results | `analysis/T-*/results.yaml` |
 | Rendered markdown | `outputs/final_recommendation.md` |
 | Track divergence | `shared/track_divergence.yaml` |
 | Disclosure record | `shared/disclosure_record.yaml` |
 
-Load YAML with `yaml.safe_load`. If `shared/final_recommendation.yaml` is
+Load YAML with `yaml.safe_load`. If `outputs/final_recommendation.yaml` is
 missing, the case has not reached synthesis and there is no deck to build; say
-so rather than assembling one from partial artifacts.
+so rather than assembling one from partial artifacts. Note the final
+recommendation is the one artifact written under `outputs/`, not `shared/`;
+everything else in this table is under `shared/`.
 
 ## Slide plan
 
@@ -106,4 +108,6 @@ Generating this deck from a script under `tmp/` is tooling. Wiring deck
 generation into the orchestrator as a pipeline stage or a CLI subcommand is
 product functionality, which under `AGENTS.md` needs an approved spec in
 `specs/` and a ROADMAP entry first. Do not add it to `orchestrator/` without
-one.
+one. That wiring shipped in `specs/phase-8-pipeline-improvement/SPEC-057-deck-deliverable.md`
+(status `verified`): the orchestrator now generates a deck automatically at `done` and via
+`advisor deck <case-id>`. This skill remains the by-hand path for ad-hoc or exploratory decks.

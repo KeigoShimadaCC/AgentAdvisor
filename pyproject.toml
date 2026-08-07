@@ -41,6 +41,12 @@ dev = [
   "pytest-asyncio",
   "httpx",
 ]
+# SPEC-057. Optional: powers chart PNGs in the case deck. Absent it, deck
+# generation degrades to HTML/CSS table exhibits, so a default install still
+# builds a complete deck. Install with `uv sync --group deck`.
+deck = [
+  "matplotlib",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["orchestrator"]
@@ -51,6 +57,11 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# deck_template.py is authored HTML held in f-strings; wrapping the markup to
+# 100 columns would hurt, not help, its readability.
+"orchestrator/deck_template.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

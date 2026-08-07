@@ -24,6 +24,7 @@ from orchestrator.backend import AgentBackend, make_backend
 from orchestrator.budget import BudgetConfig, BudgetLedger
 from orchestrator.case_store import Case, create_case
 from orchestrator.citations import register_citation_hooks
+from orchestrator.deck import generate_deck_for_case
 from orchestrator.memory import MemoryStore, write_digests
 from orchestrator.stages import StageHandlers
 from orchestrator.state_machine import (
@@ -260,6 +261,9 @@ def run(
 
     if final_state.stage is CaseStage.DONE:
         _record_into_memory(case, store)
+        # SPEC-057: generate the board deck as a second deliverable tier. Non-fatal
+        # by contract — a delivered case is never downgraded to failed by deck tooling.
+        generate_deck_for_case(case)
     return final_state
 
 
