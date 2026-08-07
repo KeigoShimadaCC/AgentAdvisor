@@ -370,6 +370,7 @@ def _invoke_internal(
         case=case,
         include=config.projection_include,
         budget_chars=normalized_task.projection_budget_chars,
+        required=config.projection_required,
     )
     backend_impl = backend or make_backend()
     skill_packs = _case_skill_packs(case)
@@ -378,14 +379,24 @@ def _invoke_internal(
     workspace_path: Path | None = None
 
     for attempt_index, model in enumerate(attempts, start=1):
-        # An attempt on the escalation model with a high model_tier consumes
-        # high_tier_calls.  This is per-attempt, not per-invocation.
+        # An escalation attempt for a high-capability role consumes
+        # high_tier_calls.  This is per-attempt, not per-invocation.  When the
+        # ceiling is reached the escalation is skipped rather than counted and
+        # taken anyway: a cost cap that records overruns without preventing them
+        # is not a cap.  The invocation then fails on its default-model attempts,
+        # which is the intended degradation — the reason is recorded in `errors`
+        # so it reaches the failure message instead of looking like a model fault.
         if (
             budget_ledger is not None
             and model == config.escalation_model
-            and budget_ledger.is_high_tier_model(model)
+            and budget_ledger.counts_against_high_tier(model, role_tier=config.model_tier)
         ):
-            budget_ledger.try_consume(BudgetKind.HIGH_TIER_CALLS.value)
+            if not budget_ledger.try_consume(BudgetKind.HIGH_TIER_CALLS.value):
+                errors.append(
+                    f"Escalation to '{model}' was refused: the case has reached its "
+                    "high-capability model call ceiling (max_high_tier_calls)."
+                )
+                continue
 
         feedback = errors[-1] if errors else None
         workspace_task = WorkspaceTask(

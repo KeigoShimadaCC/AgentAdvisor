@@ -106,6 +106,35 @@ class BudgetLedger:
         """Return True if ``model`` is mapped to the high tier."""
         return self._is_high_tier_model(model)
 
+    def counts_against_high_tier(
+        self, model: str, *, role_tier: str | ModelTier | None = None
+    ) -> bool:
+        """Whether an escalation attempt consumes the high-capability ceiling.
+
+        North star Section 13 caps "maximum high-capability model calls". Reading that
+        as *frontier model* calls alone leaves the cap unable to fire on the
+        shipped configuration: no model any role resolves to maps to ``high``
+        (cursor runs every role on ``low`` models, droid on ``medium``), so the
+        counter never incremented and a mandatory ceiling was enforced by a
+        counter stuck at zero.
+
+        A call is therefore high-capability when *either* the concrete model is a
+        frontier model — which keeps the accounting correct if frontier models
+        are ever wired in — or the role declared it needs high-tier capability
+        and we have escalated it. The second is the escalation ladder Section 13
+        actually describes: substantive judgement, difficult analysis,
+        adversarial review and final synthesis are exactly the roles that
+        declare ``model_tier: high``.
+        """
+
+        if self._is_high_tier_model(model):
+            return True
+        if role_tier is None:
+            return False
+        if isinstance(role_tier, ModelTier):
+            return role_tier is ModelTier.HIGH
+        return role_tier == ModelTier.HIGH.value
+
     def _is_high_tier_model(self, model: str) -> bool:
         tier = self._model_tier_map.get(model)
         if tier is None:

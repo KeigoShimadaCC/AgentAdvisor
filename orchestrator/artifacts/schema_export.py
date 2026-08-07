@@ -42,6 +42,7 @@ from orchestrator.artifacts.tasks import TaskRecord
 from orchestrator.artifacts.thesis import ThesisRevision
 from orchestrator.artifacts.tracks import TrackDivergence
 from orchestrator.artifacts.verification import VerificationWorksheet
+from orchestrator.budget import BudgetConfig
 from orchestrator.service.caseview import (
     ApprovalRecordView,
     AssessedConfidence,
@@ -82,6 +83,9 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "audit_finding": AuditFinding,
     "audit_usage": AuditUsage,
     "calibration_summary": CalibrationSummary,
+    # SPEC-008: BudgetConfig is not an artifact, but its defaults are part of the
+    # case contract (north star Section 13), so the spec requires it in the export.
+    "budget_config": BudgetConfig,
     "case_memory_digest": CaseMemoryDigest,
     "confidence_assessment": ConfidenceAssessment,
     "counterargument": Counterargument,

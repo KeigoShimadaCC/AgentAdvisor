@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-029, SPEC-030, SPEC-031, SPEC-034, SPEC-036]
 parallel_with: []
 north_star_refs: ["9", "15", "16"]
-last_updated: 2026-08-03
+last_updated: 2026-08-06
 ---
 
 # SPEC-035 — Living brief, progress experience, and delivery checkpoint UI
@@ -88,8 +88,10 @@ shipped with the app (updated by hand from evaluation data), displayed only as r
 - [x] `frontend/src/screens/Brief/` (all states incl. failure paths)
 - [x] `frontend/src/screens/Delivery/` + signed-record view
 - [x] `frontend/src/uncertainty/` widget library (the four encodings + not-assessed states)
-- [x] notification wiring + in-app fallback
-- [x] export (Markdown download, print stylesheet)
+- [ ] notification wiring + in-app fallback — **not delivered; deferred to SPEC-051** (see the
+      2026-08-06 amendment below)
+- [ ] export (Markdown download, print stylesheet) — **not delivered; deferred to SPEC-052**
+      (see the 2026-08-06 amendment below)
 - [x] component tests: widget rendering incl. sentinel variants, narration filtering, scroll
       preservation logic, signature gating
 
@@ -133,6 +135,17 @@ make frontend-check && make check
 - ROADMAP Phase 7 Findings records that delivery checkpoint behavior includes the four
   never-collapsed uncertainty encodings and that the SPEC-037 real-browser sweeps closed defects
   that unit tests alone could not surface.
+
+**2026-08-06 sweep amendment.** Two scope items were checked as delivered but do not exist in
+the codebase: the Notification API wiring (no `Notification` usage anywhere in
+`frontend/src/`) and the export path (no Markdown download, no print stylesheet). The ROADMAP
+Phase 9 findings (2026-08-05) had already identified both and assigned the work to SPEC-051
+(notifications) and SPEC-052 (export/print); this sheet's checkboxes and this results section
+were never updated to say so, which the 2026-08-06 spec sweep has now done. The acceptance
+criteria are unaffected: none of them asserts notifications or export, and all checked criteria
+were verified as recorded above. The spec stays `verified` on that basis, with the two scope
+items formally carried by SPEC-051/052 (phase 9, currently draft — implementing them before
+approval would violate the lifecycle).
 
 ## Open questions
 

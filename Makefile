@@ -1,4 +1,4 @@
-.PHONY: init lint type test check smoke smoke-droid schemas frontend-types frontend-check frontend-build frontend-install e2e-frontend e2e-frontend-install
+.PHONY: init lint type test check smoke smoke-droid schemas frontend-types frontend-check frontend-build frontend-install e2e-frontend e2e-frontend-install e2e-frontend-live
 
 init:
 	uv sync --group dev
@@ -47,3 +47,10 @@ e2e-frontend:
 	cd frontend && E2E_MODE=fixture npx playwright test --config=e2e/playwright.config.ts
 	cd frontend && E2E_MODE=stub npx playwright test --config=e2e/playwright.config.ts
 	cd frontend && E2E_MODE=replay npx playwright test --config=e2e/playwright.config.ts
+
+# SPEC-037's opt-in live smoke. Spends real model usage: the spec skips itself
+# unless both consent variables are set —
+#   E2E_LIVE=1 AGENTADVISOR_E2E_BUDGET_ACK=1 make e2e-frontend-live
+e2e-frontend-live:
+	cd frontend && npm install
+	cd frontend && E2E_MODE=live npx playwright test --config=e2e/playwright.config.ts

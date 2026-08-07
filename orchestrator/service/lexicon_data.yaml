@@ -79,6 +79,18 @@ case_recorded_to_memory:
   template: "Case recorded to institutional memory"
   technical: true
 
+deck_generated:
+  template: "Board deck generated"
+  technical: false
+
+deck_generation_degraded:
+  template: "Board deck generated (some exhibits or the PDF were skipped)"
+  technical: false
+
+deck_generation_failed:
+  template: "Board deck could not be generated: {error}"
+  technical: true
+
 case_finalized:
   template: "Case finalized"
   technical: false

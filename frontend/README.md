@@ -38,10 +38,27 @@ uv run advisor ui --cases-root tests/fixtures/cases \
 | `npm run e2e:typecheck` | Type check the e2e suite |
 
 `make frontend-check` runs the typecheck, the drift check, and the tests together;
-`make e2e-frontend` runs the Playwright suite in all three modes. The e2e suite starts
+`make e2e-frontend` runs the Playwright suite in all three deterministic modes (fixture
+mode also runs the `mobile` project — a 390×844 viewport over the library and
+scope-checkpoint flows). The e2e suite starts
 its own servers on dedicated ports (5273/8865) and refuses to reuse an existing one, so
 a leftover dev or replay server can never stand in for the stack under test.
 There is no ESLint setup yet; this table used to list one that did not exist.
+
+### Live e2e mode (opt-in, costs real usage)
+
+`make e2e-frontend-live` runs SPEC-037's live smoke: one small-budget decision through
+the real agent backend — commission, scope sheet with real intake output, sign, observe
+the run through `structuring` completing, pause, disk assertions. It requires both
+consent variables and an authenticated agent CLI, and reports itself skipped otherwise:
+
+```
+E2E_LIVE=1 AGENTADVISOR_E2E_BUDGET_ACK=1 make e2e-frontend-live
+```
+
+Cost expectation: a handful of invocations against the small budget profile, with a
+20-minute hard wall. The case directory lands in `frontend/e2e/.tmp/cases-live/` (never
+`cases/`) and stays on disk for inspection afterwards.
 
 ## Architecture
 

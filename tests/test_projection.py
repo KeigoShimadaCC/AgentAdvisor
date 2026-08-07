@@ -48,7 +48,7 @@ from orchestrator.artifacts.common import (
     TaskRole,
     TaskStatus,
 )
-from orchestrator.case_store import create_case
+from orchestrator.case_store import Case, create_case
 from orchestrator.projection import ProjectionError, project
 
 
@@ -405,3 +405,111 @@ def test_projection_budget_truncation_notice_behavior(tmp_path: Path) -> None:
     assert len([name for name in names if name.startswith("evidence_record--")]) < 2
     notice = next(item for item in limited if item.filename == "_truncation_notice.yaml")
     assert "omitted_count:" in notice.yaml_text
+
+
+# ── Required projection inputs (synthesis truncation fix) ────────────────────
+#
+# The budget fills greedily in list order, so a large early key can crowd out
+# everything behind it.  In the SPEC-020 real case that dropped the preliminary
+# recommendation, objection resolutions and pre-mortem indicators out of the
+# synthesizer's inputs, and the review then blocked on uncited_claim and
+# undisclosed_open_objection — a structural failure the synthesizer could not
+# have avoided.  `required` gives named keys budget ahead of everything else.
+
+
+def _crowded_case(tmp_path: Path, slug: str) -> Case:
+    """A case whose evidence records alone exceed any budget we test against."""
+
+    case = create_case(slug, cases_root=tmp_path)
+    for index in range(6):
+        case.write_artifact(_evidence(f"E-{index + 1:03d}", claim="A" * 400))
+    case.write_artifact(_objection("O-001"))
+    case.write_artifact(_preliminary_recommendation())
+    return case
+
+
+def test_required_input_survives_a_budget_that_evidence_would_consume(tmp_path: Path) -> None:
+    case = _crowded_case(tmp_path, "projection-required-survives")
+    include = ["evidence_records", "objections", "preliminary_recommendation"]
+
+    # Greedy order alone: evidence eats the budget and the tail is dropped.
+    greedy = project(case, include=include, budget_chars=1_200)
+    assert not any(item.filename.startswith("preliminary_recommendation") for item in greedy)
+
+    # Naming it required moves it to the front of the budget, unchanged include list.
+    guarded = project(
+        case,
+        include=include,
+        budget_chars=1_200,
+        required=["preliminary_recommendation", "objections"],
+    )
+    names = [item.filename for item in guarded]
+    assert any(name.startswith("preliminary_recommendation") for name in names)
+    assert any(name.startswith("objection_record") for name in names)
+    # The crowding out did not disappear, it moved to the optional inputs.
+    assert "_truncation_notice.yaml" in names
+
+
+def test_required_inputs_keep_their_declared_order_ahead_of_the_rest(tmp_path: Path) -> None:
+    case = _crowded_case(tmp_path, "projection-required-order")
+
+    projected = project(
+        case,
+        include=["evidence_records", "objections", "preliminary_recommendation"],
+        budget_chars=100_000,
+        required=["preliminary_recommendation", "objections"],
+    )
+    names = [item.filename for item in projected]
+
+    assert names[0].startswith("preliminary_recommendation")
+    assert names[1].startswith("objection_record")
+    # No duplication: a required key is not projected a second time as an optional one.
+    assert len(names) == len(set(names))
+
+
+def test_required_input_that_is_absent_is_not_an_error(tmp_path: Path) -> None:
+    """A required artifact the pipeline has not produced yet resolves to nothing."""
+
+    case = create_case("projection-required-absent", cases_root=tmp_path)
+
+    projected = project(
+        case,
+        include=["preliminary_recommendation"],
+        budget_chars=10_000,
+        required=["preliminary_recommendation"],
+    )
+
+    assert projected == []
+
+
+def test_required_input_that_cannot_fit_the_budget_raises(tmp_path: Path) -> None:
+    case = _crowded_case(tmp_path, "projection-required-overflow")
+
+    with pytest.raises(ProjectionError, match="over the 200-char budget"):
+        project(
+            case,
+            include=["evidence_records", "preliminary_recommendation"],
+            budget_chars=200,
+            required=["preliminary_recommendation"],
+        )
+
+
+def test_required_key_must_also_be_included(tmp_path: Path) -> None:
+    case = create_case("projection-required-not-included", cases_root=tmp_path)
+
+    with pytest.raises(ProjectionError, match="not in the include list"):
+        project(
+            case,
+            include=["evidence_records"],
+            budget_chars=10_000,
+            required=["preliminary_recommendation"],
+        )
+
+
+def test_no_required_keys_leaves_greedy_behavior_untouched(tmp_path: Path) -> None:
+    case = _crowded_case(tmp_path, "projection-required-default")
+    include = ["evidence_records", "objections", "preliminary_recommendation"]
+
+    assert project(case, include=include, budget_chars=1_200) == project(
+        case, include=include, budget_chars=1_200, required=[]
+    )

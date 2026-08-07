@@ -1,0 +1,42 @@
+{
+  "properties": {
+    "max_agent_invocations": {
+      "default": 40,
+      "minimum": 1,
+      "title": "Max Agent Invocations",
+      "type": "integer"
+    },
+    "max_concurrent_workers": {
+      "default": 3,
+      "minimum": 1,
+      "title": "Max Concurrent Workers",
+      "type": "integer"
+    },
+    "max_high_tier_calls": {
+      "default": 6,
+      "minimum": 0,
+      "title": "Max High Tier Calls",
+      "type": "integer"
+    },
+    "max_repair_cycles": {
+      "default": 2,
+      "minimum": 0,
+      "title": "Max Repair Cycles",
+      "type": "integer"
+    },
+    "max_research_tasks": {
+      "default": 15,
+      "minimum": 0,
+      "title": "Max Research Tasks",
+      "type": "integer"
+    },
+    "max_wall_clock_s": {
+      "default": 7200,
+      "minimum": 1,
+      "title": "Max Wall Clock S",
+      "type": "integer"
+    }
+  },
+  "title": "BudgetConfig",
+  "type": "object"
+}

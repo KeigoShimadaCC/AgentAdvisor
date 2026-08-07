@@ -21,10 +21,12 @@ The headline UX claim is measured rather than asserted. On the profile of the re
 case — 45 invocations, 178.4 min in flight, 191 min wall clock — the interface could name the
 running role for **at most 6.6%** of the run before the phase and **at least 93.4%** after it.
 
-Four defects were found, two of them fixed here because they are defects *in the verification
-harness itself* and the sweep could not otherwise run. Two are product defects, filed and not fixed,
-per this sheet's rule that defects return to the spec that owns them. One of them — a whole class of
-prompts that cannot start a case at all — is the most serious finding in this report.
+Four defects were found. Two are product defects, filed and not fixed, per this sheet's rule that
+defects return to the spec that owns them; one of them — a whole class of prompts that cannot start
+a case at all — is the most serious finding in this report. The other two are defects *in the
+verification harness itself*, which the sweep could not run without: one was fixed here, and the
+other turned out to have been fixed on `main` a day earlier by an independent sweep that tripped
+over exactly the same thing.
 
 One acceptance criterion is **not met**: the visual suite does not pass twice consecutively.
 
@@ -200,11 +202,18 @@ leak to users as stop reasons on two surfaces (`FailurePath.tsx:73`, `Delivery.t
 `no_critical_evidence_gaps_remain`; the terminology guard's forbidden list does not include these
 values and the lexicon has no entry for them.
 
-### 3. `make e2e-frontend` never worked from the repo root (harness — **fixed**)
+### 3. `make e2e-frontend` never worked from the repo root (harness — **already fixed on main**)
 
 Each `make` recipe line runs in its own shell, so the target's `cd frontend` applied only to the
 `npm install` line; the three test lines ran from the repo root and could not find the config. The
-sheet's own verification plan runs through this target. Fixed by giving each line its own `cd`.
+sheet's own verification plan runs through this target, so the sweep hit it immediately and fixed it
+by giving each line its own `cd`.
+
+**It was not a new finding.** Main's 2026-08-06 spec sweep had already found and fixed it, byte for
+byte — which is why the two changes merged without conflicting. Recorded here as a duplicate
+discovery rather than a phase 9 contribution. That two independent sweeps tripped over the same
+recipe within a day is itself the useful signal: the target is on no CI path, so nothing but a human
+running it end to end ever exercises it.
 
 ### 4. The visual baselines are browser-*binary*-specific (harness — **documented**)
 

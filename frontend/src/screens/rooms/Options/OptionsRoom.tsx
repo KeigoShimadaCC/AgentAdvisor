@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { RoomShell } from "../../shared/RoomShell";
 import { EVBar } from "../../shared/EVBar";
 import { HonestEmpty } from "../../shared/HonestEmpty";
+import { CitationLink } from "../../inspector/CitationLink";
 import type { CaseView, OptionView } from "../../../generated/case_view";
 import { ROOMS } from "../../../copy/terms";
 import { DiagnosticityMatrix } from "./DiagnosticityMatrix";
@@ -24,7 +25,6 @@ function OptionsBody({ view }: { view: CaseView }) {
   const eliminated = useMemo(() => options.filter((o) => o.eliminated), [options]);
   const ranked = useMemo(() => options.filter((o) => !o.eliminated), [options]);
   const grouped = useMemo(() => groupByRank(ranked), [ranked]);
-
   if (!room || options.length === 0) {
     return (
       <HonestEmpty
@@ -65,12 +65,16 @@ function OptionsBody({ view }: { view: CaseView }) {
                   evMin={evMin}
                   evMax={evMax}
                   recommended={o === recommended}
+                  leastDisconfirmed={
+                    room.ach_scored === true && o.disconfirmation_rank === 1
+                  }
                 />
               ))}
             </ul>
           </li>
         ))}
       </ol>
+
 
       {eliminated.length > 0 && (
         <section className="eliminated-coda" aria-label="Eliminated options">
@@ -114,9 +118,10 @@ interface OptionRowProps {
   evMin: number;
   evMax: number;
   recommended: boolean;
+  leastDisconfirmed: boolean;
 }
 
-function OptionRow({ option, hasEV, evMin, evMax, recommended }: OptionRowProps) {
+function OptionRow({ option, hasEV, evMin, evMax, recommended, leastDisconfirmed }: OptionRowProps) {
   return (
     <li className={`option-row${recommended ? " option-row-recommended" : ""}`}>
       <div className="option-row-head">
@@ -124,6 +129,14 @@ function OptionRow({ option, hasEV, evMin, evMax, recommended }: OptionRowProps)
         {option.expected_value != null && (
           <span className="option-modeled-badge" title="Modeled with a reproducible script">
             modeled
+          </span>
+        )}
+        {leastDisconfirmed && (
+          <span
+            className="option-ach-badge"
+            title="The competing-hypotheses matrix rules this option out the least"
+          >
+            least disconfirmed
           </span>
         )}
       </div>

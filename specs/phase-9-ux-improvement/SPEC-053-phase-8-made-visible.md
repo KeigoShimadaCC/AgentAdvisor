@@ -19,11 +19,23 @@ and a private evidence channel. Its sheets never mention the frontend, but its i
 ship ~900 lines of it — so when phase 8 merged, three of those seven were already projected *and*
 rendered (objective weights, the typed action plan, the limitations statement).
 
+*(This summary originally claimed not one of SPEC-038–044 mentions the frontend, `CaseView`, or the
+UI anywhere. **Corrected 2026-08-06:** that was never quite true — SPEC-038's objective scores and
+SPEC-040's ACH standings were projected into `CaseView` from the start, and SPEC-042 shipped its own
+service endpoint and Delivery-screen monitoring block. What is true is that the projections were
+left partial and in one case entirely unconsumed.)*
+
 **Four remain unreachable except by reading YAML in `cases/`.** Two are projected but never drawn:
 the independent review verdict and the ACH matrix. Two are not even in the read model: the
 monitoring plan with its risk register, and `user_document` provenance from the private evidence
 channel. This spec closes those four and keeps the guard that stops the pattern recurring. It is the
 one sheet in phase 9 that hard-depends on phase 8, so the dependency risk is contained here.
+
+**Note (2026-08-07, merge with main).** The 2026-08-06 spec sweep added its own inline ACH panel to
+the Options room on `main`, independently of this sheet's `DiagnosticityMatrix`. Merging phase 9
+into main rendered the matrix twice; the two were reconciled into the single component, which keeps
+the sweep's rank filtering and empty-table guard alongside this sheet's eliminated-row marking,
+overflow handling and citation links.
 
 ## Motivation
 

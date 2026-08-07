@@ -7,15 +7,18 @@ const __dirname = path.dirname(__filename);
 
 // ── Mode selection ───────────────────────────────────────────────────────────
 //
-// The suite supports three deterministic backing modes, selected by the
-// ``E2E_MODE`` env var.  Each mode starts a different ``advisor ui``
-// configuration:
+// The suite supports four backing modes, selected by the ``E2E_MODE`` env var.
+// Each mode starts a different ``advisor ui`` configuration:
 //
 //   fixture (default) — committed dummy case data, read-only journeys
 //   stub              — real orchestrator on StubBackend, full lifecycle
 //   replay            — recorded audit timing, progress-experience assertions
+//   live              — real agent backend, opt-in smoke (SPEC-037; requires
+//                       E2E_LIVE=1 and AGENTADVISOR_E2E_BUDGET_ACK=1, and only
+//                       ever runs live.spec.ts)
 //
-// ``make e2e-frontend`` runs all three sequentially.
+// ``make e2e-frontend`` runs the three deterministic modes sequentially;
+// ``make e2e-frontend-live`` runs the live smoke.
 
 const E2E_MODE = process.env.E2E_MODE ?? "fixture";
 
@@ -72,6 +75,11 @@ if (E2E_MODE === "replay") {
   // with the app factory so make_backend is never called in this process.
   backendCommand = `rm -rf ${stubCasesRoot} && mkdir -p ${stubCasesRoot} && ${pyBin} -c "import pathlib, uvicorn; from orchestrator.service.app import create_app; app = create_app(cases_root=pathlib.Path('${stubCasesRoot}')); uvicorn.run(app, host='127.0.0.1', port=${BACKEND_PORT}, log_level='info')"`;
   backendEnv = { AGENTADVISOR_BACKEND: "stub" };
+} else if (E2E_MODE === "live") {
+  // Live mode: the real backend with a temp cases root that survives the run
+  // for inspection. Never points at cases/ and never at the committed fixtures.
+  const liveCasesRoot = path.join(frontendDir, "e2e", ".tmp", "cases-live");
+  backendCommand = `mkdir -p ${liveCasesRoot} && ${advisorUi} --port ${BACKEND_PORT} --cases-root ${liveCasesRoot}`;
 } else {
   // fixture (default)
   backendCommand = `${advisorUi} --port ${BACKEND_PORT} --cases-root tests/fixtures/cases`;
@@ -82,8 +90,84 @@ if (E2E_MODE === "replay") {
   backendEnv = { AGENTADVISOR_MEMORY_ROOT: path.join(repoRoot, "tests", "fixtures", "memory") };
 }
 
+// ── Projects ─────────────────────────────────────────────────────────────────
+
+const chromiumProject = {
+  // PW_CHROME overrides the browser binary. Playwright resolves a build
+  // keyed to the pinned @playwright/test version, so an environment that
+  // ships a different chromium (a container image, a distro package)
+  // cannot launch the suite at all. Unset, this is exactly the default
+  // resolution — the escape hatch costs nothing and is the difference
+  // between the suite running somewhere and not running there.
+  name: "chromium",
+  use: { ...devices["Desktop Chrome"], colorScheme: "light" as const, ...chromeBinary },
+  // The reduced-motion check asserts the preference is *applied*, so it is
+  // only meaningful in the project that applies it.
+  grepInvert: /reduced motion/,
+};
+
+const chromiumDarkProject = {
+  name: "chromium-dark",
+  use: { ...devices["Desktop Chrome"], colorScheme: "dark" as const, ...chromeBinary },
+  grep: /visual baselines|token contrast|accessibility \(axe\)/,
+};
+
+// SPEC-052: the most likely moment to check a three-hour run is on a phone,
+// and until this phase no project had ever exercised one.
+const mobileProject = {
+  name: "mobile",
+  use: { ...devices["Pixel 7"], colorScheme: "light" as const, ...chromeBinary },
+  grep: /visual baselines|small viewports/,
+};
+
+// Axe only. The small-viewport sweep is layout, and layout does not differ by
+// theme — running it twice cost two minutes and bought nothing.
+const mobileDarkProject = {
+  name: "mobile-dark",
+  use: { ...devices["Pixel 7"], colorScheme: "dark" as const, ...chromeBinary },
+  grep: /accessibility \(axe\)/,
+};
+
+const reducedMotionProject = {
+  name: "reduced-motion",
+  // Both styles.css and Brief.tsx branch on this and nothing tested it.
+  use: {
+    ...devices["Desktop Chrome"],
+    ...chromeBinary,
+    contextOptions: { reducedMotion: "reduce" as const },
+  },
+  grep: /reduced motion/,
+};
+
+const webkitProject = {
+  name: "webkit",
+  use: { ...devices["Desktop Safari"], colorScheme: "light" as const },
+  retries: 1, // reading-experience parity, allow one retry
+  // Screenshots are engine-specific; webkit would need its own baselines
+  // for no additional signal about the design system.
+  grepInvert: /visual baselines|token contrast|density guard/,
+};
+
+const ALL_PROJECTS = [
+  chromiumProject,
+  chromiumDarkProject,
+  mobileProject,
+  mobileDarkProject,
+  reducedMotionProject,
+  webkitProject,
+];
+
+// The deterministic modes carry the whole SPEC-045 matrix and let
+// ``modeDescribe`` do the skipping; a live smoke spends real usage, so it runs
+// on exactly one browser (SPEC-037).
+const projects = E2E_MODE === "live" ? [chromiumProject] : ALL_PROJECTS;
+
 export default defineConfig({
   testDir: ".",
+  // Live mode runs only its own spec; the deterministic modes collect
+  // everything (live.spec.ts included — it reports itself skipped, which is
+  // what SPEC-037 asks the default suite to show).
+  testMatch: E2E_MODE === "live" ? "live.spec.ts" : undefined,
   timeout: 60_000,
   expect: {
     timeout: 10_000,
@@ -138,58 +222,7 @@ export default defineConfig({
   // optimisation: dark repeats the presentation sweeps, mobile repeats layout
   // only, reduced-motion runs one targeted check, and webkit stays on the
   // functional journeys it has always covered.
-  projects: [
-    {
-      // PW_CHROME overrides the browser binary. Playwright resolves a build
-      // keyed to the pinned @playwright/test version, so an environment that
-      // ships a different chromium (a container image, a distro package)
-      // cannot launch the suite at all. Unset, this is exactly the default
-      // resolution — the escape hatch costs nothing and is the difference
-      // between the suite running somewhere and not running there.
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"], colorScheme: "light", ...chromeBinary },
-      // The reduced-motion check asserts the preference is *applied*, so it is
-      // only meaningful in the project that applies it.
-      grepInvert: /reduced motion/,
-    },
-    {
-      name: "chromium-dark",
-      use: { ...devices["Desktop Chrome"], colorScheme: "dark", ...chromeBinary },
-      grep: /visual baselines|token contrast|accessibility \(axe\)/,
-    },
-    {
-      // SPEC-052: the most likely moment to check a three-hour run is on a
-      // phone, and until this phase no project had ever exercised one.
-      name: "mobile",
-      use: { ...devices["Pixel 7"], colorScheme: "light", ...chromeBinary },
-      grep: /visual baselines|small viewports/,
-    },
-    {
-      // Axe only. The small-viewport sweep is layout, and layout does not
-      // differ by theme — running it twice cost two minutes and bought nothing.
-      name: "mobile-dark",
-      use: { ...devices["Pixel 7"], colorScheme: "dark", ...chromeBinary },
-      grep: /accessibility \(axe\)/,
-    },
-    {
-      name: "reduced-motion",
-      // Both styles.css and Brief.tsx branch on this and nothing tested it.
-      use: {
-        ...devices["Desktop Chrome"],
-        ...chromeBinary,
-        contextOptions: { reducedMotion: "reduce" },
-      },
-      grep: /reduced motion/,
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"], colorScheme: "light" },
-      retries: 1, // reading-experience parity, allow one retry
-      // Screenshots are engine-specific; webkit would need its own baselines
-      // for no additional signal about the design system.
-      grepInvert: /visual baselines|token contrast|density guard/,
-    },
-  ],
+  projects,
 
   // Two servers: the FastAPI backend (advisor ui) and the Vite dev server
   // (which proxies /api to the backend per vite.config.ts).

@@ -43,8 +43,8 @@ presenting all of it at once with nothing ranked.
     or notify**, sit with the deliberation or be pinged, which SPEC-051 consumes. Both are
     preferences, not case data: neither is written into the case.
 - `frontend/src/copy/effort.ts` — effort profiles whose time ranges are computed from recorded
-  history via `MemoryStore.prior_cases()` (p50–p90 per profile), served through a small addition to
-  the existing calibration read, and labelled as measured. With no history, honest fallback copy
+  history via `MemoryStore.prior_cases()` (p50–p90 per profile), served by SPEC-046's
+  `GET /api/effort-history`, and labelled as measured. With no history, honest fallback copy
   rather than a fabricated number. Removes the hardcoded ranges from `terms.ts`.
 - `frontend/src/screens/ScopeCheckpoint/ScopeCheckpoint.tsx` — progressive disclosure:
   - leads with the restatement as a binary — "Here's the decision I'll actually answer. Is that
@@ -215,6 +215,8 @@ Both resolved during implementation.
   with no referent — exactly the false precision the four separate encodings exist to prevent. A
   not-assessed measure is stated as not assessed, which is both the honest reading and the useful
   one: it tells the reader what to go and check.
-- **Where measured effort is served from** — a sibling `GET /api/effort-history`, as recommended.
+- **Where measured effort is served from** — a sibling `GET /api/effort-history`, as
+  recommended, owned by SPEC-046 (added to its scope on 2026-08-06; the gap was that no sheet had
+  owned the read at all).
   Calibration is the system's forecasting track record; folding wall-clock timing into it would make
   a single-purpose contract answer two unrelated questions.

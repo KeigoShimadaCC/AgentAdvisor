@@ -159,6 +159,141 @@ dimensions:
           1: "Some artifacts but gaps"
           2: "Complete chain: intake → framing → evidence → analysis → objections → recommendation"
 
+# ── Phase 6 dimensions (SPEC-026) ────────────────────────────────────────────
+#
+# Added as separate dimensions, never folded into the six above, so the legacy
+# average stays directly comparable to the recorded baselines. These score the
+# structures the think-tank architecture introduced; the metrics were always
+# collected by run_e2e_eval.py's _phase6_metrics, and SPEC-026's scope called
+# for rubric criteria over them — the 2026-08-06 spec sweep found the rubric
+# side had never been written and added it.
+
+  assumption_ledger_coverage:
+    weight: 1.0
+    phase: 6
+    criteria:
+      - id: al-1
+        name: assumptions_recorded
+        description: "Assumptions are first-class tracked records, not prose (Phase 4 produced zero)"
+        score_range: [0, 2]
+        scoring:
+          0: "No assumption records on the blackboard"
+          1: "1-4 assumption records"
+          2: "5+ assumption records (a typical decision carries at least that many load-bearing assumptions)"
+      - id: al-2
+        name: assumption_materiality_rated
+        description: "Every assumption record carries a materiality rating the gates can act on"
+        score_range: [0, 2]
+        scoring:
+          0: "No assumption records, or none carry a materiality rating"
+          1: "Some records carry a materiality rating"
+          2: "Every assumption record carries a materiality rating"
+
+  evidence_authority:
+    weight: 1.0
+    phase: 6
+    criteria:
+      - id: ea-1
+        name: authority_mean
+        description: "The evidence critique's corpus authority mean reaches authoritative territory"
+        score_range: [0, 2]
+        scoring:
+          0: "No critique, or corpus authority mean below 0.4"
+          1: "Corpus authority mean between 0.4 and 0.7"
+          2: "Corpus authority mean at or above 0.7"
+      - id: ea-2
+        name: independence_concentration
+        description: "No independence cluster dominates the corpus (SPEC-023 penalises coverage above 40%)"
+        score_range: [0, 2]
+        scoring:
+          0: "No critique, or the largest cluster covers more than 60% of the corpus"
+          1: "The largest cluster covers 40-60% of the corpus"
+          2: "The largest cluster covers at most 40% of the corpus"
+
+  issue_tree_coverage:
+    weight: 1.0
+    phase: 6
+    criteria:
+      - id: it-1
+        name: tree_structure
+        description: "The decision is decomposed into a MECE issue tree with real branches"
+        score_range: [0, 2]
+        scoring:
+          0: "No issue tree"
+          1: "A tree exists but with fewer than 3 leaves"
+          2: "A tree with 3+ leaves"
+      - id: it-2
+        name: tasks_linked_to_tree
+        description: "Planned tasks attach to issue-tree nodes, so coverage is accountable"
+        score_range: [0, 2]
+        scoring:
+          0: "No tasks, or no task carries an issue_node_id"
+          1: "Fewer than half of tasks carry an issue_node_id"
+          2: "At least half of tasks carry an issue_node_id"
+
+  premortem_quality:
+    weight: 1.0
+    phase: 6
+    criteria:
+      - id: pm-1
+        name: failure_modes_identified
+        description: "The pre-mortem names a real set of failure modes"
+        score_range: [0, 2]
+        scoring:
+          0: "No pre-mortem report"
+          1: "1-2 failure modes"
+          2: "3+ failure modes"
+      - id: pm-2
+        name: indicators_actionable
+        description: "Every failure mode carries leading indicators that could be watched"
+        score_range: [0, 2]
+        scoring:
+          0: "No failure mode carries a leading indicator"
+          1: "Some failure modes carry leading indicators"
+          2: "Every failure mode carries at least one leading indicator"
+
+  verification_depth:
+    weight: 1.0
+    phase: 6
+    criteria:
+      - id: vd-1
+        name: worksheet_built
+        description: "The reviewer verifies against a per-claim citation worksheet, not vibes"
+        score_range: [0, 2]
+        scoring:
+          0: "No verification worksheet"
+          1: "A worksheet with 1-4 checked items"
+          2: "A worksheet with 5+ checked items"
+      - id: vd-2
+        name: gates_executed
+        description: "Stage gates ran and left reports at multiple stage boundaries"
+        score_range: [0, 2]
+        scoring:
+          0: "No gate reports"
+          1: "1-2 gate reports"
+          2: "3+ gate reports"
+
+  thesis_evolution:
+    weight: 1.0
+    phase: 6
+    criteria:
+      - id: te-1
+        name: thesis_tracked
+        description: "The thesis is an append-only revision ledger, not a rewritten narrative"
+        score_range: [0, 2]
+        scoring:
+          0: "No thesis revisions recorded"
+          1: "Exactly one revision recorded"
+          2: "2+ revisions recorded across the run"
+      - id: te-2
+        name: independent_comparison_recorded
+        description: "A second track reached its own conclusion and the agreement verdict is recorded"
+        score_range: [0, 2]
+        scoring:
+          0: "No track-divergence record"
+          1: "A divergence record exists but its agreement verdict is absent"
+          2: "The divergence record carries an explicit agreement verdict"
+
 # ── Phase 8 dimensions (SPEC-044) ────────────────────────────────────────────
 #
 # Added as separate dimensions, never folded into the six above, so the legacy
@@ -253,5 +388,8 @@ dimensions:
 # 0.0-0.5: poor, 0.5-1.0: fair, 1.0-1.5: good, 1.5-2.0: excellent
 #
 # Report two averages (SPEC-044):
-#   legacy   — the six pre-Phase-8 dimensions only, comparable to the 1.96 baseline
-#   extended — all ten dimensions, which is the honest picture of the current pipeline
+#   legacy   — the five objectively-scored pre-Phase-6 dimensions, comparable to the
+#              1.96 baseline (relevance_efficiency is in this rubric for the human
+#              scorer but has no objective computation, so it is in no average)
+#   extended — legacy + Phase 6 + Phase 8 dimensions, the honest picture of the
+#              current pipeline

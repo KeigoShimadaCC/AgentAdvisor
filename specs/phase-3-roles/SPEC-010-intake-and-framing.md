@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-006]
 parallel_with: [SPEC-011, SPEC-012, SPEC-013, SPEC-014, SPEC-015, SPEC-016, SPEC-017]
 north_star_refs: ["6.1", "8"]
-last_updated: 2026-07-31
+last_updated: 2026-08-06
 ---
 
 # SPEC-010 — Intake and framing roles
@@ -21,7 +21,7 @@ North star Stage 1–2: research must not start until the decision is framed and
 
 ## Scope
 
-- `cursor/roles/intake.md`: extract decision question, deadline, alternatives mentioned, objectives, constraints, risk tolerance, reversibility, depth; emit explicit `unknown` rather than inventing values; produce ≤5 clarification questions only where an assumption would be material (Stage 1 guidance).
+- `cursor/roles/intake.md`: extract decision question, deadline, alternatives mentioned, objectives, constraints, risk tolerance, reversibility, depth; emit explicit `unknown` rather than inventing values; produce ≤5 clarification questions only where an assumption would be material (Stage 1 guidance). *(Cap raised to 8 by SPEC-043 — see the 2026-08-06 amendment note below.)*
 - `cursor/roles/director-framing.md`: from the intake, produce a full `DecisionSpec` with a broadened alternative set (for the investment vertical: staged entry, smaller amount, wait-for-milestone, alternative vehicle, decline-and-revisit patterns per Stage 2) plus initial known-unknowns.
 - New artifacts in SPEC-003 module: `IntakeRecord` (extraction + clarifications) and `FramingApproval` (user decision: approve | edit | answers to clarifications).
 - Per-role configs `cursor/roles/intake.yaml` and `cursor/roles/director-framing.yaml` (intake: cheap model; framing: Director-tier model; projections).
@@ -60,7 +60,15 @@ uv run pytest -m live -k framing -q
 
 ## Verification results
 
-**2026-07-31 — PASS.** `cursor/roles/intake.md` enforces hard anti-fabrication rules (unstated fields are null, never `"unknown"`/`"TBD"`, clarifications only for materially consequential nulls, max 5). `cursor/roles/director-framing.md` broadens the alternative set for investment decisions (smaller amount, staged entry, wait-for-milestone, alternative vehicle, decline-and-revisit). Two structural unit tests pass (investment + vague fixtures), the live mini-run passed in ≤2 attempts each using `composer-2.5` (intake) and `claude-opus-5-thinking-high` (framing). Framing now uses the native `variant="framing"` parameter on `invoke()` introduced in SPEC-006 during Phase 3, so `director-framing.yaml` is loaded directly rather than through a workaround. Projection for `intake_record` now resolves through the canonical `case_store` path (`shared/intake_record.yaml`) after the projection fix, eliminating the hand-seeded `outputs/` path the first implementation required.
+**2026-07-31 — PASS.** `cursor/roles/intake.md` enforces hard anti-fabrication rules (unstated fields are null, never `"unknown"`/`"TBD"`, clarifications only for materially consequential nulls, max 5 at the time; see the amendment below). `cursor/roles/director-framing.md` broadens the alternative set for investment decisions (smaller amount, staged entry, wait-for-milestone, alternative vehicle, decline-and-revisit). Two structural unit tests pass (investment + vague fixtures), the live mini-run passed in ≤2 attempts each using `composer-2.5` (intake) and `claude-opus-5-thinking-high` (framing). Framing now uses the native `variant="framing"` parameter on `invoke()` introduced in SPEC-006 during Phase 3, so `director-framing.yaml` is loaded directly rather than through a workaround. Projection for `intake_record` now resolves through the canonical `case_store` path (`shared/intake_record.yaml`) after the projection fix, eliminating the hand-seeded `outputs/` path the first implementation required.
+
+**2026-08-06 sweep amendment.** The clarification-question cap is 8, not the 5 this sheet
+states: SPEC-043 (private evidence channel) raised it — `IntakeRecord.clarification_questions`
+carries `max_length=8` (`orchestrator/artifacts/intake.py`) and `cursor/roles/intake.md`
+instructs "Maximum 8 clarification questions" — because substantive free-text questions
+(`ClarificationKind`) needed headroom the field-only cap did not leave. The implementation was
+changed under SPEC-043 but this sheet was never back-updated; found in the 2026-08-06 spec
+sweep. The anti-fabrication rules and the "only where material" gate are unchanged.
 
 ## Open questions
 

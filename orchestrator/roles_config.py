@@ -30,6 +30,10 @@ class RoleConfig:
     output_artifact_type: str
     model_tier: ModelTier
     variant: str | None = None
+    # Include keys that must survive the projection character budget. Optional:
+    # an empty tuple leaves the budget purely greedy, which is right for roles
+    # whose inputs are all substitutable.
+    projection_required: tuple[str, ...] = ()
 
     @property
     def stem(self) -> str:
@@ -217,6 +221,17 @@ def load_role_config(role: TaskRole | str, variant: str | None = None) -> RoleCo
     read_only = _as_bool(payload, "read_only")
     allow_shell = _as_bool(payload, "allow_shell")
     projection_include = _as_string_list(payload, "projection_include")
+    projection_required = (
+        _as_string_list(payload, "projection_required")
+        if payload.get("projection_required") is not None
+        else ()
+    )
+    missing_required = [key for key in projection_required if key not in projection_include]
+    if missing_required:
+        raise RoleConfigError(
+            f"Role config key 'projection_required' names {missing_required}, which are not in "
+            "'projection_include'. A required input must also be an included one."
+        )
     output_artifact_type = _as_str(payload, "output_artifact_type")
     model_tier_raw = _as_str(payload, "model_tier")
     if model_tier_raw not in _VALID_TIERS:
@@ -234,6 +249,7 @@ def load_role_config(role: TaskRole | str, variant: str | None = None) -> RoleCo
         read_only=read_only,
         permission_profile=PermissionProfile(allow_shell=allow_shell),
         projection_include=projection_include,
+        projection_required=projection_required,
         output_artifact_type=output_artifact_type,
         model_tier=model_tier,
     )

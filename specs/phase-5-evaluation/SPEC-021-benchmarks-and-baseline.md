@@ -6,7 +6,7 @@ status: verified
 depends_on: [SPEC-020]
 parallel_with: []
 north_star_refs: ["19", "18"]
-last_updated: 2026-08-03
+last_updated: 2026-08-06
 ---
 
 # SPEC-021 — Benchmark cases and single-agent baseline
@@ -46,7 +46,14 @@ Unattended operation is the main new mechanics: `advisor` gains nothing; runners
 
 - [x] All benchmark configs validate; rubric covers all six Section 18 dimensions.
 - [x] Baseline and workflow runs complete unattended for all ≥3 cases within their budget profiles.
-- [x] Every results folder contains the final package and summary.json with usage metrics.
+- [x] Every results folder contains summary.json with usage metrics; the runner copies the
+      final package into the results folder at run time, but per this spec's own committed-layout
+      rule ("full case artifacts stay local") only summary.json is committed. *(Amended
+      2026-08-06: the criterion previously read "contains the final package and summary.json",
+      which contradicted the scope's committed-layout rule and was not what the committed
+      `benchmarks/results/scenario-0{1,2,3}/workflow/` folders contain — they hold summary.json
+      only. `scripts/run_benchmarks.py::_copy_final_package` does copy the package at run time;
+      the copied files are gitignored case artifacts and were never committed.)*
 - [x] `make check` green.
 
 ## Verification plan

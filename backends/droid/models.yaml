@@ -39,6 +39,13 @@ roles:
   ach:
     default_model: claude-sonnet-5
     escalation_model: gpt-5.4
+  # SPEC-042: same reasoning as ach — concretising the monitoring plan is a
+  # structured-output task, and the tier-low default (haiku) is where structured
+  # outputs fail. A failed monitor invocation only degrades the plan, but the
+  # degraded plan is strictly worse, so buy reliability here too.
+  monitor:
+    default_model: claude-sonnet-5
+    escalation_model: gpt-5.4
   researcher:
     default_model: gpt-5.4
     escalation_model: claude-sonnet-5
