@@ -129,10 +129,10 @@ Executed 2026-08-07. Full write-up: `report-and-findings/2026-08-07-phase-9-befo
 
 | Gate | Outcome |
 |---|---|
-| `make check` | green — ruff + mypy clean, 968 passed, 105s |
-| `make frontend-check` | green — tsc clean, 64 schemas (0 drift), token guard clean, 414 passed |
+| `make check` | green — ruff + mypy clean, 968 passed, 105s (1002 after merging main) |
+| `make frontend-check` | green — tsc clean, 64 schemas (0 drift), token guard clean, 414 passed (418 after merging main) |
 | `make frontend-build` | green — 393.63 kB JS / 78.17 kB CSS |
-| e2e, three modes | green on **5 of 6 projects** — fixture 189 / stub 6 / replay 12, **589s total**. `make e2e-frontend` itself cannot complete here: it runs the `webkit` project and that browser is absent and not installable behind the proxy, so the modes were run scoped to the chromium-based projects |
+| e2e, three modes | green on **5 of 6 projects** — fixture 189 / stub 6 / replay 12, **589s total** pre-merge; re-run on the merged tree at **558s** (fixture 189 / stub 6 / replay 12). `make e2e-frontend` itself cannot complete here: it runs the `webkit` project and that browser is absent and not installable behind the proxy, so the modes were run scoped to the chromium-based projects |
 | `tests/test_pipeline_invariants.py` | green — 7 passed |
 | `coverage.spec.ts` | green — 7 engine outputs plus its self-guard |
 | axe | zero serious/critical, 15 routes × both themes |

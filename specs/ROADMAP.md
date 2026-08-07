@@ -18,7 +18,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | done | 4, 6 |
 | 8 | Pipeline improvement | in_progress (SPEC-044 awaits a live sweep) | 6, 7 |
-| 9 | UX improvement | done | 7 (SPEC-053 additionally on 8) |
+| 9 | UX improvement | done (SPEC-056 implemented, not verified: visual budget + live case) | 7 (SPEC-053 additionally on 8) |
 
 **Current position (2026-08-03).** Phase 7 is done: all eleven specs (027-037) verified. The web
 product (FastAPI + SSE service, React SPA with commissioning, scope checkpoint, living brief,
@@ -79,10 +79,11 @@ reachable — while the pipeline itself moved by **+393 / −24 lines across six
 them reads, emits, presentation strings, one projection addition and one parameter. Measured: the
 interface can account for **≥93.4%** of a real run's wall clock, against **≤6.6%** before; the case
 surface renders in ~200ms instead of waiting for framing; 7 phase 8 artifact types are reachable
-against 0. `make check` is green (**968 unit tests**), `make frontend-check` passes (**414**
-frontend tests), and the e2e matrix runs in 589s across fixture, stub and replay — on five of its
-six browser projects, webkit being absent from the verification container — with axe clean
-on 15 routes in both themes. (The `make e2e-frontend` recipe bug SPEC-056 also found had already been fixed by the 2026-08-06
+against 0. On the tree the sweep ran against, `make check` is green (**968 unit tests**) and
+`make frontend-check` passes (**414** frontend tests); after merging `main` in, the same gates read
+**1002** and **418**. The e2e matrix runs in 589s across fixture, stub and replay — on five of its
+six browser projects, webkit being absent from the verification container — with axe clean on 15
+routes in both themes. (The `make e2e-frontend` recipe bug SPEC-056 also found had already been fixed by the 2026-08-06
 sweep, independently and identically.) Two product defects are filed and unfixed — a slug truncation that
 makes a class of prompts un-startable, and commissioning errors bypassing the failure taxonomy — and
 SPEC-055's "visual suite passes twice consecutively" budget is not yet met.
@@ -390,7 +391,7 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 ---
 
-## Phase 9 — UX Improvement [done]
+## Phase 9 — UX Improvement [done — SPEC-056 implemented, not verified]
 
 Opened 2026-08-05 from the UX review at `../report-and-findings/2026-08-04-ux-review.md`, which
 audited the shipped web surface against north star Section 15 and found eleven areas where the
@@ -445,7 +446,7 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
   the run before the phase and **at least 93.4%** after it — computed by `scripts/phase9_measure.py`
   from `duration_ms`, so the "before" figure is measured on a timeline that predates the fix rather
   than by filtering events out of an after-log. The instrument has its own tests (16), and removing
-  its supersession rule fails two of them. Sweep: `make check` 968 passed, `make frontend-check` 414
+  its supersession rule fails two of them. Sweep (pre-merge tree): `make check` 968 passed, `make frontend-check` 414
   passed, `make e2e-frontend` 589s across all three modes (inside SPEC-037's 10-minute budget, but
   the fixture matrix is 550s of it), axe zero serious/critical on 15 routes × both themes,
   `coverage.spec.ts` green at 7 engine outputs. `make e2e-frontend` itself was **not** run to
@@ -489,6 +490,15 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
   had to be reconstructed from the delivery visual baseline, which caught a first generic attempt at
   209,103 differing pixels; rebuilt to match, all 13 baselines and 8 coverage tests pass with no
   baseline changes.
+- (2026-08-07) **One reviewed baseline change, from main rather than from phase 9 (SPEC-056).**
+  `room-options-mobile-linux.png` is the only baseline this work touches. Merging `main` brought its
+  SPEC-040 row badge ("least disconfirmed"), which the phase-9 mobile baseline predates; at 412px it
+  wraps to two lines and the page grows 38px, while at 1280px it fits — so the desktop and dark
+  baselines pass untouched and only mobile caught it. The diff was read before being accepted
+  (identical for 6,698 rows, change confined to the badge and the reflow below). The badge's
+  tokenisation was corrected at the same time: main set it at `0.6875rem`, below the type scale,
+  and the first fix reached for `--text-sm` (13px), making it larger than intended; it now uses
+  `--text-xs` (12px), the nearest step.
 - (2026-08-07) **The delivery visual baseline expires on 2026-08-23 (found in SPEC-056).** Whether a
   monitoring indicator renders `DUE NOW` is computed as `(today − delivered_at).days >= cadence`
   against the real clock, so the e2e fixture's stored date decides the rendering. Its plan is

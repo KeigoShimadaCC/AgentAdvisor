@@ -3,7 +3,8 @@
 **Date:** 2026-08-07
 **Phase:** 9 (UX improvement), SPEC-045 → SPEC-056
 **Branch:** `claude/ux-saas-experience-i8hs0d`
-**Sheets verified:** SPEC-045 … SPEC-055 (eleven), closed by this one
+**Sheets covered:** SPEC-045 … SPEC-055 (eleven), closed by this one — all `implemented`; none is
+marked `verified`, and this sheet does not promote them
 
 Phase 9's claim is that the product now communicates what it does, and it rests on a structural
 promise: that a UX phase changed no pipeline behaviour. This report is the evidence for both, plus
@@ -29,7 +30,11 @@ out to have been fixed on `main` a day earlier by an independent sweep that trip
 same thing, and one — a coverage guard resting on a gitignored fixture, green only on machines where
 an untracked file happened to exist — was found by accident and fixed.
 
-One acceptance criterion is **not met**: the visual suite does not pass twice consecutively.
+Of the sheet's eight acceptance criteria, **four are met, two are partial and two are not met**. The
+two outright failures are the visual suite, which does not pass twice consecutively, and the one real
+live-model case, which was not run. The two partials are `make e2e-frontend`, which cannot complete
+in a container without webkit, and the visual half of the visual/axe criterion. SPEC-056 is therefore
+`implemented`, not `verified`, and phase 9 is recorded that way.
 
 ## Verification sweep
 
@@ -42,6 +47,11 @@ One acceptance criterion is **not met**: the visual suite does not pass twice co
 | Pipeline invariants | `uv run pytest tests/test_pipeline_invariants.py` | **green** — 7 passed |
 | Phase 8 coverage guard | `coverage.spec.ts` | **green** — 7 engine outputs, plus its self-guard |
 | Measurement instrument | `tests/test_phase9_measure.py` | **green** — 16 passed |
+
+**These figures are the sweep as executed, on the branch before `main` was merged in.** `main` had
+moved on by six commits, and merging it brought its tests with it: on the merged tree the same two
+gates read **1002 passed** and **418 passed**. Both sets are green; the counts differ only because
+the tree does. Anyone running these commands against this PR will see the larger numbers.
 
 **`make e2e-frontend` itself did not run to completion here, and cannot.** The target runs every
 project, including `webkit`, and that browser is absent from this container: it is not installed and
@@ -263,14 +273,30 @@ ends up ~5px taller, while body text is pixel-identical. Content is otherwise un
 obvious response is to re-baseline — which would silently discard the visual gate. Recorded in
 `playwright.config.ts` next to the `PW_CHROME` escape hatch that invites the mistake.
 
+## The one reviewed baseline change
+
+`room-options-mobile-linux.png` is updated, and it is the only baseline this work touches. The cause
+is not phase 9's: merging `main` brought its SPEC-040 row badge ("least disconfirmed", on the
+rank-1 option), which the phase-9 mobile baseline was captured before. At 412px the badge wraps to
+two lines and the page grows 38px; at 1280px it fits, which is why the desktop and dark baselines
+pass untouched and only mobile caught it.
+
+Two things are worth stating, because a baseline update is exactly where a visual gate gets thrown
+away by accident. First, the diff was read before it was accepted: identical for the first 6,698
+rows, with the change confined to the badge and the reflow below it. Second, the sweep's own
+tokenisation of that badge was corrected in the process — `main` set it at `0.6875rem`, below the
+type scale entirely, which is what the token guard rejected; the first fix reached for `--text-sm`
+(13px) and made the badge *larger* than main intended, so it now uses `--text-xs` (12px), the
+nearest step on the scale.
+
 ## Acceptance criteria not met
 
 **The visual suite does not pass twice consecutively (SPEC-055's budget).** Across three full
 fixture-matrix runs on the correct binary: one clean (189 passed), one failing `room-method`, one
 failing `room-options`. Roughly one route per run, and not the same route.
 
-The signature is identical in every case and worth recording, because two plausible explanations are
-already eliminated:
+The signature is identical in every case and worth recording, because three plausible explanations
+are already eliminated:
 
 - The captured page height oscillates between **5017 px and 5022 px** on consecutive captures inside
   Playwright's own stability check, until it times out. Content is otherwise identical.
