@@ -26,3 +26,10 @@ tmp/
 .env
 .env.*
 memory/
+# ...except the committed e2e fixture. SPEC-042's monitoring plan lives under a
+# memory root rather than in the case tree, so the bare `memory/` rule above
+# silently excluded the fixture SPEC-053's coverage guard depends on — the guard
+# passed only on machines where the untracked file happened to exist, and failed
+# on a clean checkout (found in SPEC-056).
+!tests/fixtures/memory/
+!tests/fixtures/memory/**

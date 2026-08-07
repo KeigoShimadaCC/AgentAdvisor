@@ -19,7 +19,11 @@ from orchestrator.artifacts.evidence_critique import EvidenceCritique
 from orchestrator.artifacts.gates import GateReport
 from orchestrator.artifacts.intake import FramingApproval, IntakeRecord
 from orchestrator.artifacts.issue_tree import IssueTree
-from orchestrator.artifacts.memory import CaseMemoryDigest, PriorEvidenceDigest
+from orchestrator.artifacts.memory import (
+    CalibrationSummary,
+    CaseMemoryDigest,
+    PriorEvidenceDigest,
+)
 from orchestrator.artifacts.monitoring import MonitoringPlan
 from orchestrator.artifacts.objections import ObjectionBatch, ObjectionRecord
 from orchestrator.artifacts.premortem import PreMortemReport
@@ -78,6 +82,7 @@ MODEL_EXPORTS: dict[str, ModelType] = {
     "audit_event": AuditEvent,
     "audit_finding": AuditFinding,
     "audit_usage": AuditUsage,
+    "calibration_summary": CalibrationSummary,
     # SPEC-008: BudgetConfig is not an artifact, but its defaults are part of the
     # case contract (north star Section 13), so the spec requires it in the export.
     "budget_config": BudgetConfig,

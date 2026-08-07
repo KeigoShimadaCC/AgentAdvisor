@@ -5,6 +5,7 @@ import { HonestEmpty } from "../../shared/HonestEmpty";
 import { CitationLink } from "../../inspector/CitationLink";
 import type { CaseView, OptionView } from "../../../generated/case_view";
 import { ROOMS } from "../../../copy/terms";
+import { DiagnosticityMatrix } from "./DiagnosticityMatrix";
 
 export function OptionsRoom() {
   return (
@@ -24,16 +25,6 @@ function OptionsBody({ view }: { view: CaseView }) {
   const eliminated = useMemo(() => options.filter((o) => o.eliminated), [options]);
   const ranked = useMemo(() => options.filter((o) => !o.eliminated), [options]);
   const grouped = useMemo(() => groupByRank(ranked), [ranked]);
-  // SPEC-040: the competing-hypotheses standings, joined onto the same options
-  // by the projection. Present only when a matrix was built for the case.
-  const achStandings = useMemo(
-    () =>
-      options
-        .filter((o) => o.disconfirmation_rank != null)
-        .sort((a, b) => a.disconfirmation_rank! - b.disconfirmation_rank!),
-    [options],
-  );
-
   if (!room || options.length === 0) {
     return (
       <HonestEmpty
@@ -84,59 +75,6 @@ function OptionsBody({ view }: { view: CaseView }) {
         ))}
       </ol>
 
-      {room.ach_scored && achStandings.length > 0 && (
-        <section className="ach-exhibit" aria-label="Competing hypotheses">
-          <h3>Competing hypotheses</h3>
-          <p className="ach-explainer">
-            A second reading of the same options: ranked by weight of disconfirming
-            evidence, least disconfirmed first. Evidence consistent with every option
-            carries no weight.
-          </p>
-          <table className="ach-table">
-            <thead>
-              <tr>
-                <th scope="col">Rank</th>
-                <th scope="col">Option</th>
-                <th scope="col">Disconfirming weight</th>
-                <th scope="col">Records against</th>
-              </tr>
-            </thead>
-            <tbody>
-              {achStandings.map((o) => (
-                <tr key={o.alternative}>
-                  <td>{o.disconfirmation_rank}</td>
-                  <td>{o.alternative}</td>
-                  <td>{o.disconfirming_weight?.toFixed(2)}</td>
-                  <td>
-                    {o.disconfirming_evidence_ids && o.disconfirming_evidence_ids.length > 0
-                      ? o.disconfirming_evidence_ids.map((id, i) => (
-                          <span key={id}>
-                            {i > 0 && ", "}
-                            <CitationLink id={id} />
-                          </span>
-                        ))
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {room.ach_uninformative_evidence_ids &&
-            room.ach_uninformative_evidence_ids.length > 0 && (
-              <p className="ach-uninformative">
-                {room.ach_uninformative_evidence_ids.length} record(s) scored the same
-                against every option and could not have changed this reading:{" "}
-                {room.ach_uninformative_evidence_ids.map((id, i) => (
-                  <span key={id}>
-                    {i > 0 && ", "}
-                    <CitationLink id={id} />
-                  </span>
-                ))}
-                .
-              </p>
-            )}
-        </section>
-      )}
 
       {eliminated.length > 0 && (
         <section className="eliminated-coda" aria-label="Eliminated options">
@@ -150,6 +88,9 @@ function OptionsBody({ view }: { view: CaseView }) {
           </ul>
         </section>
       )}
+
+      {/* SPEC-053: phase 8 computed this and projected it, and nothing drew it. */}
+      {room && <DiagnosticityMatrix room={room} />}
     </div>
   );
 }

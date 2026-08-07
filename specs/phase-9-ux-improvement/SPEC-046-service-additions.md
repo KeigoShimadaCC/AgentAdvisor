@@ -2,7 +2,7 @@
 id: SPEC-046
 title: Service additions — progress events, non-blocking creation, projection reads
 phase: 9
-status: draft
+status: implemented
 depends_on: []
 parallel_with: [SPEC-045]
 north_star_refs: ["13", "15"]
@@ -92,35 +92,35 @@ so a UI spec that quietly reaches into the pipeline breaks a test rather than a 
 
 ## Deliverables
 
-- [ ] `orchestrator/invoke_role.py` — `role_invocation_started`, `role_invocation_progress`, timer
-- [ ] `orchestrator/service/lexicon_data.yaml` — two narration templates
-- [ ] `orchestrator/control.py` + `app.py` — non-blocking `new_case` returning 202
-- [ ] `app.py` — `needs_you` on `CaseSummary`; `GET /api/calibration`; `GET /api/effort-history`;
+- [x] `orchestrator/invoke_role.py` — `role_invocation_started`, `role_invocation_progress`, timer
+- [x] `orchestrator/service/lexicon_data.yaml` — two narration templates
+- [x] `orchestrator/control.py` + `app.py` — non-blocking `new_case` returning 202
+- [x] `app.py` — `needs_you` on `CaseSummary`; `GET /api/calibration`; `GET /api/effort-history`;
       `CalibrationSummary` schema and regenerated TS type
-- [ ] `tests/test_pipeline_invariants.py` — transitions/handlers snapshot guard
-- [ ] Extensions to `tests/test_invoke_role.py`, `tests/test_service_api.py`, `tests/test_events.py`
+- [x] `tests/test_pipeline_invariants.py` — transitions/handlers snapshot guard
+- [x] Extensions to `tests/test_invoke_role.py`, `tests/test_service_api.py`, `tests/test_events.py`
 
 ## Acceptance criteria
 
-- [ ] A stubbed invocation emits `role_invocation_started` before the backend call and at least one
+- [x] A stubbed invocation emits `role_invocation_started` before the backend call and at least one
       `role_invocation_progress` for a call exceeding the interval; both carry `task_id`, `role`,
       `model` and `attempt`, and the progress timer is stopped when the call returns — asserted on
       the success, validation-failure and backend-failure paths.
-- [ ] No `role_invocation_progress` is emitted after its invocation ends, verified by asserting the
+- [x] No `role_invocation_progress` is emitted after its invocation ends, verified by asserting the
       last progress event's cursor precedes the matching `role_invocation_attempt`.
-- [ ] Both event types have lexicon entries that fill without error and arrive over SSE as
+- [x] Both event types have lexicon entries that fill without error and arrive over SSE as
       non-technical translated events with monotonic cursors.
-- [ ] `POST /api/cases` returns `202` with a resolvable `case_id` before the worker reaches the
+- [x] `POST /api/cases` returns `202` with a resolvable `case_id` before the worker reaches the
       framing gate; `GET /api/cases/{id}/view` succeeds immediately afterwards, and the case still
       parks at `awaiting_framing_approval`.
-- [ ] `GET /api/cases` carries `needs_you` matching `GET /api/cases/{id}/view`'s value for the same
+- [x] `GET /api/cases` carries `needs_you` matching `GET /api/cases/{id}/view`'s value for the same
       case across all four states.
-- [ ] `GET /api/calibration` returns the sample size and, with fewer than five recorded outcomes,
+- [x] `GET /api/calibration` returns the sample size and, with fewer than five recorded outcomes,
       the "noise, not a calibration estimate" interpretation verbatim from `calibration.py`.
-- [ ] `GET /api/effort-history` returns p50–p90 wall-clock ranges per effort profile over the
+- [x] `GET /api/effort-history` returns p50–p90 wall-clock ranges per effort profile over the
       recorded history, and an explicit empty shape — no fabricated numbers — when no history
       exists.
-- [ ] `tests/test_pipeline_invariants.py` passes, and fails if a transition, flow plan or stage
+- [x] `tests/test_pipeline_invariants.py` passes, and fails if a transition, flow plan or stage
       handler is added, removed or re-pointed. `make check` and `make frontend-check` are green.
 
 ## Verification plan
@@ -136,7 +136,48 @@ E2E_MODE=stub npx playwright test --config=frontend/e2e/playwright.config.ts   #
 
 ## Verification results
 
-Not yet executed.
+- 2026-08-05. `make check` green: ruff, mypy, **741 unit tests** (up from 725; +16 for this spec) with
+  18 deselected. `make frontend-check` green (tsc, generated-types drift clean including the new
+  `calibration_summary.ts`, 86 frontend tests).
+- `tests/test_progress_events.py` (6) covers both events on the success and retry paths, the
+  heartbeat-cannot-outlive-its-call criterion (asserted by cursor ordering *and* thread count), a
+  failing audit write not failing the invocation, and both events being non-technical in the lexicon.
+- `tests/test_pipeline_invariants.py` (5) passes and is the phase's structural guard.
+- `tests/test_service_api.py` extended to 29: 202 without waiting for the worker, the background
+  runner actually being passed, `needs_you` matching the projection for every fixture case, and the
+  calibration endpoint's empty-history and small-sample copy.
+- Browser: all **35 Playwright tests pass** across fixture (24), stub (5) and replay (6) in chromium.
+  The stub lifecycle still parks at both gates and still writes `framing_approval.yaml` and
+  `final_approval.yaml`, so the 202 changed the wait and nothing else.
+
+**Gaps found by auditing the implementation back against these criteria, then closed.**
+
+- The started/progress events were only asserted on the success and validation-failure paths. Added
+  the isolation-failure path, which established a property worth stating: isolation is checked
+  *before* the started event, so a run that dies at the workspace boundary announces no start. That
+  is correct — nothing began — and it is now documented by a test rather than left to inference.
+- "Arrive over SSE" had been verified only as a lexicon lookup. Added a test that drives the real
+  path — audit line, tailer, lexicon, wire frame — and asserts both events arrive non-technical,
+  with filled slots and monotonic, non-duplicated cursors. Emitted is not delivered.
+- `needs_you` was checked against the two states the fixtures happen to hold. A four-branch rule now
+  has all four exercised against synthetic cases, each also cross-checked against the projection.
+- The invariants snapshot passed but had never been shown to *fail*. Added tests proving it detects
+  an added edge, a dropped stage, a re-pointed handler and a dropped role — a tripwire nobody has
+  tripped is not known to work.
+
+**Deviations from the sheet.**
+
+1. `PROGRESS_INTERVAL_S` was initially bound as a default argument, which made it unconfigurable at
+   runtime and silently produced no heartbeats under test. Now resolved at construction.
+2. The sheet put all UI consumption in later specs, but the 202 breaks the *existing* commissioning
+   flow: `NewDecision` navigated straight to the scope sheet, which would have rendered blank before
+   framing finished. An interim client-side wait was added to `NewDecision`, marked
+   `INTERIM (SPEC-046 -> SPEC-050)`. The server no longer holds a request open for minutes, which
+   was the actual defect; SPEC-050 replaces the wait with streaming.
+3. `caseview._needs_you_for_state` was made public as `needs_you_for_state` rather than imported
+   privately by the service.
+4. `CalibrationSummary` was added to `MODEL_EXPORTS`, so it now has a JSON schema and a generated
+   TypeScript type. The sheet implied this; it was not spelled out.
 
 ## Open questions
 

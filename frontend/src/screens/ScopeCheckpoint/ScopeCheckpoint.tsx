@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { api, type ErrorResponse } from "../../api/client";
+import { CaseCrumb } from "../shell/CaseCrumb";
+import { Skeleton } from "../shared/Skeleton";
+import { useToast } from "../shared/Toast";
 import type { CaseView } from "../../generated/case_view";
 import type { IntakeRecord } from "../../generated/intake_record";
 import type { DecisionSpec } from "../../generated/decision_spec";
 import {
+  NEEDS_YOU,
   SCOPE_COPY,
   EFFORT_PROFILES,
   OPTION_ORIGIN_LABELS,
@@ -141,6 +145,7 @@ export function ScopeCheckpoint() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const toast = useToast();
 
   // ── Editable sheet state ────────────────────────────────────────────────
   const [restatement, setRestatement] = useState("");
@@ -332,6 +337,7 @@ export function ScopeCheckpoint() {
         setRevisionNotice(
           "Revised framing requested. The sheet will re-present with the updated spec.",
         );
+        toast.show("Revision requested — the sheet will re-present.", "success");
         // Re-load after the revision settles.
         await loadAll();
       } else {
@@ -340,12 +346,14 @@ export function ScopeCheckpoint() {
         const summaryHash = computeSummaryHash(content);
         const payload = buildApprovePayload(sheetState, summaryHash);
         await api.submitScopeCheckpoint(caseId, payload);
+        toast.show("Scope signed — the investigation is running.", "success");
         // Transition to the signed record view.
         navigate(`/cases/${caseId}/scope/signed`);
       }
     } catch (e) {
       const err = e as ErrorResponse;
       setError(err.detail ?? err.error);
+      toast.show(err.detail ?? err.error ?? "That did not go through.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -356,18 +364,25 @@ export function ScopeCheckpoint() {
   }
 
   // ── Render gates ──────────────────────────────────────────────────────────
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <Skeleton shape="sheet" label="Loading the scope sheet" />;
   if (error) return <p className="error" role="alert">{error}</p>;
   if (!spec) return <p className="error">The framing is not ready yet. Refresh in a moment.</p>;
 
   return (
     <div className="scope-checkpoint">
+      <CaseCrumb caseId={caseId} />
       {revisionNotice && (
         <p className="revision-notice" role="status">{revisionNotice}</p>
       )}
 
-      {/* ── Decision restatement ─────────────────────────────────────────── */}
-      <section className="scope-section">
+      {/* ── Decision restatement ─────────────────────────────────────────────
+          SPEC-050: this sheet used to present five expanded sections of equal
+          weight — a 539-line form-wall — with nothing saying which one the user
+          actually had to read. There is one question here, and it is this one:
+          is this the decision I should answer? Everything else is an
+          adjustment, and adjustments belong behind a disclosure. */}
+      <section className="scope-section scope-lead">
+        <p className="scope-consequence">{NEEDS_YOU.scope_checkpoint.consequence}</p>
         <h2>{SCOPE_COPY.restatementTitle}</h2>
         <p className="section-help">{SCOPE_COPY.restatementHelp}</p>
         <label htmlFor="restatement" className="sr-only">Decision restatement</label>
@@ -379,6 +394,29 @@ export function ScopeCheckpoint() {
           rows={4}
         />
       </section>
+
+      {/* ── Adjust scope ──────────────────────────────────────────────────────
+          Options, the outline, objective weights and effort go behind one
+          disclosure with a count of what each contains, so the sheet opens with
+          a question rather than a wall.
+
+          Ground rules deliberately stay *outside* it. Confirming them is a
+          precondition of signing (SPEC-034), and putting a precondition behind
+          a disclosure that says "adjust" would hide required work behind an
+          optional-sounding control. */}
+      <details className="scope-adjust">
+        <summary className="scope-adjust-summary">
+          <span className="scope-adjust-label">Adjust scope</span>
+          <span className="scope-adjust-counts">
+            {options.length} option{options.length === 1 ? "" : "s"}
+            {" · "}
+            {outlineQuestions.length} question{outlineQuestions.length === 1 ? "" : "s"}
+            {Object.keys(objectiveWeights).length > 0 &&
+              ` · ${Object.keys(objectiveWeights).length} objectives`}
+            {" · "}
+            {effortProfile.label}
+          </span>
+        </summary>
 
       {/* ── Options ───────────────────────────────────────────────────────── */}
       <section className="scope-section">
@@ -497,6 +535,31 @@ export function ScopeCheckpoint() {
         </section>
       )}
 
+      {/* ── Effort & limits ───────────────────────────────────────────────── */}
+      <section className="scope-section">
+        <h2>{SCOPE_COPY.effortTitle}</h2>
+        <p className="effort-summary">
+          {effortProfile.label} — {effortProfile.blurb}
+        </p>
+        <p className="effort-limits-intro">{EFFORT_LIMITS_INTRO}</p>
+        <div className="effort-columns">
+          <div className="effort-column">
+            <h3>What this will do</h3>
+            <ul>
+              {WHAT_IT_CAN_DO.map((line, i) => <li key={i}>{line}</li>)}
+            </ul>
+          </div>
+          <div className="effort-column">
+            <h3>{SCOPE_COPY.whatItCantDoTitle}</h3>
+            <ul>
+              {WHAT_IT_CANT_DO.map((line, i) => <li key={i}>{line}</li>)}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      </details>
+
       {/* ── Ground rules ──────────────────────────────────────────────────── */}
       <section className="scope-section">
         <h2>{SCOPE_COPY.groundRulesTitle}</h2>
@@ -559,29 +622,6 @@ export function ScopeCheckpoint() {
         </ul>
       </section>
 
-      {/* ── Effort & limits ───────────────────────────────────────────────── */}
-      <section className="scope-section">
-        <h2>{SCOPE_COPY.effortTitle}</h2>
-        <p className="effort-summary">
-          {effortProfile.label} — {effortProfile.timeRange}. {effortProfile.blurb}
-        </p>
-        <p className="effort-limits-intro">{EFFORT_LIMITS_INTRO}</p>
-        <div className="effort-columns">
-          <div className="effort-column">
-            <h3>What this will do</h3>
-            <ul>
-              {WHAT_IT_CAN_DO.map((line, i) => <li key={i}>{line}</li>)}
-            </ul>
-          </div>
-          <div className="effort-column">
-            <h3>{SCOPE_COPY.whatItCantDoTitle}</h3>
-            <ul>
-              {WHAT_IT_CANT_DO.map((line, i) => <li key={i}>{line}</li>)}
-            </ul>
-          </div>
-        </div>
-      </section>
-
       {/* ── Signature ─────────────────────────────────────────────────────── */}
       <section className="scope-section signature-block">
         <h2>{SCOPE_COPY.signatureTitle}</h2>
@@ -611,9 +651,6 @@ export function ScopeCheckpoint() {
         )}
       </section>
 
-      <p className="back-link">
-        <Link to={`/cases/${caseId}`}>Back to the case</Link>
-      </p>
     </div>
   );
 }

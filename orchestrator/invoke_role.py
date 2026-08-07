@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 import shutil
+import threading
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -235,6 +237,111 @@ def _audit_attempt(
     )
 
 
+# SPEC-046: how often a running invocation reports that it is still alive.
+# The audit log records an attempt only when it *returns*, so without this the
+# stream is silent for the whole of the longest wait in the product.  20 s puts
+# a few hundred lines on a three-hour case — enough for a live UI, cheap enough
+# that the Method room stays readable.
+PROGRESS_INTERVAL_S = 20.0
+
+
+class _ProgressReporter:
+    """Emit ``role_invocation_progress`` while one backend call is in flight.
+
+    Owned by the invocation it describes: :meth:`stop` is called from a
+    ``finally`` so the thread can never outlive the call, and the daemon flag
+    means a crashed orchestrator does not hang on it either.  Nothing here can
+    fail an invocation — a broken audit write must not turn a healthy agent run
+    into a retry — so the loop swallows its own errors.
+    """
+
+    def __init__(
+        self,
+        *,
+        case: Case,
+        role: str,
+        task_id: str,
+        attempt: int,
+        model: str,
+        interval_s: float | None = None,
+    ) -> None:
+        self._case = case
+        self._role = role
+        self._task_id = task_id
+        self._attempt = attempt
+        self._model = model
+        # Resolved at construction, not bound as a default argument: a default
+        # is captured when this function is *defined*, which would make the
+        # interval unconfigurable at runtime and untestable without patching
+        # the class.
+        self._interval_s = PROGRESS_INTERVAL_S if interval_s is None else interval_s
+        self._done = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._started_at = 0.0
+
+    def __enter__(self) -> _ProgressReporter:
+        self._started_at = time.monotonic()
+        self._thread = threading.Thread(
+            target=self._run,
+            name=f"progress-{self._role}-{self._task_id}",
+            daemon=True,
+        )
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self.stop()
+
+    def stop(self) -> None:
+        self._done.set()
+        if self._thread is not None:
+            # Bounded join: the loop only ever waits on the event, so this
+            # returns promptly.  The timeout is belt-and-braces against a
+            # wedged thread blocking the orchestrator.
+            self._thread.join(timeout=5.0)
+            self._thread = None
+
+    def _run(self) -> None:
+        while not self._done.wait(self._interval_s):
+            elapsed_s = round(time.monotonic() - self._started_at, 1)
+            try:
+                self._case.audit(
+                    AuditEvent(
+                        ts=datetime.now(UTC),
+                        actor=self._role,
+                        event_type="role_invocation_progress",
+                        payload={
+                            "task_id": self._task_id,
+                            "attempt": self._attempt,
+                            "elapsed_s": elapsed_s,
+                        },
+                        model=self._model,
+                    )
+                )
+            except Exception:  # noqa: BLE001 — never fail a run over a heartbeat
+                return
+
+
+def _audit_started(
+    *,
+    case: Case,
+    role: str,
+    task_id: str,
+    attempt: int,
+    model: str,
+) -> None:
+    """Record that an invocation has begun, before the backend call blocks."""
+    case.audit(
+        AuditEvent(
+            ts=datetime.now(UTC),
+            actor=role,
+            event_type="role_invocation_started",
+            payload={"task_id": task_id, "attempt": attempt},
+            model=model,
+        )
+    )
+
+
 def _invoke_internal(
     *,
     case: Case,
@@ -316,17 +423,34 @@ def _invoke_internal(
         failure_detail: str | None = None
         try:
             assert_isolated(layout.path)
-            backend_result = backend_impl.run(
-                RoleInvocation(
-                    role=role,
-                    model=model,
-                    prompt=FIXED_READ_ONLY_PROMPT if read_only_stdout else FIXED_PROMPT,
-                    workspace=layout.path,
-                    timeout_s=normalized_task.timeout_s,
-                    read_only=read_only_stdout or config.read_only,
-                    allow_shell=config.permission_profile.allow_shell,
-                )
+            # SPEC-046: the started event and the heartbeat bracket the blocking
+            # call, so "an agent is working" is observable while it is true
+            # rather than only once it is over.
+            _audit_started(
+                case=case,
+                role=role,
+                task_id=normalized_task.task_id,
+                attempt=attempt_index,
+                model=model,
             )
+            with _ProgressReporter(
+                case=case,
+                role=role,
+                task_id=normalized_task.task_id,
+                attempt=attempt_index,
+                model=model,
+            ):
+                backend_result = backend_impl.run(
+                    RoleInvocation(
+                        role=role,
+                        model=model,
+                        prompt=FIXED_READ_ONLY_PROMPT if read_only_stdout else FIXED_PROMPT,
+                        workspace=layout.path,
+                        timeout_s=normalized_task.timeout_s,
+                        read_only=read_only_stdout or config.read_only,
+                        allow_shell=config.permission_profile.allow_shell,
+                    )
+                )
             # A CLI can report an agent error after the agent has already
             # written a valid output file — droid (claude-sonnet-5) in
             # particular runs to completion, writes the artifact, then trips

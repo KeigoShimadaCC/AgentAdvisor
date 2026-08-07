@@ -26,6 +26,52 @@
       ],
       "title": "GateSummaryView",
       "type": "object"
+    },
+    "IndependentReviewView": {
+      "additionalProperties": false,
+      "description": "SPEC-039's second opinion, structured (SPEC-053).\n\nPhase 8 rendered this into a ``brief_sections`` entry as prose, which meant\nthe one verdict that can *block delivery* was reachable only by reading a\nparagraph. A blocking state has to be a field, or every consumer has to\nparse English to find out whether it may show a signature button.",
+      "properties": {
+        "divergent_conclusion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Divergent Conclusion"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "reasoning": {
+          "title": "Reasoning",
+          "type": "string"
+        },
+        "unsupported_claims": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unsupported Claims",
+          "type": "array"
+        },
+        "verdict": {
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verdict",
+        "reasoning"
+      ],
+      "title": "IndependentReviewView",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -49,6 +95,17 @@
       },
       "title": "Gates",
       "type": "array"
+    },
+    "independent_review": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IndependentReviewView"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "review_accepted": {
       "anyOf": [

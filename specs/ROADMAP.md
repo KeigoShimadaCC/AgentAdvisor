@@ -18,7 +18,7 @@ Spec statuses: `draft` → `approved` → `in_progress` → `implemented` → `v
 | 6 | Think-tank architecture | done | 4 |
 | 7 | Product surface | done | 4, 6 |
 | 8 | Pipeline improvement | in_progress (SPEC-044 awaits a live sweep) | 6, 7 |
-| 9 | UX improvement | not_started | 7 (SPEC-053 additionally on 8) |
+| 9 | UX improvement | done (SPEC-056 implemented, not verified: visual budget + live case) | 7 (SPEC-053 additionally on 8) |
 
 **Current position (2026-08-03).** Phase 7 is done: all eleven specs (027-037) verified. The web
 product (FastAPI + SSE service, React SPA with commissioning, scope checkpoint, living brief,
@@ -70,6 +70,23 @@ passed**, 19 deselected. `make frontend-check`: **109 passed**. Report:
 `../report-and-findings/2026-08-06-spec-sweep.md`. Still outstanding, all by design: SPEC-044's
 live benchmark sweep and the new live tests need an authenticated CLI; SPEC-035's two missing
 features belong to draft SPEC-051/052 and await approval.
+
+**(2026-08-07) Phase 9 done.** All twelve specs (045-056) implemented, closed by SPEC-056's
+re-evaluation and `report-and-findings/2026-08-07-phase-9-before-after.md`. The product surface was
+rebuilt around one case surface with reading altitudes, a live narrator folded from the event
+stream, a case map that draws its loops before they run, and the phase 8 engine outputs made
+reachable — while the pipeline itself moved by **+393 / −24 lines across six backend files**, all of
+them reads, emits, presentation strings, one projection addition and one parameter. Measured: the
+interface can account for **≥93.4%** of a real run's wall clock, against **≤6.6%** before; the case
+surface renders in ~200ms instead of waiting for framing; 7 phase 8 artifact types are reachable
+against 0. On the tree the sweep ran against, `make check` is green (**968 unit tests**) and
+`make frontend-check` passes (**414** frontend tests); after merging `main` in, the same gates read
+**1002** and **418**. The e2e matrix runs in 589s across fixture, stub and replay — on five of its
+six browser projects, webkit being absent from the verification container — with axe clean on 15
+routes in both themes. (The `make e2e-frontend` recipe bug SPEC-056 also found had already been fixed by the 2026-08-06
+sweep, independently and identically.) Two product defects are filed and unfixed — a slug truncation that
+makes a class of prompts un-startable, and commissioning errors bypassing the failure taxonomy — and
+SPEC-055's "visual suite passes twice consecutively" budget is not yet met.
 
 ---
 
@@ -374,7 +391,7 @@ browser (deterministic fixture/stub/replay modes plus an opt-in live-backend smo
 
 ---
 
-## Phase 9 — UX Improvement [not_started]
+## Phase 9 — UX Improvement [done — SPEC-056 implemented, not verified]
 
 Opened 2026-08-05 from the UX review at `../report-and-findings/2026-08-04-ux-review.md`, which
 audited the shipped web surface against north star Section 15 and found eleven areas where the
@@ -402,20 +419,110 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
 
 | Spec | Task | Status |
 |---|---|---|
-| SPEC-045 | Design system: tokens, type scale, theming, visual-regression harness | draft |
-| SPEC-046 | Service additions: progress events, non-blocking creation, projection reads | draft |
-| SPEC-047 | The live case: streaming truth, the narrator, and the case map | draft |
-| SPEC-048 | The reading room: shell, persistent chrome, hierarchy, altitudes | draft |
-| SPEC-049 | The cast: voice attribution, margin objections, dissent | draft |
-| SPEC-050 | Commissioning and checkpoints | draft |
-| SPEC-051 | Presence and engagement: notifications, away digest, reactions, calibration | draft |
-| SPEC-052 | Distribution: export, share, replay onboarding, library, mobile | draft |
-| SPEC-053 | Phase 8 made visible: projecting and rendering the pipeline improvements | draft |
-| SPEC-054 | The calibration language: one uncertainty vocabulary at every altitude | draft |
-| SPEC-055 | Resilience: degraded states, storage failure, announcement policy, budgets | draft |
-| SPEC-056 | Phase 9 re-evaluation | draft |
+| SPEC-045 | Design system: tokens, type scale, theming, visual-regression harness | implemented |
+| SPEC-046 | Service additions: progress events, non-blocking creation, projection reads | implemented |
+| SPEC-047 | The live case: streaming truth, the narrator, and the case map | implemented |
+| SPEC-048 | The reading room: shell, persistent chrome, hierarchy, altitudes | implemented |
+| SPEC-049 | The cast: voice attribution, margin objections, dissent | implemented |
+| SPEC-050 | Commissioning and checkpoints | implemented |
+| SPEC-051 | Presence and engagement: notifications, away digest, reactions, calibration | implemented |
+| SPEC-052 | Distribution: export, share, replay onboarding, library, mobile | implemented |
+| SPEC-053 | Phase 8 made visible: projecting and rendering the pipeline improvements | implemented |
+| SPEC-054 | The calibration language: one uncertainty vocabulary at every altitude | implemented |
+| SPEC-055 | Resilience: degraded states, storage failure, announcement policy, budgets | implemented |
+| SPEC-056 | Phase 9 re-evaluation | implemented |
 
 **Findings**
+
+- (2026-08-07) **SPEC-056 verified — phase 9 re-evaluated, and the structural promise holds
+  tightly.** Across phase 9's fourteen commits `orchestrator/` moved by **+393 / −24 across six
+  files**, every line a new audit emit (`role_invocation_started`, `role_invocation_progress`), a
+  new read route (`/api/calibration`, `/api/effort-history`), a projection addition, a presentation
+  string, one schema registration, or one `worker_runner` parameter that mirrors what
+  `approve_framing` and `resume` already accepted. No stage, gate, transition, prompt or artifact
+  schema changed shape; `tests/test_pipeline_invariants.py` passes. The headline UX claim is
+  measured, not asserted: on the recorded profile of SPEC-020's real case (45 invocations, 178.4 min
+  in flight, 191 min wall clock) the interface could name the running role for **at most 6.6%** of
+  the run before the phase and **at least 93.4%** after it — computed by `scripts/phase9_measure.py`
+  from `duration_ms`, so the "before" figure is measured on a timeline that predates the fix rather
+  than by filtering events out of an after-log. The instrument has its own tests (16), and removing
+  its supersession rule fails two of them. Sweep (pre-merge tree): `make check` 968 passed, `make frontend-check` 414
+  passed, `make e2e-frontend` 589s across all three modes (inside SPEC-037's 10-minute budget, but
+  the fixture matrix is 550s of it), axe zero serious/critical on 15 routes × both themes,
+  `coverage.spec.ts` green at 7 engine outputs. `make e2e-frontend` itself was **not** run to
+  completion: the target includes the `webkit` project, whose browser is absent from this container
+  and cannot be downloaded behind the proxy, so the three modes were run scoped to the five
+  chromium-based projects and the matrix is green on five of six. Full report:
+  `../report-and-findings/2026-08-07-phase-9-before-after.md`. **Phase 9 is done.**
+- (2026-08-07) **A class of prompts cannot start a case at all (found in SPEC-056).**
+  `_slug_from_prompt` (`orchestrator/service/app.py:905`) strips leading and trailing hyphens and
+  *then* truncates to 40 characters, so when the cut lands on a word boundary the slug ends in a
+  hyphen and `create_case` rejects it (`case_store.py:484`). "Should I migrate the billing service to
+  a new provider?" yields `should-i-migrate-the-billing-service-to-` and fails. The fix is to strip
+  after truncating. Needs a sheet, with a test over prompts whose 40-character boundary falls on a
+  space. Filed rather than fixed: SPEC-056 is a verification sheet and does not absorb defects.
+- (2026-08-07) **Commissioning errors bypass SPEC-055's failure taxonomy (found in SPEC-056).** The
+  slug failure above renders as a raw serialized response body in a red paragraph at the foot of
+  `/new` (`NewDecision.tsx:173` still uses `<p className="error">`) — precisely the shape
+  `resilience.spec.ts` forbids elsewhere. Related and separate: raw enum values reach users as stop
+  reasons on two surfaces (`FailurePath.tsx:73`, `Delivery.tsx:423`), e.g.
+  `no_critical_evidence_gaps_remain`; the terminology guard's forbidden list omits these values and
+  the lexicon has no entry for them.
+- (2026-08-07) **The visual suite does not yet pass twice consecutively — SPEC-055's budget is not
+  met (found in SPEC-056).** Three full fixture-matrix runs gave one clean run, one failing
+  `room-method` and one failing `room-options`: about one route per run, never the same one. The
+  signature is identical — the captured page height oscillates between 5017px and 5022px on
+  consecutive captures inside Playwright's own stability check, with content otherwise unchanged.
+  Three explanations are eliminated: the DOM is a constant 5022 sampled every 200ms for 2.4s under
+  the test's exact conditions; driving the viewport to 720/5017/5022 does not move it, so
+  `max-height: 80vh` on `.app-shell-panel` is not feeding back; and it is not the binary difference
+  below. What remains is the `fullPage` capture path, where the image height disagrees with the DOM
+  height that produced it. Returns to SPEC-055, which owns the visual harness.
+- (2026-08-07) **SPEC-053's coverage guard rested on a gitignored fixture (found in SPEC-056).** The
+  phase 8 coverage guard asserts SPEC-042's monitoring plan is on a screen. That plan lives under a
+  memory root rather than in the case tree, and `.gitignore`'s bare `memory/` rule silently excluded
+  the e2e fixture the guard reads — so it passed only on machines where the untracked file happened
+  to exist, and failed on a clean checkout. It surfaced by accident when the verification container
+  reset and took the file with it, turning a green test red with no code change. Fixed: the ignore
+  rule now exempts `tests/fixtures/memory/`, and a regenerated plan is committed — built through
+  `MonitoringPlan` and written by `MonitoringStore`, so it is schema-valid by construction rather
+  than hand-rolled YAML. All eight coverage tests pass from a clean checkout. The fixture's content
+  had to be reconstructed from the delivery visual baseline, which caught a first generic attempt at
+  209,103 differing pixels; rebuilt to match, all 13 baselines and 8 coverage tests pass with no
+  baseline changes.
+- (2026-08-07) **One reviewed baseline change, from main rather than from phase 9 (SPEC-056).**
+  `room-options-mobile-linux.png` is the only baseline this work touches. Merging `main` brought its
+  SPEC-040 row badge ("least disconfirmed"), which the phase-9 mobile baseline predates; at 412px it
+  wraps to two lines and the page grows 38px, while at 1280px it fits — so the desktop and dark
+  baselines pass untouched and only mobile caught it. The diff was read before being accepted
+  (identical for 6,698 rows, change confined to the badge and the reflow below). The badge's
+  tokenisation was corrected at the same time: main set it at `0.6875rem`, below the type scale,
+  and the first fix reached for `--text-sm` (13px), making it larger than intended; it now uses
+  `--text-xs` (12px), the nearest step.
+- (2026-08-07) **The delivery visual baseline expires on 2026-08-23 (found in SPEC-056).** Whether a
+  monitoring indicator renders `DUE NOW` is computed as `(today − delivered_at).days >= cadence`
+  against the real clock, so the e2e fixture's stored date decides the rendering. Its plan is
+  delivered `2026-07-24` with 14- and 30-day cadences, the only shape that yields the baseline's "1
+  check is due now." On 2026-08-23 the 30-day indicator also comes due, the line becomes "2 checks
+  are due now", a second badge appears, and the baseline fails with no code change. `due_checks`
+  already accepts an `as_of` parameter and only the service's caller passes the real clock, so the
+  fix is to let fixture mode pin it. Belongs to SPEC-042/SPEC-053.
+- (2026-08-07) **Two harness defects fixed during the sweep (SPEC-056).** `make e2e-frontend` had
+  never worked from the repo root: each recipe line runs in its own shell, so the target's
+  `cd frontend` applied only to `npm install` and the three test lines could not find the config.
+  And the visual baselines are browser-*binary*-specific, not merely engine-specific: pointing
+  `PW_CHROME` at the full `chrome` binary instead of the headless shell fails 27 baselines at once
+  because bold headings are synthesised differently and the page ends up ~5px taller, while body
+  text stays pixel-identical. The trap is that re-baselining looks like the obvious response and
+  would silently discard the gate; recorded in `playwright.config.ts` beside the escape hatch that
+  invites it.
+- (2026-08-07) **Not run, and recorded as such (SPEC-056).** The single real live-model case stays
+  manual and consented per SPEC-037 and was not run unilaterally; stub mode's full lifecycle (both
+  gates signed, artifacts asserted from disk) is the closest available evidence, and the
+  activity-coverage figures come from SPEC-020's recorded profile instead. The `webkit` project
+  could not execute in this container — the browser is absent and `npx playwright install webkit`
+  fails behind the environment's proxy — so "the full matrix" is met only for the five
+  chromium-based projects.
 
 - (2026-08-05) **Two phase 7 sheets are marked `verified` with deliverables absent from the
   codebase.** SPEC-035's Scope covers the Notification API ("permission prompt at first run start;

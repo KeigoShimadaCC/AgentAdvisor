@@ -19,6 +19,8 @@ vi.mock("../../../api/client", () => ({
 }));
 
 vi.mock("../../../api/sse", () => ({
+  readStoredCursor: () => 0,
+  hasStoredCursor: () => false,
   SSEClient: class {
     private opts: { onEvent: (e: TranslatedEvent) => void };
     constructor(_caseId: string, opts: { onEvent: (e: TranslatedEvent) => void }) {

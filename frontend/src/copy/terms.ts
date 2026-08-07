@@ -17,30 +17,31 @@ export type EffortKey = "quick" | "standard" | "deep";
 export interface EffortDescriptor {
   /** Human label shown on the selector chip. */
   label: string;
-  /** Honest wall-clock time range the user should expect. */
-  timeRange: string;
   /** The value sent to the backend ``effort`` field. */
   backendValue: string;
   /** One-line description of what this depth buys. */
   blurb: string;
 }
 
+/**
+ * SPEC-050 removed `timeRange` from here. An authored minute range is exactly
+ * what was wrong: "roughly 10-20 minutes" against a first real case of 191
+ * minutes. `copy/effort.ts` derives the range from `GET /api/effort-history`,
+ * and says "not measured yet" when there is nothing to measure.
+ */
 export const EFFORT_PROFILES: Record<EffortKey, EffortDescriptor> = {
   quick: {
     label: "Quick look",
-    timeRange: "a few minutes",
     backendValue: "light",
     blurb: "Frames the decision and checks the obvious risks. Good for a first read.",
   },
   standard: {
     label: "Standard",
-    timeRange: "roughly 10–20 minutes",
     backendValue: "default",
     blurb: "Frames, researches, challenges, and synthesizes — the default consulting pass.",
   },
   deep: {
     label: "Deep dive",
-    timeRange: "30 minutes or more",
     backendValue: "deep",
     blurb: "Wider evidence search, more scenarios, and a second challenger pass.",
   },
@@ -744,14 +745,13 @@ export function phaseLabel(phase: string): string {
   return PHASE_LABELS[phase] ?? phase;
 }
 
-export const PHASE_TIME_RANGES: Record<string, string> = {
-  intake: "under 1 minute",
-  framing: "1–3 minutes",
-  investigation: "3–15 minutes",
-  challenge: "2–8 minutes",
-  synthesis: "1–5 minutes",
-  complete: "done",
-};
+/*
+ * PHASE_TIME_RANGES was removed in SPEC-050. It was authored, unreferenced by
+ * any screen, and carried the same false promise as the effort chips: "3–15
+ * minutes" for investigation, on a system whose first verified real case took
+ * 191 minutes end to end. Measured durations come from
+ * `GET /api/effort-history`; see `copy/effort.ts`.
+ */
 
 // ── Method strip copy (SPEC-035) ───────────────────────────────────────────
 

@@ -279,3 +279,96 @@ class TestEliminatedOptions:
         options = view.rooms.options.options if view.rooms and view.rooms.options else []
         for option in options:
             assert isinstance(option.eliminated, bool)
+
+
+# ── Phase 8 projections (SPEC-053) ───────────────────────────────────────────
+#
+# The sheet's acceptance criterion is one projection test per phase 8 artifact
+# group. The point is not coverage for its own sake: two of these groups were
+# computed, stored, and reachable only by reading YAML, which is the exact
+# failure `orchestrator/calibration.py` had already demonstrated for four
+# phases.
+
+
+def test_independent_review_is_a_field_not_only_prose() -> None:
+    """SPEC-039's verdict can block delivery, so it has to be a field.
+
+    Phase 8 rendered it into a ``brief_sections`` entry as a paragraph. A screen
+    deciding whether to show a signature button cannot parse English to find out.
+    """
+    view = build_case_view(Case(root=FIXTURES / "case-001-fixture-001"))
+    review = view.integrity.independent_review
+    assert review is not None
+    assert review.verdict == "dissent"
+    # A dissent that cannot name an alternative is a reservation, and the
+    # artifact enforces that — so the projection always carries one.
+    assert review.divergent_conclusion
+    assert "Revenue growth of 120%" in " ".join(review.unsupported_claims)
+
+
+def test_no_independent_review_is_distinct_from_a_concurring_one() -> None:
+    """None and "concur" are different facts and must not collapse."""
+    view = build_case_view(Case(root=FIXTURES / "case-002-fixture-002-parked"))
+    assert view.integrity.independent_review is None
+
+
+def test_ach_matrix_ranks_by_disconfirmation_not_by_support() -> None:
+    """SPEC-040's inversion is the whole technique.
+
+    An alternative is strong because little disconfirms it, not because much
+    supports it. Rank 1 must therefore be the *lowest* disconfirming weight.
+    """
+    view = build_case_view(Case(root=FIXTURES / "case-001-fixture-001"))
+    room = view.rooms.options
+    assert room.ach_scored is True
+
+    ranked = sorted(
+        (o for o in room.options if o.disconfirmation_rank is not None),
+        key=lambda o: o.disconfirmation_rank or 0,
+    )
+    assert [o.alternative for o in ranked][0] == "staged_entry"
+    weights = [o.disconfirming_weight or 0.0 for o in ranked]
+    assert weights == sorted(weights), "rank 1 is not the least-disconfirmed alternative"
+    # And the evidence that did the ruling-out is named, not merely counted.
+    assert any(o.disconfirming_evidence_ids for o in ranked)
+
+
+def test_typed_action_plan_survives_the_projection() -> None:
+    """SPEC-041 replaced strings with typed actions; the projection flattened them back."""
+    view = build_case_view(Case(root=FIXTURES / "case-001-fixture-001"))
+    assert len(view.next_actions) == 2
+    first = view.next_actions[0]
+    assert first.action_id == "N-001"
+    assert first.owner == "user"
+    assert first.by_date == "2026-08-15"
+    assert first.first_step
+    assert first.why_now
+
+
+def test_user_document_source_type_reaches_the_projection() -> None:
+    """SPEC-043's private evidence channel carries a distinct source type.
+
+    Not asserted on the fixture's own records — it has none — but the field is
+    projected verbatim, which is what lets the UI attribute it to the user
+    rather than to an agent.
+    """
+    view = build_case_view(Case(root=FIXTURES / "case-001-fixture-001"))
+    sources = view.rooms.sources.sources
+    assert sources, "fixture has no evidence to check source_type against"
+    assert all(isinstance(s.source_type, str) and s.source_type for s in sources)
+
+
+def test_projection_changes_no_stage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The read model is assembled from disk and writes nothing.
+
+    ``tests/test_pipeline_invariants.py`` asserts the transitions are unchanged;
+    this asserts building a view does not touch the case at all, which is the
+    property that lets a terminal case stay terminal while being read.
+    """
+    import os
+
+    case_dir = FIXTURES / "case-001-fixture-001"
+    before = {p: os.stat(p).st_mtime for p in sorted(case_dir.rglob("*")) if p.is_file()}
+    build_case_view(Case(root=FIXTURES / "case-001-fixture-001"))
+    after = {p: os.stat(p).st_mtime for p in sorted(case_dir.rglob("*")) if p.is_file()}
+    assert before == after, "building a CaseView modified the case directory"

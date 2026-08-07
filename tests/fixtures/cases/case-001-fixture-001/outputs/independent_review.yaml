@@ -1,0 +1,13 @@
+divergent_conclusion: Take a half position now and revisit after the next earnings
+  report, rather than committing to a full staged schedule.
+evidence_ids:
+- E-001
+- E-002
+reasoning: The evidence supports directional exposure but not the specific 30/40/30
+  schedule. Two of the three cited sources trace back to the same growth forecast,
+  so the concentration risk the recommendation accepts is less well established than
+  the brief implies.
+schema_version: 1
+unsupported_claims:
+- Revenue growth of 120% justifies premium pricing
+verdict: dissent

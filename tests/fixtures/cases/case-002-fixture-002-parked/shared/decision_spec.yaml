@@ -8,6 +8,9 @@ constraints:
 deadline: '2026-12-31'
 decision_id: case-001-stub-e2e
 depth: standard
+objective_weights:
+  capital appreciation: 0.6
+  risk management: 0.4
 objectives:
 - capital appreciation
 - risk management

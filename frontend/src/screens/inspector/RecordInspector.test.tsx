@@ -22,6 +22,8 @@ vi.mock("../../api/client", () => ({
 }));
 
 vi.mock("../../api/sse", () => ({
+  readStoredCursor: () => 0,
+  hasStoredCursor: () => false,
   SSEClient: class {
     connect() {}
     disconnect() {}

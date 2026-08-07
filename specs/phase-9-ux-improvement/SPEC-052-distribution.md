@@ -2,11 +2,11 @@
 id: SPEC-052
 title: Distribution — export, share, replay onboarding, the library workspace, and mobile
 phase: 9
-status: draft
+status: implemented
 depends_on: [SPEC-045, SPEC-048, SPEC-049]
 parallel_with: [SPEC-051, SPEC-055]
 north_star_refs: ["15", "16"]
-last_updated: 2026-08-05
+last_updated: 2026-08-06
 ---
 
 # SPEC-052 — Distribution: export, share, replay onboarding, the library workspace, and mobile
@@ -80,31 +80,43 @@ already implements. Deleting `needsYouFromStage` is an acceptance criterion, not
 
 ## Deliverables
 
-- [ ] `frontend/src/export/` — deterministic Markdown export and print stylesheet
-- [ ] Read-only share route reusing the replay-mode POST guarantee
-- [ ] `frontend/src/screens/Onboarding/` — replay-driven first-run tour over a committed fixture
-- [ ] `frontend/src/pages/CaseLibrary.tsx` — cards, grouping on server `needs_you`, search, command-K
-- [ ] `frontend/src/screens/Settings/` — one home for every preference the phase introduces
-- [ ] Responsive collapse of the shell; checkpoints and answer usable at 390 px
-- [ ] Tests: `export.test.ts`, library component tests, mobile-viewport e2e
+- [x] `frontend/src/export/` — deterministic Markdown export and print stylesheet
+- [x] Read-only share route reusing the replay-mode POST guarantee
+- [x] `frontend/src/screens/Onboarding/` — replay-driven first-run tour over a committed fixture
+- [x] `frontend/src/pages/CaseLibrary.tsx` — cards, grouping on server `needs_you`, search
+- [x] `frontend/src/screens/Settings/` — one home for every preference the phase introduces
+- [x] Responsive collapse of the shell; checkpoints and answer usable at 390 px
+- [x] Tests: `markdown.test.ts` (18), `CaseLibrary.test.tsx` (14), mobile-viewport e2e
+
+Deviations, all deliberate:
+
+- **No command-K palette.** Search over case questions is in; a palette across cases, evidence and
+  assumptions would need a cross-case index the service does not expose, and inventing one to
+  satisfy a bullet is how a spec turns into scope. Recorded rather than silently dropped.
+- **`src/theme.ts` was not in the sheet's scope and had to be built here.** SPEC-045 shipped the
+  `:root[data-theme]` token blocks — written so an explicit choice beats the OS media query in both
+  directions — and no control ever set the attribute. Settings needs a theme control, so the
+  control is here.
+- **`MonitoringPanel`'s sibling problem, again.** Wiring Settings surfaced that the theme mechanism
+  had the same shape as SPEC-042's monitoring panel: complete, correct, unreachable.
 
 ## Acceptance criteria
 
-- [ ] The exported Markdown contains every citation id present in the projection for that case, in
+- [x] The exported Markdown contains every citation id present in the projection for that case, in
       canonical section order, and two exports of the same case are byte-identical.
-- [ ] The print stylesheet produces a paginated document with no clipped content and no interactive
+- [x] The print stylesheet produces a paginated document with no clipped content and no interactive
       controls.
-- [ ] The share route renders a completed case read-only, and every control POST against it returns
+- [x] The share route renders a completed case read-only, and every control POST against it returns
       409 — asserted, not assumed.
-- [ ] The onboarding tour runs to completion over the committed fixture, showing at least one loop
+- [x] The onboarding tour runs to completion over the committed fixture, showing at least one loop
       and one dissent, and is skippable and re-runnable.
-- [ ] The library groups by the server's `needs_you`; `needsYouFromStage` is deleted from
+- [x] The library groups by the server's `needs_you`; `needsYouFromStage` is deleted from
       `CaseLibrary.tsx` and no client-side stage-string derivation remains.
-- [ ] Every preference introduced anywhere in phase 9 is readable and changeable from Settings, and
+- [x] Every preference introduced anywhere in phase 9 is readable and changeable from Settings, and
       changing one takes effect without a reload.
-- [ ] At the 390 px viewport both checkpoints and the answer are fully operable, and no page in the
+- [x] At the 390 px viewport both checkpoints and the answer are fully operable, and no page in the
       suite scrolls horizontally at 360 px.
-- [ ] Axe clean in both themes at both viewports, visual baselines updated for mobile, terminology
+- [x] Axe clean in both themes at both viewports, visual baselines updated for mobile, terminology
       guard extended; `make frontend-check` and `make e2e-frontend` green.
 
 ## Verification plan
@@ -121,10 +133,65 @@ make check
 
 ## Verification results
 
-Not yet executed.
+| Command | Result |
+| --- | --- |
+| `cd frontend && npm test` | 29 files, **340 passed** (was 310; +30 for the exporter and the library) |
+| `make frontend-check` | green |
+| `make frontend-build` | green — 381.13 kB JS |
+| `E2E_MODE=fixture …` (five browser projects) | **162 passed** in 6m18s |
+| `E2E_MODE=replay …` | **11 passed** |
+| `E2E_MODE=stub …` | **6 passed** |
+| `make check` | **946 passed**, 18 deselected — no engine change |
+
+### The mobile sweep found a real bug on its first run
+
+`.app-main` is a flex column, so **every screen is a flex item**, and a flex item's default
+`min-width: auto` means it refuses to shrink below its content's min-content width. Two consequences
+at 360 px, neither visible on a desktop:
+
+1. The case map declares `min-width: max-content` so its phase strip never wraps. Inside a 360 px
+   viewport that made the entire shell 506 px wide — the map pushed the page sideways instead of
+   scrolling inside its own box.
+2. Case content carries raw identifiers. `recommendation_stable_across_plausible_sensitivity_ranges`
+   is 57 characters with no break opportunity, about 500 px, and it did the same thing on the share
+   route with nothing visibly wrong on the page.
+
+Fixed once at the root — `.app-main > * { min-width: 0; max-width: 100% }` plus `overflow-wrap` on
+prose — rather than screen by screen, because the next screen added would have the same bug and no
+reason to know about it. The 360 px sweep over eight routes is what keeps it fixed.
+
+### A flaky baseline that was a product bug
+
+`room-sources` failed its dark baseline once, immediately after that baseline was written. The cause
+was not the screenshot harness: `readStoredCursor` returns `0` both for "no cursor stored" and for
+"stored at the very beginning", so the away digest treated a **first** visit as a return and
+summarised whatever events had arrived by the time the screenshot was taken.
+
+Two things were wrong and one fix addressed both: a reader opening a case for the first time was
+never away, and a component whose content depends on arrival timing cannot have a baseline.
+`hasStoredCursor` now distinguishes the two, and `presence.test.tsx` asserts the distinction
+directly — the flake was the symptom, not the defect.
+
+### Read-only is asserted at the service, not at the client
+
+A client that merely omits buttons is not read-only. The e2e test POSTs
+`/cases/{id}/checkpoints/delivery` against a shared case and requires a refusal, then separately
+checks no controls render. The two assertions answer different questions, and only the first one is
+a security property.
+
+### Budget
+
+Adding a fifth project took the fixture matrix to 6m52s. `mobile-dark` was then scoped to axe only —
+the small-viewport sweep is layout, and layout does not differ by theme, so running it twice cost
+two minutes and bought nothing. The matrix is **6m18s**, inside SPEC-037's ten-minute budget, with
+mobile now covered in both themes for accessibility.
 
 ## Open questions
 
-- Whether the share route should be gated behind an explicit "make shareable" action rather than
-  existing for every case. Recommend explicit, so that producing a link is a decision the user
-  makes rather than a URL that always resolves.
+- **Whether the share route should be gated behind an explicit action** — deferred to SPEC-055 with
+  its reasoning, rather than resolved here. The recommendation still stands, but implementing it
+  properly means a per-case shareable flag, which is state, which means a write path into the case
+  directory — and this phase's constraint is that the backend does not change. What shipped is the
+  weaker but honest version: the route exists for every case, is read-only at the service, and says
+  on its face that the link is local-only. That is defensible for a service bound to `127.0.0.1`
+  and would not be for a hosted one, which is precisely the note SPEC-055 should carry forward.

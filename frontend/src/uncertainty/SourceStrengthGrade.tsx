@@ -1,32 +1,20 @@
-import { sourceStrengthGrade } from "../copy/terms";
-import { NotAssessedWidget } from "./NotAssessedWidget";
+import { Measure } from "./Measure";
+import { encodeEvidence, type Scale } from "./language";
 import type { AssessedConfidence, NotAssessed } from "../generated/uncertainty_view";
 
-interface SourceStrengthGradeProps {
-  source: AssessedConfidence | NotAssessed | null | undefined;
-}
-
 /**
- * Source-strength encoding: letter grade + fill bar, with the basis text.
+ * Evidence strength, as a grade (SPEC-054 rebuild).
+ *
+ * A letter rather than a number, because the judgement is ordinal: "B" does not
+ * invite arithmetic against a confidence of 0.72 the way "0.8" does. The grade
+ * now carries what it means, so the letter is not asked to do that alone.
  */
-export function SourceStrengthGrade({ source }: SourceStrengthGradeProps) {
-  if (!source || source.kind === "not_assessed") {
-    return <NotAssessedWidget reason={source?.reason ?? "Not assessed"} />;
-  }
-
-  const assessed = source as AssessedConfidence;
-  const grade = sourceStrengthGrade(assessed.value);
-  const pct = Math.round(assessed.value * 100);
-
-  return (
-    <div className="source-strength">
-      <span className="source-strength-grade" aria-label={`Source strength grade ${grade}`}>
-        {grade}
-      </span>
-      <div className="source-strength-bar" aria-hidden="true">
-        <div className="source-strength-fill" style={{ width: `${pct}%` }} />
-      </div>
-      <span className="source-strength-basis">{assessed.basis}</span>
-    </div>
-  );
+export function SourceStrengthGrade({
+  source,
+  scale = "full",
+}: {
+  source: AssessedConfidence | NotAssessed | null | undefined;
+  scale?: Scale;
+}) {
+  return <Measure encoding={encodeEvidence(source)} scale={scale} />;
 }

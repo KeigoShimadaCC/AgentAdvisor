@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api, type ErrorResponse } from "../../api/client";
+import { CaseCrumb } from "../shell/CaseCrumb";
+import { Skeleton } from "../shared/Skeleton";
 import type { FramingApproval } from "../../generated/framing_approval";
 import type { CaseView } from "../../generated/case_view";
 import { SIGNED_COPY, GROUND_RULE_LABELS } from "../../copy/terms";
@@ -34,16 +36,14 @@ export function SignedRecord() {
       .finally(() => setLoading(false));
   }, [caseId]);
 
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <Skeleton shape="sheet" label="Loading the signed record" />;
   if (error) return <p className="error" role="alert">{error}</p>;
   if (!approval) {
     return (
       <div className="signed-record">
+        <CaseCrumb caseId={caseId} label={SIGNED_COPY.backToCase} />
         <h2>{SIGNED_COPY.title}</h2>
         <p>The signed scope record is not available yet.</p>
-        <p className="back-link">
-          <Link to={caseId ? `/cases/${caseId}` : "/"}>{SIGNED_COPY.backToCase}</Link>
-        </p>
       </div>
     );
   }
@@ -53,6 +53,7 @@ export function SignedRecord() {
 
   return (
     <div className="signed-record">
+      <CaseCrumb caseId={caseId} label={SIGNED_COPY.backToCase} />
       <h2>{SIGNED_COPY.title}</h2>
 
       <dl className="signed-meta">
@@ -85,9 +86,6 @@ export function SignedRecord() {
         </section>
       )}
 
-      <p className="back-link">
-        <Link to={caseId ? `/cases/${caseId}` : "/"}>{SIGNED_COPY.backToCase}</Link>
-      </p>
     </div>
   );
 }

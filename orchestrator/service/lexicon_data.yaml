@@ -19,6 +19,14 @@ budget_profile_selected:
   template: "Budget profile selected: {profile}"
   technical: true
 
+role_invocation_started:
+  template: "{actor} started work on task {task_id}"
+  technical: false
+
+role_invocation_progress:
+  template: "{actor} is still working on task {task_id} ({elapsed_s}s)"
+  technical: false
+
 role_invocation_attempt:
   template: "{actor} — attempt {attempt}: {status}"
   technical: false

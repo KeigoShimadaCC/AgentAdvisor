@@ -1,0 +1,41 @@
+alternatives:
+- staged_entry
+- invest_nvda_now
+- etf_diversified
+cells:
+- alternative: staged_entry
+  consistency: consistent
+  evidence_id: E-001
+  note: Above-average valuation argues for spreading entry over time.
+  schema_version: 1
+- alternative: invest_nvda_now
+  consistency: inconsistent
+  evidence_id: E-001
+  note: A stretched valuation cuts against committing the full position today.
+  schema_version: 1
+- alternative: etf_diversified
+  consistency: neutral
+  evidence_id: E-001
+  note: A single stock's valuation says little about a basket.
+  schema_version: 1
+- alternative: staged_entry
+  consistency: neutral
+  evidence_id: E-002
+  note: Growth supports exposure without settling the timing.
+  schema_version: 1
+- alternative: invest_nvda_now
+  consistency: consistent
+  evidence_id: E-002
+  note: Strong growth is the case for full exposure now.
+  schema_version: 1
+- alternative: etf_diversified
+  consistency: strongly_inconsistent
+  evidence_id: E-002
+  note: Company-specific growth is diluted away in a basket.
+  schema_version: 1
+decision_question: Should I invest $50k in Nvidia vs semiconductor ETF?
+evidence_ids:
+- E-001
+- E-002
+excluded_evidence_ids: []
+schema_version: 1

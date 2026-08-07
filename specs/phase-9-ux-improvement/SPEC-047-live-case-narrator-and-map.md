@@ -2,7 +2,7 @@
 id: SPEC-047
 title: The live case — streaming truth, the narrator, and the case map
 phase: 9
-status: draft
+status: implemented
 depends_on: [SPEC-046]
 parallel_with: []
 north_star_refs: ["8", "15"]
@@ -84,32 +84,32 @@ cheap, and the retained previous view is what stops it flickering.
 
 ## Deliverables
 
-- [ ] `frontend/src/api/sse.ts` — backoff reconnect, cursor resume, persisted cursor, connection state
-- [ ] `frontend/src/screens/shared/useCaseView.ts` — debounced event-driven refetch
-- [ ] `frontend/src/narration/reducer.ts` + `Narrator.tsx` + loop announcements
-- [ ] `frontend/src/screens/shared/CaseMap.tsx` replacing `MethodStrip.tsx`
-- [ ] Unit and component tests: `reducer.test.ts`, `Narrator.test.tsx`, `CaseMap.test.tsx`,
+- [x] `frontend/src/api/sse.ts` — backoff reconnect, cursor resume, persisted cursor, connection state
+- [x] `frontend/src/screens/shared/useCaseView.ts` — debounced event-driven refetch
+- [x] `frontend/src/narration/reducer.ts` + `Narrator.tsx` + loop announcements
+- [x] `frontend/src/screens/shared/CaseMap.tsx` replacing `MethodStrip.tsx`
+- [x] Unit and component tests: `reducer.test.ts`, `Narrator.test.tsx`, `CaseMap.test.tsx`,
       `sse.test.ts`
-- [ ] `frontend/e2e/replay.spec.ts` extended with narrator and loop assertions
+- [x] `frontend/e2e/replay.spec.ts` extended with narrator and loop assertions
 
 ## Acceptance criteria
 
-- [ ] Replaying a recorded audit fixture through the reducer produces the expected actor, task
+- [x] Replaying a recorded audit fixture through the reducer produces the expected actor, task
       counter and loop state at each cursor, asserted event by event without a DOM.
-- [ ] A burst of ten events within the debounce window produces exactly one `/view` request, and the
+- [x] A burst of ten events within the debounce window produces exactly one `/view` request, and the
       previously rendered view stays on screen throughout.
-- [ ] Dropping the stream mid-case and restoring it resumes from the persisted cursor with no
+- [x] Dropping the stream mid-case and restoring it resumes from the persisted cursor with no
       duplicated and no missed events, verified by comparing the received cursor sequence against
       the audit file.
-- [ ] In replay mode the narrator line changes as the case advances, a brief section reaches `final`
+- [x] In replay mode the narrator line changes as the case advances, a brief section reaches `final`
       without a page reload, and no raw `event_type` or `line_cursor` appears anywhere in the DOM —
       enforced by extending the existing terminology guard.
-- [ ] `CaseMap` renders all four cycles from fixtures; with `repair_cycle: 2` it states round 2 of 2;
+- [x] `CaseMap` renders all four cycles from fixtures; with `repair_cycle: 2` it states round 2 of 2;
       and a case in its second challenge round is distinguishable in the DOM from one in its first —
       the regression `MethodStrip` could not detect.
-- [ ] Axe, visual-regression and terminology-guard passes hold for every screen this spec touches,
+- [x] Axe, visual-regression and terminology-guard passes hold for every screen this spec touches,
       per the phase testing contract.
-- [ ] `make frontend-check` and `make e2e-frontend` are green;
+- [x] `make frontend-check` and `make e2e-frontend` are green;
       `tests/test_pipeline_invariants.py` still passes.
 
 ## Verification plan
@@ -126,7 +126,45 @@ uv run pytest tests/test_pipeline_invariants.py -q
 
 ## Verification results
 
-Not yet executed.
+- 2026-08-05. `make check` green (941). `make frontend-check` green — **142 frontend tests**, up from
+  105; the full e2e matrix runs **102 passed / 0 failed in 2m45s**, inside SPEC-037's budget.
+- Reducer: 18 unit tests with no DOM, over synthetic and recorded-shape events. They hold the
+  properties that matter — a heartbeat does not reset the start time (or the elapsed counter would
+  never advance), a failed attempt means work *continues* rather than finished, an unknown event
+  type advances the cursor and changes nothing else, and the cursor never goes backwards.
+- Loops: each of the three cycles announces itself with its round number, a second repair round
+  reads differently from the first, and a stop decision that proceeds to synthesis announces
+  nothing. Refusals surface as announcements, because a run that did less than it could have has to
+  say so while it is happening.
+- Stream: 8 tests. Reconnect resumes from the stored cursor, a replayed boundary frame is dropped
+  rather than folded twice, repeated failures escalate `reconnecting` → `stale`, `disconnect()`
+  stops the ladder, and unavailable storage degrades to a replay from zero instead of throwing.
+- Projection: 5 tests. Ten events inside the debounce window produce exactly one refetch, technical
+  events produce none, and the previous view stays on screen throughout.
+- Case map: 10 tests, including **the regression `MethodStrip` could not detect** — two cases in the
+  same phase and stage, differing only by repair counter, must render differently.
+- Browser: replay asserts the narrator carries no `[cursor]` and no raw enum, that narration is
+  driven by the stream, and that exactly one phase is ever current.
+
+**Deviations from the sheet.**
+
+1. The sheet said the transcript shows "the full translated stream". It now excludes `technical`
+   events. The lexicon's technical flag is the product's existing rule for "machinery, not
+   investigation", and a transcript leaking retries would have re-created the debug view this
+   replaced. The Method room remains the unfiltered log.
+2. The narrator takes a `showTranscript` prop, false on the Brief. `MarginNarration` already renders
+   the narration stream there with citations, and two copies of the same events on one screen is the
+   noise this component exists to remove — caught by an existing test finding the message twice.
+3. `LiveActivity.tsx` and its test were deleted as well as `MethodStrip`. The sheet listed only
+   `MethodStrip`, but LiveActivity's whole job — inferring "running" from a failed attempt — is now
+   done correctly by the reducer, so leaving it would have meant two contradictory answers on screen.
+4. **The case map reintroduced a defect SPEC-045 had just fixed.** It scrolls horizontally, and a
+   scrollable region needs keyboard access; the axe sweep caught it within minutes of the component
+   existing. Fixed with `tabIndex` and a focus ring. Recorded because it is evidence the expanded
+   coverage earns its runtime.
+5. One e2e assertion was rewritten after it proved racy: "the narration line changed" loses to a
+   60× replay flushing its history between two reads. It asserts the deterministic end state
+   instead — a flaky narration gate would get muted rather than fixed.
 
 ## Open questions
 

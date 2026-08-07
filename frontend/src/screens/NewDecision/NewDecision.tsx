@@ -1,95 +1,77 @@
-import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, type ErrorResponse } from "../../api/client";
 import {
   EFFORT_PROFILES,
   EXAMPLE_CHIPS,
   METHOD_PROMISE,
   NOT_LICENSED_ADVICE,
-  DEFAULT_EFFORT,
   type EffortKey,
 } from "../../copy/terms";
-import { InterviewCards } from "./InterviewCards";
-import type { IntakeRecord } from "../../generated/intake_record";
+import { effortTimeRange, effortHistoryNote, type EffortHistory } from "../../copy/effort";
+import { writeAltitude } from "../shell/altitude";
+import { setPresence } from "../shell/presence";
+import { readDraft, writeDraft, clearDraft, type CommissionDraft } from "./commissionDraft";
 
 /**
- * The opening screen (SPEC-034 §13.1): one large prompt, an effort selector
- * with honest time-range labels, example chips from the benchmark domains,
- * the method-promise line with the not-licensed-advice disclaimer.
+ * Commissioning (SPEC-050).
  *
- * On submit it POSTs ``createCase`` and, once the case parks at the scope
- * gate, transitions to the scope sheet.  When the intake record carries
- * clarification questions, the interview cards are shown inline first.
+ * What this replaces: a disabled button reading "Framing…" that polled for up
+ * to thirty minutes with nothing to look at, no case to open, and no recovery
+ * from a reload. The user had committed to a decision and the product gave them
+ * a spinner.
+ *
+ * Now the case is created and the user goes straight to it. SPEC-046 made
+ * `POST /api/cases` return 202 as soon as the case is durable, and SPEC-047
+ * gave the case surface a narrator, so intake and framing happen *in front of
+ * the user* — which is the first and best demonstration of the method. The
+ * clarification interview is not lost: the scope sheet asks for it, which is
+ * where it belongs, because that is the screen about scope.
+ *
+ * Two questions route the whole experience and nothing else. Both are
+ * preferences and neither is written into the case: what the case *is* must not
+ * depend on how someone likes to read.
  */
 export function NewDecision() {
   const navigate = useNavigate();
-  const [prompt, setPrompt] = useState("");
-  const [effort, setEffort] = useState<EffortKey>(DEFAULT_EFFORT);
+  const [draft, setDraft] = useState<CommissionDraft>(readDraft);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<EffortHistory | null>(null);
 
-  // After case creation we hold the case id + intake record so the
-  // interview cards can render inline before routing to the scope sheet.
-  const [caseId, setCaseId] = useState<string | null>(null);
-  const [intake, setIntake] = useState<IntakeRecord | null>(null);
+  useEffect(() => {
+    // A missing history is the normal case on a fresh install, and the copy
+    // says so — it is never an error worth showing.
+    api.getEffortHistory().then(setHistory).catch(() => setHistory(null));
+  }, []);
 
-  const trimmed = prompt.trim();
+  function update(patch: Partial<CommissionDraft>) {
+    const next = { ...draft, ...patch };
+    setDraft(next);
+    writeDraft(next);
+  }
+
+  const trimmed = draft.prompt.trim();
 
   async function handleCreate() {
     if (!trimmed || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
-      const profile = EFFORT_PROFILES[effort];
+      const profile = EFFORT_PROFILES[draft.effort];
       const created = await api.createCase(trimmed, profile.backendValue);
-      setCaseId(created.case_id);
-      // Load the intake record to surface clarification questions inline.
-      try {
-        const env = await api.getIntakeRecord(created.case_id);
-        setIntake(env.data);
-      } catch {
-        // Intake may not be ready instantly; route to the scope sheet
-        // which will re-fetch.
-        setIntake(null);
-      }
+      // Preferences, applied client-side. Neither reaches the case directory.
+      writeAltitude(draft.shape);
+      setPresence(draft.presence);
+      clearDraft();
+      navigate(`/cases/${created.case_id}`);
     } catch (e) {
       const err = e as ErrorResponse;
       setError(err.detail ?? err.error);
-    } finally {
       setSubmitting(false);
     }
   }
 
-  function handleInterviewsDone() {
-    if (caseId) navigate(`/cases/${caseId}/scope`);
-  }
-
-  // ── Interview cards phase ──────────────────────────────────────────────
-  if (caseId && intake && intake.clarification_questions && intake.clarification_questions.length > 0) {
-    return (
-      <div className="new-decision">
-        <h2>A few questions before I frame this</h2>
-        <p className="screen-help">
-          These help me frame your decision well. Answer what you can, or skip
-          and I will assume something reasonable.
-        </p>
-        <InterviewCards
-          caseId={caseId}
-          questions={intake.clarification_questions}
-          onDone={handleInterviewsDone}
-        />
-      </div>
-    );
-  }
-
-  // If a case was created but no clarification questions, go straight to scope.
-  // Declarative redirect: calling navigate() here would be a router state update
-  // during render, which React rejects with a cross-component setState warning.
-  if (caseId && (!intake || !intake.clarification_questions || intake.clarification_questions.length === 0)) {
-    return <Navigate to={`/cases/${caseId}/scope`} replace />;
-  }
-
-  // ── Entry phase ─────────────────────────────────────────────────────────
   return (
     <div className="new-decision">
       <h2>What decision are you weighing?</h2>
@@ -104,13 +86,14 @@ export function NewDecision() {
         id="decision-prompt"
         className="decision-prompt"
         placeholder="e.g. Should I take the Series B offer or stay at my current role for another year?"
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
+        value={draft.prompt}
+        onChange={(e) => update({ prompt: e.target.value })}
         rows={6}
         aria-describedby="prompt-help"
       />
       <p id="prompt-help" className="prompt-hint">
-        Write the decision as a question. Include the options you are considering and any hard constraints.
+        Write the decision as a question. Include the options you are considering and any hard
+        constraints.
       </p>
 
       <fieldset className="effort-selector">
@@ -118,21 +101,55 @@ export function NewDecision() {
         <div className="effort-options">
           {(Object.keys(EFFORT_PROFILES) as EffortKey[]).map((key) => {
             const p = EFFORT_PROFILES[key];
-            const selected = effort === key;
+            const selected = draft.effort === key;
             return (
               <button
                 key={key}
                 type="button"
                 className={`effort-chip${selected ? " selected" : ""}`}
                 aria-pressed={selected}
-                onClick={() => setEffort(key)}
+                onClick={() => update({ effort: key })}
               >
                 <span className="effort-label">{p.label}</span>
-                <span className="effort-time">{p.timeRange}</span>
+                <span className="effort-time">{effortTimeRange(history, p.backendValue)}</span>
                 <span className="effort-blurb">{p.blurb}</span>
               </button>
             );
           })}
+        </div>
+        <p className="effort-history-note">{effortHistoryNote(history)}</p>
+      </fieldset>
+
+      <fieldset className="commission-preferences">
+        <legend>How should I hand this back?</legend>
+        <div className="preference-row" role="group" aria-label="What to hand you">
+          <PreferenceChip
+            selected={draft.shape === "answer"}
+            onClick={() => update({ shape: "answer" })}
+            label="A one-page answer"
+            blurb="The recommendation and what would change it. Everything else stays one click away."
+          />
+          <PreferenceChip
+            selected={draft.shape === "reasoning"}
+            onClick={() => update({ shape: "reasoning" })}
+            label="The full advisory brief"
+            blurb="The whole argument, with provenance, objections and citations."
+          />
+        </div>
+
+        <div className="preference-row" role="group" aria-label="Watch or be notified">
+          <PreferenceChip
+            selected={draft.presence === "watch"}
+            onClick={() => update({ presence: "watch" })}
+            label="I'll watch"
+            blurb="Sit with the deliberation as it runs."
+          />
+          <PreferenceChip
+            selected={draft.presence === "notify"}
+            onClick={() => update({ presence: "notify" })}
+            label="Ping me"
+            blurb="Tell me when it needs a decision from me."
+          />
         </div>
       </fieldset>
 
@@ -143,7 +160,7 @@ export function NewDecision() {
             key={chip.label}
             type="button"
             className="example-chip"
-            onClick={() => setPrompt(chip.prompt)}
+            onClick={() => update({ prompt: chip.prompt })}
           >
             {chip.label}
           </button>
@@ -161,8 +178,32 @@ export function NewDecision() {
         onClick={handleCreate}
         disabled={!trimmed || submitting}
       >
-        {submitting ? "Framing…" : "Frame this decision"}
+        {submitting ? "Opening the case…" : "Start this case"}
       </button>
     </div>
+  );
+}
+
+function PreferenceChip({
+  selected,
+  onClick,
+  label,
+  blurb,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  label: string;
+  blurb: string;
+}) {
+  return (
+    <button
+      type="button"
+      className={`preference-chip${selected ? " selected" : ""}`}
+      aria-pressed={selected}
+      onClick={onClick}
+    >
+      <span className="preference-label">{label}</span>
+      <span className="preference-blurb">{blurb}</span>
+    </button>
   );
 }

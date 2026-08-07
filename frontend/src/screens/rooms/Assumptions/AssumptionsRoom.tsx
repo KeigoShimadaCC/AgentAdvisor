@@ -11,6 +11,7 @@ import {
   probabilityPhrase,
   ROOMS,
 } from "../../../copy/terms";
+import { ReactionControls } from "../../../engagement/ReactionControls";
 
 type TypeFilter = "all" | "forecast" | "structural" | "operational" | "financial" | "regulatory" | "behavioral";
 type StatusFilter = "all" | "unresolved" | "supported" | "contradicted" | "retired";
@@ -85,6 +86,7 @@ function AssumptionsBody({ view }: { view: CaseView }) {
         <fieldset className="facet-group">
           <legend>Type</legend>
           <FacetSelect
+            label="Type"
             value={typeFilter}
             onChange={(v) => setTypeFilter(v as TypeFilter)}
             options={[
@@ -101,6 +103,7 @@ function AssumptionsBody({ view }: { view: CaseView }) {
         <fieldset className="facet-group">
           <legend>Status</legend>
           <FacetSelect
+            label="Status"
             value={statusFilter}
             onChange={(v) => setStatusFilter(v as StatusFilter)}
             options={[
@@ -115,6 +118,7 @@ function AssumptionsBody({ view }: { view: CaseView }) {
         <fieldset className="facet-group">
           <legend>Materiality</legend>
           <FacetSelect
+            label="Materiality"
             value={materialityFilter}
             onChange={(v) => setMaterialityFilter(v as MaterialityFilter)}
             options={[
@@ -130,7 +134,7 @@ function AssumptionsBody({ view }: { view: CaseView }) {
       {/* Ledger */}
       <ul className="assumption-ledger">
         {filtered.map((a) => (
-          <AssumptionRow key={a.assumption_id} assumption={a} />
+          <AssumptionRow key={a.assumption_id} assumption={a} caseId={view.case_id} />
         ))}
         {filtered.length === 0 && (
           <li><HonestEmpty truth="nothing_found" heading="No assumptions match these filters." /></li>
@@ -141,14 +145,22 @@ function AssumptionsBody({ view }: { view: CaseView }) {
 }
 
 interface FacetSelectProps {
+  /** Accessible name for the control itself, not the group around it. */
+  label: string;
   value: string;
   onChange: (v: string) => void;
   options: [string, string][];
 }
 
-function FacetSelect({ value, onChange, options }: FacetSelectProps) {
+function FacetSelect({ label, value, onChange, options }: FacetSelectProps) {
   return (
-    <select className="facet-select" value={value} onChange={(e) => onChange(e.target.value)}>
+    <select
+      className="facet-select"
+      // The enclosing <legend> names the group; a control needs its own name.
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
       {options.map(([v, label]) => (
         <option key={v} value={v}>{label}</option>
       ))}
@@ -156,7 +168,13 @@ function FacetSelect({ value, onChange, options }: FacetSelectProps) {
   );
 }
 
-function AssumptionRow({ assumption }: { assumption: AssumptionView }) {
+function AssumptionRow({
+  assumption,
+  caseId,
+}: {
+  assumption: AssumptionView;
+  caseId: string;
+}) {
   const forCount = assumption.evidence_for?.length ?? 0;
   const againstCount = assumption.evidence_against?.length ?? 0;
   const isSkipped = assumption.status === "unresolved" && forCount === 0 && againstCount === 0;
@@ -175,6 +193,14 @@ function AssumptionRow({ assumption }: { assumption: AssumptionView }) {
       </div>
 
       <p className="assumption-claim">{assumption.claim}</p>
+      {/* SPEC-051: mark it now, while you are reading it. Nothing is written to
+          the case; the marks are spent once at the delivery gate. */}
+      <ReactionControls
+        caseId={caseId}
+        targetId={assumption.assumption_id}
+        targetKind="assumption"
+        label={assumption.claim}
+      />
 
       <div className="assumption-probability">
         <span className="assumption-probability-phrase">

@@ -3,18 +3,45 @@ import type { IntakeRecord } from "../generated/intake_record";
 import type { DecisionSpec } from "../generated/decision_spec";
 import type { FramingApproval } from "../generated/framing_approval";
 import type { FinalRecommendation } from "../generated/final_recommendation";
+import type { EffortHistory } from "../copy/effort";
+
+/** SPEC-025's CalibrationSummary, served by SPEC-046's `GET /api/calibration`. */
+export interface CalibrationSummary {
+  sample_size: number;
+  brier_score: number | null;
+  mean_forecast: number | null;
+  mean_realized: number | null;
+  interpretation: string;
+}
+
+export interface OutcomeBody {
+  summary: string;
+  followed: boolean;
+  realized: boolean;
+  forecast_name?: string | null;
+  forecast_probability?: number | null;
+}
 
 export interface CaseSummary {
   case_id: string;
   stage: string;
   title: string;
   updated: string;
+  /**
+   * SPEC-046 added this to the list endpoint and nothing ever declared it here,
+   * so the library re-derived it from the raw stage string — two
+   * implementations of one rule, which is one implementation and one future
+   * bug. SPEC-052 deletes the derivation.
+   */
+  needs_you: string;
 }
 
 export interface ErrorResponse {
   error: string;
   detail: string;
   case_stage?: string | null;
+  /** HTTP status, or 0 when the request never reached the service (SPEC-055). */
+  status?: number;
 }
 
 /** Payload for the scope-checkpoint POST (SPEC-034). */
@@ -42,13 +69,27 @@ export interface ArtifactEnvelope<T> {
 const API_BASE = "/api";
 
 async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${API_BASE}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...init,
+    });
+  } catch {
+    // SPEC-055: a rejected fetch means the request never reached the service —
+    // it is not running. That is a different fact from a 404 or a 409, and it
+    // used to escape as a raw TypeError and render as "Failed to fetch".
+    throw {
+      error: "service_unavailable",
+      detail: "The AgentAdvisor service is not responding.",
+      status: 0,
+    } as ErrorResponse;
+  }
   if (!resp.ok) {
-    const body = await resp.json().catch(() => ({ error: "request_failed", detail: resp.statusText }));
-    throw body as ErrorResponse;
+    const body = await resp
+      .json()
+      .catch(() => ({ error: "request_failed", detail: resp.statusText }));
+    throw { ...(body as ErrorResponse), status: resp.status } as ErrorResponse;
   }
   return resp.json() as Promise<T>;
 }
@@ -62,10 +103,22 @@ export interface MonitoringIndicator {
   would_imply: string;
 }
 
+/**
+ * SPEC-053 completed this. The endpoint has always sent the whole
+ * `TrackedMitigation` artifact — `model_dump(mode="json")` on the plan — and
+ * this interface declared three of its eight fields, so the risk register's
+ * status, severity and the failure mode it guards against were invisible to
+ * every consumer. The same drift as `CaseSummary.needs_you`: a partial type is
+ * a silent filter on data that is already arriving.
+ */
 export interface MonitoringMitigation {
   mitigation_id: string;
   mitigation: string;
   owner: string;
+  failure_mode: string;
+  severity: string;
+  status: "not_started" | "in_place" | "not_applicable" | string;
+  triggered_by: string[];
 }
 
 export interface MonitoringDueCheck {
@@ -122,6 +175,19 @@ export const api = {
     if (!resp.ok) throw await resp.json().catch(() => ({ error: "request_failed", detail: resp.statusText }));
     return resp.text();
   },
+
+  /** Measured wall-clock history per effort profile (SPEC-050). */
+  getEffortHistory: () => fetchJSON<EffortHistory>("/effort-history"),
+
+  /** The system's own forecasting track record (SPEC-051 renders SPEC-046's read). */
+  getCalibration: () => fetchJSON<CalibrationSummary>("/calibration"),
+
+  /** Record what actually happened for a decided case. */
+  recordOutcome: (caseId: string, body: OutcomeBody) =>
+    fetchJSON<{ case_id: string; recorded: boolean }>(
+      `/cases/${encodeURIComponent(caseId)}/outcome`,
+      { method: "POST", body: JSON.stringify(body) },
+    ),
 
   createCase: (prompt: string, effort: string = "default", slug?: string) =>
     fetchJSON<{ case_id: string; stage: string }>("/cases", {

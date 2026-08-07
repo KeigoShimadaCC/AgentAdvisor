@@ -22,6 +22,22 @@ const __dirname = path.dirname(__filename);
 
 const E2E_MODE = process.env.E2E_MODE ?? "fixture";
 
+// PW_CHROME (from Phase 8) points at a specific Chrome binary when the
+// environment's pre-installed browser does not match the pinned Playwright
+// version. Hoisted so every Chrome-based project in the SPEC-045 matrix picks
+// it up, not just the first one.
+//
+// It must point at the **headless shell** (`chrome-headless-shell` /
+// `headless_shell`), not at the full `chrome` binary. SPEC-045's baselines were
+// captured with the shell, and the two synthesise bold type differently: the
+// full binary renders every bold heading a fraction differently and the page
+// ends up ~5px taller, which fails 27 baselines at once on the case surface.
+// The trap is that the obvious response is to re-baseline, which would silently
+// throw the visual gate away (found in SPEC-056).
+const chromeBinary = process.env.PW_CHROME
+  ? { launchOptions: { executablePath: process.env.PW_CHROME } }
+  : {};
+
 // Dedicated e2e ports, deliberately NOT the dev defaults (5173/8765): a
 // leftover dev server, replay server, or another session's stack must never
 // be able to stand in for the suite's own servers.
@@ -67,6 +83,11 @@ if (E2E_MODE === "replay") {
 } else {
   // fixture (default)
   backendCommand = `${advisorUi} --port ${BACKEND_PORT} --cases-root tests/fixtures/cases`;
+  // SPEC-053: monitoring plans and the calibration record live under the memory
+  // root, outside the case directory, so a fixture case cannot carry them.
+  // Pointing the memory root at a committed fixture is what makes the
+  // monitoring surfaces reachable in e2e rather than component tests only.
+  backendEnv = { AGENTADVISOR_MEMORY_ROOT: path.join(repoRoot, "tests", "fixtures", "memory") };
 }
 
 // ── Projects ─────────────────────────────────────────────────────────────────
@@ -79,39 +100,67 @@ const chromiumProject = {
   // resolution — the escape hatch costs nothing and is the difference
   // between the suite running somewhere and not running there.
   name: "chromium",
+  use: { ...devices["Desktop Chrome"], colorScheme: "light" as const, ...chromeBinary },
+  // The reduced-motion check asserts the preference is *applied*, so it is
+  // only meaningful in the project that applies it.
+  grepInvert: /reduced motion/,
+};
+
+const chromiumDarkProject = {
+  name: "chromium-dark",
+  use: { ...devices["Desktop Chrome"], colorScheme: "dark" as const, ...chromeBinary },
+  grep: /visual baselines|token contrast|accessibility \(axe\)/,
+};
+
+// SPEC-052: the most likely moment to check a three-hour run is on a phone,
+// and until this phase no project had ever exercised one.
+const mobileProject = {
+  name: "mobile",
+  use: { ...devices["Pixel 7"], colorScheme: "light" as const, ...chromeBinary },
+  grep: /visual baselines|small viewports/,
+};
+
+// Axe only. The small-viewport sweep is layout, and layout does not differ by
+// theme — running it twice cost two minutes and bought nothing.
+const mobileDarkProject = {
+  name: "mobile-dark",
+  use: { ...devices["Pixel 7"], colorScheme: "dark" as const, ...chromeBinary },
+  grep: /accessibility \(axe\)/,
+};
+
+const reducedMotionProject = {
+  name: "reduced-motion",
+  // Both styles.css and Brief.tsx branch on this and nothing tested it.
   use: {
     ...devices["Desktop Chrome"],
-    launchOptions: { executablePath: process.env.PW_CHROME || undefined },
+    ...chromeBinary,
+    contextOptions: { reducedMotion: "reduce" as const },
   },
+  grep: /reduced motion/,
 };
 
 const webkitProject = {
   name: "webkit",
-  use: { ...devices["Desktop Safari"] },
+  use: { ...devices["Desktop Safari"], colorScheme: "light" as const },
   retries: 1, // reading-experience parity, allow one retry
+  // Screenshots are engine-specific; webkit would need its own baselines
+  // for no additional signal about the design system.
+  grepInvert: /visual baselines|token contrast|density guard/,
 };
 
-// SPEC-037's mobile project: the 390x844 viewport over the fixture journeys
-// and the checkpoint flows only — the stub lifecycle and the replay timing
-// assertions are desktop concerns, and the rooms were not designed for this
-// width yet (that is SPEC-052's scope), so the grep keeps the project to the
-// flows a decision owner would actually start from a phone.
-const mobileProject = {
-  name: "mobile",
-  use: {
-    ...devices["Desktop Chrome"],
-    viewport: { width: 390, height: 844 },
-    launchOptions: { executablePath: process.env.PW_CHROME || undefined },
-  },
-  grep: /case library|scope checkpoint/,
-};
+const ALL_PROJECTS = [
+  chromiumProject,
+  chromiumDarkProject,
+  mobileProject,
+  mobileDarkProject,
+  reducedMotionProject,
+  webkitProject,
+];
 
-const projects =
-  E2E_MODE === "live"
-    ? [chromiumProject] // a live smoke needs exactly one browser
-    : E2E_MODE === "fixture"
-      ? [chromiumProject, webkitProject, mobileProject]
-      : [chromiumProject, webkitProject];
+// The deterministic modes carry the whole SPEC-045 matrix and let
+// ``modeDescribe`` do the skipping; a live smoke spends real usage, so it runs
+// on exactly one browser (SPEC-037).
+const projects = E2E_MODE === "live" ? [chromiumProject] : ALL_PROJECTS;
 
 export default defineConfig({
   testDir: ".",
@@ -120,7 +169,19 @@ export default defineConfig({
   // what SPEC-037 asks the default suite to show).
   testMatch: E2E_MODE === "live" ? "live.spec.ts" : undefined,
   timeout: 60_000,
-  expect: { timeout: 10_000 },
+  expect: {
+    timeout: 10_000,
+    // Screenshot determinism.  A flaky visual gate is worse than no visual
+    // gate: it gets muted rather than fixed, and then the harness has cost
+    // time and bought nothing.  Animations are frozen and a small per-pixel
+    // tolerance absorbs font antialiasing without hiding a layout change.
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+      scale: "css",
+      maxDiffPixelRatio: 0.01,
+    },
+  },
 
   // Determinism: single worker, no parallelism.
   fullyParallel: false,
@@ -143,6 +204,24 @@ export default defineConfig({
     video: "retain-on-failure",
   },
 
+  // SPEC-045: the verification matrix.
+  //
+  // Theme and viewport are projects rather than per-test loops so a run can be
+  // scoped to one dimension.  That scoping is load-bearing: the full
+  // cross-product multiplied against every route would blow SPEC-037's
+  // ten-minute budget, so the visual and axe sweeps run on the two theme
+  // projects and mobile covers layout only (see SPEC-055's budgets).
+  //
+  // `colorScheme` sets the OS preference and `data-theme` is stamped by the
+  // app's own control; both are exercised because an explicit choice has to
+  // beat the media query in both directions.
+  // Each project runs only the sweeps that dimension can actually falsify.
+  // The full cross-product (5 projects x 3 modes x every spec) would be four
+  // to six times SPEC-037's ten-minute budget, and a suite that slow gets
+  // skipped rather than fixed. Scoping is therefore part of the design, not an
+  // optimisation: dark repeats the presentation sweeps, mobile repeats layout
+  // only, reduced-motion runs one targeted check, and webkit stays on the
+  // functional journeys it has always covered.
   projects,
 
   // Two servers: the FastAPI backend (advisor ui) and the Vite dev server

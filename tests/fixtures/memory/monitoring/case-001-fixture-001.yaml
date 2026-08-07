@@ -1,0 +1,35 @@
+case_id: case-001-fixture-001
+concretized: true
+delivered_at: '2026-07-24'
+horizon: 12 months
+indicators:
+- check_cadence_days: 30
+  implicated_alternative: Buy the ETF
+  indicator_id: M-001
+  observable: NVDA quarterly revenue growth, year over year
+  schema_version: 1
+  source: change_trigger
+  source_ref: CT-001
+  threshold: Falls below 60% for two consecutive quarters
+  would_imply: The growth case underpinning the premium has broken; shift to the ETF.
+- check_cadence_days: 14
+  implicated_alternative: null
+  indicator_id: M-002
+  observable: NVDA forward P/E versus its own 5-year average
+  schema_version: 1
+  source: change_trigger
+  source_ref: CT-002
+  threshold: Exceeds 55x
+  would_imply: Valuation has run further ahead of fundamentals; pause the remaining
+    tranches.
+mitigations:
+- failure_mode: growth-decelerated-faster-than-modeled
+  mitigation: Cap the position at 15% of the portfolio regardless of conviction.
+  mitigation_id: R-001
+  owner: user
+  schema_version: 1
+  severity: high
+  status: not_started
+  triggered_by:
+  - M-001
+schema_version: 1

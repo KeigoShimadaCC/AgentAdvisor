@@ -101,11 +101,38 @@ _STAGE_TO_PHASE: dict[CaseStage, Phase] = {
 _TERMINAL_STAGES = frozenset({CaseStage.DONE, CaseStage.FAILED})
 
 
+def _decision_question(case: Case) -> str:
+    """The decision as a question, for the case surface's heading.
+
+    Prefers the framed `DecisionSpec` (what the system will actually answer),
+    falls back to intake, then to the raw prompt.  Returns "" rather than a
+    placeholder so the UI can decide what to show before framing has run.
+    """
+    try:
+        from orchestrator.artifacts import DecisionSpec, IntakeRecord
+
+        specs = case.list_artifacts(DecisionSpec)
+        if specs and specs[0].question:
+            return specs[0].question
+        records = case.list_artifacts(IntakeRecord)
+        if records:
+            return records[0].decision_question or records[0].raw_prompt
+    except Exception:  # noqa: BLE001 — a corrupt artifact must not break the view
+        pass
+    return ""
+
+
 def _phase_for_stage(stage: CaseStage) -> Phase:
     return _STAGE_TO_PHASE[stage]
 
 
-def _needs_you_for_state(state: CaseState) -> NeedsYou:
+def needs_you_for_state(state: CaseState) -> NeedsYou:
+    """What this case needs from the user, if anything.
+
+    Public because the case-list endpoint serves the same value (SPEC-046);
+    keeping one implementation is what stops the list and the projection
+    disagreeing about whether a case is waiting on someone.
+    """
     if state.stage is CaseStage.AWAITING_FRAMING_APPROVAL:
         return "scope_checkpoint"
     if state.stage is CaseStage.AWAITING_FINAL_APPROVAL:
@@ -390,6 +417,45 @@ class GateSummaryView(BaseModel):
     findings: list[dict[str, object]] = Field(default_factory=list)
 
 
+class NextActionView(BaseModel):
+    """SPEC-041's typed action, projected (SPEC-053).
+
+    Phase 8 replaced a list of strings with a typed artifact carrying an owner,
+    a date, a first step, a cost and dependencies — and the projection flattened
+    it straight back into one sentence per action. Every typed field was
+    computed and then discarded on the way to the screen.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    action_id: str
+    action: str
+    owner: str
+    by_date: str
+    first_step: str
+    why_now: str
+    estimated_cost: str | None = None
+    depends_on: list[str] = Field(default_factory=list)
+
+
+class IndependentReviewView(BaseModel):
+    """SPEC-039's second opinion, structured (SPEC-053).
+
+    Phase 8 rendered this into a ``brief_sections`` entry as prose, which meant
+    the one verdict that can *block delivery* was reachable only by reading a
+    paragraph. A blocking state has to be a field, or every consumer has to
+    parse English to find out whether it may show a signature button.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    verdict: str
+    reasoning: str
+    divergent_conclusion: str | None = None
+    unsupported_claims: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+
+
 class IntegrityView(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -403,6 +469,9 @@ class IntegrityView(BaseModel):
     # with no reason attached.
     review_blocking_findings: list[dict[str, object]] = Field(default_factory=list)
     disclosure: dict[str, object] | None = None
+    #: SPEC-053. None when no independent review ran, which is not the same as
+    #: one that concurred — a screen must be able to tell those apart.
+    independent_review: IndependentReviewView | None = None
 
 
 # ── History ──────────────────────────────────────────────────────────────────
@@ -466,6 +535,11 @@ class CaseView(BaseModel):
 
     view_version: int = 1
     case_id: str
+    # SPEC-048: the case surface's heading. Without it the UI rendered
+    # `case_id`, so users read a slug like `case-014-should-i-take-the-ser`
+    # where the decision belongs. Additive read-model field; nothing upstream
+    # changes.
+    decision_question: str = ""
     phase: Phase
     needs_you: NeedsYou
     stage: str
@@ -476,6 +550,10 @@ class CaseView(BaseModel):
     integrity: IntegrityView = Field(default_factory=IntegrityView)
     history: HistoryView = Field(default_factory=HistoryView)
     effort: EffortView = Field(default_factory=EffortView)
+    #: SPEC-053. The typed action plan, beside the prose the brief renders — a
+    #: screen that wants an owner and a due date should not have to parse a
+    #: sentence to find them.
+    next_actions: list[NextActionView] = Field(default_factory=list)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -1134,11 +1212,26 @@ def _build_plan_view(
     )
 
 
+def _independent_review_view(
+    review: IndependentReview | None,
+) -> IndependentReviewView | None:
+    if review is None:
+        return None
+    return IndependentReviewView(
+        verdict=review.verdict.value,
+        reasoning=review.reasoning,
+        divergent_conclusion=review.divergent_conclusion,
+        unsupported_claims=list(review.unsupported_claims),
+        evidence_ids=list(review.evidence_ids),
+    )
+
+
 def _build_integrity(
     case: Case,
     state: CaseState,
     review: ReviewReport | None,
     disclosure: DisclosureRecord | None,
+    independent_review: IndependentReview | None = None,
 ) -> IntegrityView:
     gate_reports = case.list_artifacts(GateReport)
     gates = [
@@ -1201,6 +1294,7 @@ def _build_integrity(
         review_defects=review_defects,
         review_blocking_findings=review_blocking_findings,
         disclosure=disclosure_dict,
+        independent_review=_independent_review_view(independent_review),
     )
 
 
@@ -1415,14 +1509,15 @@ def build_case_view(case: Case) -> CaseView:
         plan=_build_plan_view(issue_tree, tasks),
     )
 
-    integrity = _build_integrity(case, state, review, disclosure)
+    integrity = _build_integrity(case, state, review, disclosure, independent_review)
     history = _build_history(case, framing_approval, final_approval)
     effort = _build_effort(case, state)
 
     return CaseView(
         case_id=case.root.name,
+        decision_question=_decision_question(case),
         phase=_phase_for_stage(state.stage),
-        needs_you=_needs_you_for_state(state),
+        needs_you=needs_you_for_state(state),
         stage=state.stage.value,
         is_terminal=state.stage in _TERMINAL_STAGES,
         brief_sections=brief_sections,
@@ -1431,4 +1526,17 @@ def build_case_view(case: Case) -> CaseView:
         integrity=integrity,
         history=history,
         effort=effort,
+        next_actions=[
+            NextActionView(
+                action_id=a.action_id,
+                action=a.action,
+                owner=a.owner,
+                by_date=a.by_date.isoformat(),
+                first_step=a.first_step,
+                why_now=a.why_now,
+                estimated_cost=a.estimated_cost,
+                depends_on=list(a.depends_on),
+            )
+            for a in (final.next_actions if final is not None else [])
+        ],
     )

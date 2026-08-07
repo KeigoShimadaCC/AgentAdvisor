@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { RoomShell } from "../../shared/RoomShell";
+import { Skeleton } from "../../shared/Skeleton";
 import type { CaseView } from "../../../generated/case_view";
 import type { TranslatedEvent } from "../../../api/sse";
 import { api } from "../../../api/client";
@@ -215,7 +216,11 @@ function MethodBody({ view, events }: { view: CaseView; events: TranslatedEvent[
         {filteredEvents.length === 0 ? (
           <p className="screen-help">No events yet.</p>
         ) : (
-          <ul className="audit-log-list">
+          // A scrollable region must be reachable by keyboard, which needs a
+          // tabindex, and named so focus landing there is announced. The role
+          // stays "list": role="group" would strip the implicit list semantics
+          // and orphan every <li> inside it.
+          <ul className="audit-log-list" tabIndex={0} role="list" aria-label="Audit event log">
             {filteredEvents.map((e, i) => (
               <li key={i} className={e.technical ? "audit-log-item audit-log-technical" : "audit-log-item audit-log-user"}>
                 <small className="audit-log-cursor">[{e.line_cursor}]</small>
@@ -251,7 +256,7 @@ function MethodBody({ view, events }: { view: CaseView; events: TranslatedEvent[
           />
           <button type="submit" className="secondary-action">View</button>
         </form>
-        {rawLoading && <p>Loading…</p>}
+        {rawLoading && <Skeleton shape="sheet" label="Loading the raw record" />}
         {rawContent != null && (
           <pre className="method-raw-view">{rawContent}</pre>
         )}

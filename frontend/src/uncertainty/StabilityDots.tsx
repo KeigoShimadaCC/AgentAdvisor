@@ -1,39 +1,21 @@
-import { NotAssessedWidget } from "./NotAssessedWidget";
+import { Measure } from "./Measure";
+import { encodeStability, type Scale } from "./language";
 import type { AssessedStability, NotAssessed } from "../generated/uncertainty_view";
 
-interface StabilityDotsProps {
-  stability: AssessedStability | NotAssessed | null | undefined;
-}
-
 /**
- * Stability encoding: k-of-n filled dots.
+ * Model stability, as countable marks (SPEC-054 rebuild).
+ *
+ * `runs_supporting` of `runs_total`, drawn as that many marks. Never a
+ * percentage: "9 of 10 runs" is a fact about what was done, and "90%" is a
+ * number that invites comparison with the other three measures — precisely the
+ * collapse the four separate encodings exist to prevent.
  */
-export function StabilityDots({ stability }: StabilityDotsProps) {
-  if (!stability || stability.kind === "not_assessed") {
-    return <NotAssessedWidget reason={stability?.reason ?? "Not assessed"} />;
-  }
-
-  const assessed = stability as AssessedStability;
-  const total = Math.max(1, Math.min(assessed.runs_total, 12));
-  const supporting = Math.min(assessed.runs_supporting, total);
-
-  return (
-    <div className="stability-dots">
-      <span className="stability-dots-caption">
-        {supporting} of {assessed.runs_total} sensitivity runs
-      </span>
-      <div
-        className="stability-dots-row"
-        aria-label={`Stability: ${supporting} out of ${assessed.runs_total} runs`}
-      >
-        {Array.from({ length: total }).map((_, i) => (
-          <span
-            key={i}
-            className={`stability-dot ${i < supporting ? "filled" : ""}`}
-            aria-hidden="true"
-          />
-        ))}
-      </div>
-    </div>
-  );
+export function StabilityDots({
+  stability,
+  scale = "full",
+}: {
+  stability: AssessedStability | NotAssessed | null | undefined;
+  scale?: Scale;
+}) {
+  return <Measure encoding={encodeStability(stability)} scale={scale} />;
 }

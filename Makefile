@@ -31,7 +31,7 @@ frontend-types:
 	cd frontend && npm install && npm run generate:types
 
 frontend-check:
-	cd frontend && npm run typecheck && npm run check:clean && npm test
+	cd frontend && npm run typecheck && npm run check:clean && npm run check:tokens && npm test
 
 frontend-build:
 	cd frontend && npm install && npm run build
@@ -39,6 +39,9 @@ frontend-build:
 e2e-frontend-install:
 	cd frontend && npm install && npx playwright install --with-deps chromium webkit
 
+# Each recipe line runs in its own shell, so every line needs its own `cd`:
+# without it the three test lines ran from the repo root and could not find the
+# config (SPEC-056).
 e2e-frontend:
 	cd frontend && npm install
 	cd frontend && E2E_MODE=fixture npx playwright test --config=e2e/playwright.config.ts

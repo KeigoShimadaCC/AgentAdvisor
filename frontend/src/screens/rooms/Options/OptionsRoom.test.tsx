@@ -18,6 +18,8 @@ vi.mock("../../../api/client", () => ({
 }));
 
 vi.mock("../../../api/sse", () => ({
+  readStoredCursor: () => 0,
+  hasStoredCursor: () => false,
   SSEClient: class {
     connect() { mocks.connect(); }
     disconnect() { mocks.disconnect(); }
@@ -140,10 +142,12 @@ describe("Options room", () => {
   });
 
   it("names the evidence that could not have changed the reading", async () => {
+    // Wording follows the merged panel (SPEC-053's DiagnosticityMatrix, which
+    // absorbed this exhibit): the count is stated, then the reason.
     renderRoom(makeOptionsACHFixture());
     const exhibit = await screen.findByLabelText("Competing hypotheses");
     expect(
-      within(exhibit).getByText(/could not have changed this reading/),
+      within(exhibit).getByText(/could not have moved the ranking either way/),
     ).toBeInTheDocument();
     expect(
       within(exhibit).getByRole("button", { name: "Inspect record E-3" }),

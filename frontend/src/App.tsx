@@ -4,15 +4,14 @@ import { CaseDetail } from "./pages/CaseDetail";
 import { NewDecision } from "./screens/NewDecision/NewDecision";
 import { ScopeCheckpoint } from "./screens/ScopeCheckpoint/ScopeCheckpoint";
 import { SignedRecord } from "./screens/ScopeCheckpoint/SignedRecord";
-import { Brief } from "./screens/Brief/Brief";
 import { Delivery } from "./screens/Delivery/Delivery";
-import { SourcesRoom } from "./screens/rooms/Sources/SourcesRoom";
-import { AssumptionsRoom } from "./screens/rooms/Assumptions/AssumptionsRoom";
-import { OptionsRoom } from "./screens/rooms/Options/OptionsRoom";
-import { ChallengesRoom } from "./screens/rooms/Challenges/ChallengesRoom";
-import { PlanRoom } from "./screens/rooms/Plan/PlanRoom";
-import { MethodRoom } from "./screens/rooms/Method/MethodRoom";
 import { InspectorPage } from "./screens/inspector/InspectorPage";
+import { ToastHost } from "./screens/shared/Toast";
+import { Calibration } from "./screens/Calibration/Calibration";
+import { NoticeBanner } from "./presence/NoticeBanner";
+import { Settings } from "./screens/Settings/Settings";
+import { Onboarding } from "./screens/Onboarding/Onboarding";
+import { SharedCase } from "./screens/Share/SharedCase";
 
 function NotFound() {
   return (
@@ -26,6 +25,7 @@ function NotFound() {
 
 export function App() {
   return (
+    <ToastHost>
     <div className="app">
       <header className="app-header">
         <h1 className="app-title-heading">
@@ -34,27 +34,35 @@ export function App() {
         <nav className="app-nav">
           <Link to="/" className="app-nav-link">Cases</Link>
           <Link to="/new" className="app-nav-link">New decision</Link>
+          <Link to="/calibration" className="app-nav-link">Track record</Link>
+          <Link to="/settings" className="app-nav-link">Settings</Link>
         </nav>
       </header>
+      <NoticeBanner />
       <main className="app-main">
         <Routes>
           <Route path="/" element={<CaseLibrary />} />
           <Route path="/new" element={<NewDecision />} />
+          <Route path="/calibration" element={<Calibration />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          {/* Read-only, no controls (SPEC-052). The guarantee is the service's,
+              not this route's: control POSTs are refused there. */}
+          <Route path="/share/:caseId" element={<SharedCase />} />
+          {/* One case surface (SPEC-048). `/brief` and the six room deep links
+              were separate pages; they now resolve here, with rooms opening in
+              the context panel, so every previously valid URL still works. */}
           <Route path="/cases/:caseId" element={<CaseDetail />} />
+          <Route path="/cases/:caseId/brief" element={<CaseDetail />} />
+          <Route path="/cases/:caseId/rooms/:room" element={<CaseDetail />} />
           <Route path="/cases/:caseId/scope" element={<ScopeCheckpoint />} />
           <Route path="/cases/:caseId/scope/signed" element={<SignedRecord />} />
-          <Route path="/cases/:caseId/brief" element={<Brief />} />
           <Route path="/cases/:caseId/delivery" element={<Delivery />} />
-          <Route path="/cases/:caseId/rooms/sources" element={<SourcesRoom />} />
-          <Route path="/cases/:caseId/rooms/assumptions" element={<AssumptionsRoom />} />
-          <Route path="/cases/:caseId/rooms/options" element={<OptionsRoom />} />
-          <Route path="/cases/:caseId/rooms/challenges" element={<ChallengesRoom />} />
-          <Route path="/cases/:caseId/rooms/plan" element={<PlanRoom />} />
-          <Route path="/cases/:caseId/rooms/method" element={<MethodRoom />} />
           <Route path="/cases/:caseId/inspector/:artifactId" element={<InspectorPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
     </div>
+    </ToastHost>
   );
 }
