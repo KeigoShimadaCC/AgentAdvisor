@@ -36,6 +36,12 @@ live-model case, which was not run. The two partials are `make e2e-frontend`, wh
 in a container without webkit, and the visual half of the visual/axe criterion. SPEC-056 is therefore
 `implemented`, not `verified`, and phase 9 is recorded that way.
 
+> **Read this alongside the follow-up below.** Everything above is the sweep as it stood on the day.
+> All five defects have since been fixed, two of them turned out to be larger than recorded here, one
+> stated cause was wrong, and the visual suite now passes twice consecutively — so that criterion is
+> met and the count above is out of date. The corrections are kept beside the original findings
+> rather than folded into them, because what a sweep got wrong is part of what it found.
+
 ## Verification sweep
 
 | Gate | Command | Outcome |
@@ -300,6 +306,30 @@ tokenisation of that badge was corrected in the process — `main` set it at `0.
 type scale entirely, which is what the token guard rejected; the first fix reached for `--text-sm`
 (13px) and made the badge *larger* than main intended, so it now uses `--text-xs` (12px), the
 nearest step on the scale.
+
+> **Follow-up (2026-08-07): all five defects above are now fixed**, and two of them turned out to be
+> larger than this report recorded.
+>
+> The raw enum leak was **four sites, not two**: behind `FailurePath` and `Delivery`, the projection
+> composed the sentence server-side and the renderer wrote it into the exported
+> `final_recommendation.md`. A fifth fell out of the fix — the lexicon substituted raw payload values
+> into audit narration.
+>
+> The terminology guard that should have caught all of it had **two** defects, either sufficient on
+> its own: it ran on two routes when the leak was on a third, and it read the DOM before the
+> projection refetch had rendered the block, so it sampled the page before the offending text existed.
+>
+> And the visual flake's stated cause here — "the `fullPage` capture path" — was wrong. The first
+> capture *paints below-fold content for the first time*, and text line boxes settle by a pixel or
+> two as it does, accumulating to five. One discarded capture before the one that counts fixes it;
+> the fixture matrix now passes **201/201 twice consecutively**, meeting SPEC-055's budget for the
+> first time.
+>
+> The one finding that could not be acted on as written is the visual gate's content-blindness.
+> Tightening the tolerance is impossible, not merely unattractive: at zero tolerance nine of thirteen
+> routes fail on antialiasing alone, the worst at 20,616px (~0.29%), against the 8,687px (~0.12%)
+> change that slipped through. The signal is below the noise. It is a layout gate, and the config now
+> says so.
 
 ## Acceptance criteria not met
 

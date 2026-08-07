@@ -91,16 +91,17 @@ read or an emit.
       completion — the target includes the `webkit` project, whose browser is absent from this
       container and cannot be downloaded behind the proxy, so the three modes were run scoped to the
       five chromium-based projects instead. This needs a reference machine with webkit installed.
-- [~] Visual regression passes across light/dark × desktop/mobile with no unreviewed baseline
+- [x] Visual regression passes across light/dark × desktop/mobile with no unreviewed baseline
       changes; axe reports zero serious/critical on every route in both themes. **axe met** (15
-      routes × both themes, zero serious/critical). **Visual: see below.**
+      routes × both themes, zero serious/critical). **Visual met as of the 2026-08-07 follow-up**;
+      every baseline change since has been reviewed in the diff and recorded with its cause.
 - [x] `coverage.spec.ts` passes: every phase 8 artifact type is reachable from a screen.
-- [ ] The full e2e matrix stays inside SPEC-037's 10-minute budget and the visual suite passes twice
-      consecutively with no pixel diff, per SPEC-055's budgets. **Budget met (589s / 9m49s); the
-      twice-consecutive criterion is NOT met** — one clean run in three, failing `room-method` then
-      `room-options` with an identical 5017↔5022px capture oscillation. DOM instability, viewport
-      feedback and the browser-binary difference are each eliminated in the report; the remaining
-      cause is in the `fullPage` capture path and returns to SPEC-055.
+- [x] The full e2e matrix stays inside SPEC-037's 10-minute budget and the visual suite passes twice
+      consecutively with no pixel diff, per SPEC-055's budgets. **Both met as of the 2026-08-07
+      follow-up: 201/201 twice consecutively.** The 5017↔5022px oscillation was not the `fullPage`
+      capture path as this sheet first concluded — the first capture paints below-fold content and
+      text line boxes settle by a pixel or two as it does, accumulating to five. One discarded
+      capture before the one that counts fixes it.
 - [ ] The real case completes on the new surface with both checkpoints signed through the UI, and
       its artifacts validate — **not executed**, see deliverables.
 - [x] All four measured claims are recorded with their method, including any that did not improve.

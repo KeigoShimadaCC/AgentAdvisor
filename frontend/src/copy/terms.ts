@@ -839,14 +839,14 @@ export const FAILURE_COPY = {
 // the recommendation needs to know which.
 
 export const STOP_REASON_LABELS: Record<string, string> = {
-  no_critical_evidence_gaps_remain: "No critical evidence gaps remained",
+  no_critical_evidence_gaps_remain: "no critical evidence gaps remained",
   recommendation_stable_across_plausible_sensitivity_ranges:
-    "The recommendation held across the plausible range of assumptions",
+    "the recommendation held across the plausible range of assumptions",
   no_unresolved_objection_likely_to_change_decision:
-    "No open objection looked likely to change the decision",
-  expected_value_of_more_research_low: "Further research looked unlikely to change the answer",
-  investigation_budget_exhausted: "The investigation budget ran out",
-  user_deadline_or_depth_limit_reached: "Your depth limit was reached",
+    "no open objection looked likely to change the decision",
+  expected_value_of_more_research_low: "further research looked unlikely to change the answer",
+  investigation_budget_exhausted: "the investigation budget ran out",
+  user_deadline_or_depth_limit_reached: "your depth limit was reached",
 };
 
 export function stopReasonLabel(reason: string): string {

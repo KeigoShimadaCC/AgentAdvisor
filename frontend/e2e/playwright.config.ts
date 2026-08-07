@@ -187,6 +187,25 @@ export default defineConfig({
       animations: "disabled",
       caret: "hide",
       scale: "css",
+      // 1%, and it cannot usefully go lower — measured, not guessed.
+      //
+      // At `maxDiffPixelRatio: 0` nine of thirteen routes fail on pure
+      // antialiasing between consecutive runs of unchanged code, the worst at
+      // **20,616 pixels (~0.29%)**. So the floor is set by rendering noise, not
+      // by this number.
+      //
+      // The consequence is worth stating, because it is easy to assume
+      // otherwise: **this is a layout gate, not a content gate.** SPEC-056
+      // measured a real content change — an added badge plus a reworded
+      // sentence — at 8,687 pixels (~0.12%), which is *below* the noise floor.
+      // A screenshot on this setup cannot distinguish that from antialiasing,
+      // and tightening the ratio to chase it would only buy flakes.
+      //
+      // Content therefore has to be asserted where it is exact: the terminology
+      // guard walks the same routes for prose, `coverage.spec.ts` asserts every
+      // phase 8 output is on a screen, and component tests assert the rest.
+      // What the screenshots are for is the thing the DOM assertions cannot
+      // see — a layout that has silently moved.
       maxDiffPixelRatio: 0.01,
     },
   },

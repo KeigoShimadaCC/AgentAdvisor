@@ -95,3 +95,40 @@ describe("every budget kind says what ran out", () => {
     expect(budgetDimensionLabel("some_future_dimension")).toBe("some future dimension");
   });
 });
+
+describe("the frontend and the server say the same thing", () => {
+  /**
+   * Two copies of this vocabulary exist by necessity: the projection composes
+   * the brief's sentence server-side, and the case surface and delivery sheet
+   * render `integrity.disclosure` directly. Two copies drift, so this pins them
+   * to each other — and to the lowercase, clause-shaped form both need, because
+   * they are joined after "Why it stopped:" rather than standing alone.
+   */
+  const pythonPhrases = (() => {
+    const source = readFileSync(
+      resolve(REPO, "orchestrator/artifacts/disclosure.py"),
+      "utf8",
+    );
+    const start = source.indexOf("_STOP_REASON_PHRASES");
+    expect(start, "_STOP_REASON_PHRASES not found").toBeGreaterThan(-1);
+    const body = source.slice(start, source.indexOf("_BUDGET_KIND_PHRASES"));
+    return [...body.matchAll(/"([a-z][a-z ,'-]+)"/g)].map((m) => m[1]);
+  })();
+
+  it("uses the same wording on both sides", () => {
+    for (const [reason, label] of Object.entries(STOP_REASON_LABELS)) {
+      expect(
+        pythonPhrases,
+        `"${label}" (for ${reason}) does not match any server-side phrase`,
+      ).toContain(label);
+    }
+  });
+
+  it("keeps every phrase clause-shaped, not sentence-shaped", () => {
+    // "Why it stopped: The budget ran out; The recommendation held" reads as a
+    // run-on; lowercase clauses read as the list they are.
+    for (const label of Object.values(STOP_REASON_LABELS)) {
+      expect(label[0], `"${label}" starts with a capital`).toBe(label[0].toLowerCase());
+    }
+  });
+});
