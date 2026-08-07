@@ -824,3 +824,44 @@ export const FAILURE_COPY = {
   resume: "Resume",
   backToCase: "Back to the case",
 } as const;
+
+// ── Why a case stopped, and what ran out (SPEC-056 follow-up) ───────────────
+//
+// These reached users verbatim on two surfaces — "Stop reasons:
+// no_critical_evidence_gaps_remain, recommendation_stable_across_plausible_..."
+// — which is the exact failure the lexicon exists to prevent. The terminology
+// guard did not catch it because its forbidden list named stage and role enums,
+// not these; it does now.
+//
+// The wording keeps the distinction the enum draws and the phase cares about:
+// stopping because the question is *answered* is a different claim from
+// stopping because the *budget* ran out, and a reader deciding whether to trust
+// the recommendation needs to know which.
+
+export const STOP_REASON_LABELS: Record<string, string> = {
+  no_critical_evidence_gaps_remain: "No critical evidence gaps remained",
+  recommendation_stable_across_plausible_sensitivity_ranges:
+    "The recommendation held across the plausible range of assumptions",
+  no_unresolved_objection_likely_to_change_decision:
+    "No open objection looked likely to change the decision",
+  expected_value_of_more_research_low: "Further research looked unlikely to change the answer",
+  investigation_budget_exhausted: "The investigation budget ran out",
+  user_deadline_or_depth_limit_reached: "Your depth limit was reached",
+};
+
+export function stopReasonLabel(reason: string): string {
+  return STOP_REASON_LABELS[reason] ?? reason.replace(/_/g, " ");
+}
+
+export const BUDGET_KIND_LABELS: Record<string, string> = {
+  agent_invocations: "agent invocations",
+  concurrent_workers: "concurrent workers",
+  repair_cycles: "repair cycles",
+  research_tasks: "research tasks",
+  high_tier_calls: "premium-model calls",
+  wall_clock_s: "wall-clock time",
+};
+
+export function budgetDimensionLabel(dimension: string): string {
+  return BUDGET_KIND_LABELS[dimension] ?? dimension.replace(/_/g, " ");
+}

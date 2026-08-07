@@ -58,8 +58,8 @@
 - [user_input] User deadline for initial action is this quarter.
 
 ## Budget/depth stop disclosure
-- [interpretation] Stop reasons: investigation_budget_exhausted, expected_value_of_more_research_low.
-- [interpretation] Exhausted dimensions: max_research_tasks, wall_clock.
+- [interpretation] Why it stopped: the investigation budget ran out; further research looked unlikely to change the answer.
+- [interpretation] What ran out: max research tasks, wall clock.
 
 ## Evidence and citations
 - [sourced_fact] Inline evidence references: [E-101] [E-102]

@@ -111,15 +111,36 @@ modeDescribe("fixture", "Fixture mode — delivered brief journey", () => {
     expect(stabilityText).not.toMatch(/\b0\.0%\b/);
   });
 
-  test("terminology guard: no raw enum strings on the brief", async ({ page }) => {
-    await page.goto(`/cases/${FIXTURE_COMPLETED}/brief`);
-    await assertNoForbiddenTerms(page);
-  });
+  // The guard ran on two routes for the whole of phase 9, and the leak it was
+  // built to catch was on a third: the early-stop card renders on the case
+  // surface as well as on delivery, and shipped raw `StopReason` values to
+  // users the entire time (SPEC-056 follow-up). A guard scoped narrower than
+  // the surface it protects is a guard that reports clean while the defect
+  // ships, so this now walks the same route table the axe sweep does.
+  const terminologyRoutes: { name: string; url: string }[] = [
+    { name: "library", url: "/" },
+    { name: "new decision", url: "/new" },
+    { name: "case surface", url: `/cases/${FIXTURE_COMPLETED}` },
+    { name: "scope sheet", url: `/cases/${FIXTURE_PARKED}/scope` },
+    { name: "brief", url: `/cases/${FIXTURE_COMPLETED}/brief` },
+    { name: "delivery", url: `/cases/${FIXTURE_COMPLETED}/delivery` },
+    { name: "sources room", url: `/cases/${FIXTURE_COMPLETED}/rooms/sources` },
+    { name: "assumptions room", url: `/cases/${FIXTURE_COMPLETED}/rooms/assumptions` },
+    { name: "options room", url: `/cases/${FIXTURE_COMPLETED}/rooms/options` },
+    { name: "challenges room", url: `/cases/${FIXTURE_COMPLETED}/rooms/challenges` },
+    { name: "plan room", url: `/cases/${FIXTURE_COMPLETED}/rooms/plan` },
+    { name: "method room", url: `/cases/${FIXTURE_COMPLETED}/rooms/method` },
+    { name: "inspector", url: `/cases/${FIXTURE_COMPLETED}/inspector/E-001` },
+    { name: "signed record", url: `/cases/${FIXTURE_COMPLETED}/scope/signed` },
+  ];
 
-  test("terminology guard: no raw enum strings on delivery", async ({ page }) => {
-    await page.goto(`/cases/${FIXTURE_COMPLETED}/delivery`);
-    await assertNoForbiddenTerms(page);
-  });
+  for (const route of terminologyRoutes) {
+    test(`terminology guard: no raw enum strings on ${route.name}`, async ({ page }) => {
+      await page.goto(route.url);
+      await page.locator("main.app-main").waitFor({ state: "visible" });
+      await assertNoForbiddenTerms(page);
+    });
+  }
 });
 
 modeDescribe("fixture", "Fixture mode — rooms walkthrough", () => {

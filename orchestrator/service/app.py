@@ -932,12 +932,22 @@ def _is_blocked(path: Path) -> bool:
 
 
 def _slug_from_prompt(prompt: str) -> str:
-    """Derive a filename-safe slug from a prompt."""
+    """Derive a filename-safe slug from a prompt.
+
+    The trailing ``strip("-")`` is after the truncation, not before it, and the
+    order is the whole point: ``create_case`` rejects a slug that ends in a
+    hyphen, and cutting at 40 characters lands on a word boundary often enough
+    that a whole class of ordinary prompts could not start a case at all.
+    "Should I migrate the billing service to a new provider?" produced
+    ``should-i-migrate-the-billing-service-to-`` and failed validation.
+
+    Stripping twice is deliberate: the first pass removes leading punctuation so
+    the 40 characters are spent on words rather than on a dropped quote mark.
+    """
     stem = re.sub(r"[^a-z0-9]+", "-", prompt.strip().lower()).strip("-")
     if not stem:
         stem = "case"
-    # Truncate to a reasonable length.
-    return stem[:40]
+    return stem[:40].strip("-") or "case"
 
 
 async def _replay_generator(

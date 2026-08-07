@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../../api/client";
 import { useToast } from "./Toast";
-import { FAILURE_COPY } from "../../copy/terms";
+import { FAILURE_COPY, stopReasonLabel, budgetDimensionLabel } from "../../copy/terms";
 import type { CaseView } from "../../generated/case_view";
 
 interface FailurePathProps {
@@ -70,10 +70,12 @@ export function FailurePath({ view }: FailurePathProps) {
       <section className="early-stop" role="alert">
         <h3>{FAILURE_COPY.earlyStopTitle}</h3>
         <p>{FAILURE_COPY.earlyStopDetail}</p>
-        <p>Stop reasons: {stopReasons.join(", ")}</p>
+        <p>Why it stopped: {stopReasons.map(stopReasonLabel).join("; ")}</p>
         <p>
-          Exhausted dimensions:{" "}
-          {((disclosure?.exhausted_dimensions as string[] | undefined) ?? []).join(", ")}
+          What ran out:{" "}
+          {((disclosure?.exhausted_dimensions as string[] | undefined) ?? [])
+            .map(budgetDimensionLabel)
+            .join(", ")}
         </p>
         <div className="early-stop-actions">
           {view.stage === "awaiting_final_approval" && (

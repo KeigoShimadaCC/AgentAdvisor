@@ -623,3 +623,56 @@ def test_effort_history_percentile_returns_an_observed_duration(tmp_path: Path) 
     observations = [60.0, 300.0, 4000.0]
     for fraction in (0.5, 0.9):
         assert _percentile(observations, fraction) in observations
+
+
+# ── Slug derivation (SPEC-056 follow-up) ─────────────────────────────────────
+#
+# ``create_case`` rejects a slug ending in a hyphen, and the derivation truncates
+# to 40 characters.  Stripping before truncating meant any prompt whose 40th
+# character landed on a word boundary could not start a case at all — a whole
+# class of ordinary questions, failing at the very first step.
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        # The prompt that surfaced it: 40 characters lands exactly on a space.
+        "Should I migrate the billing service to a new provider?",
+        # A boundary a character either side, so the fix is not tuned to one input.
+        "Should I migrate the billing service to a provider?",
+        "Should I migrate the billing services to a new provider?",
+        # Punctuation at the cut, which collapses to a hyphen the same way.
+        "Is the vendor's pricing model sustainable -- or not?",
+        # Long single word: no boundary to land on, must still be valid.
+        "a" * 80,
+        # Nothing usable at all.
+        "!!!",
+        "   ",
+    ],
+)
+def test_every_derived_slug_is_one_create_case_accepts(prompt: str) -> None:
+    from orchestrator.case_store import _SLUG_RE
+    from orchestrator.service.app import _slug_from_prompt
+
+    slug = _slug_from_prompt(prompt)
+    assert _SLUG_RE.fullmatch(slug), f"{prompt!r} produced an unusable slug: {slug!r}"
+    assert len(slug) <= 40
+
+
+def test_a_prompt_whose_cut_lands_on_a_word_boundary_still_creates_a_case(
+    tmp_path: Path,
+) -> None:
+    """The end-to-end version: the defect was only visible through the API."""
+    from orchestrator.service.app import create_app
+
+    app = create_app(cases_root=tmp_path)
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/cases",
+            json={
+                "prompt": "Should I migrate the billing service to a new provider?",
+                "effort": "default",
+            },
+        )
+    assert response.status_code == 202, response.text
+    assert response.json()["case_id"].endswith("should-i-migrate-the-billing-service-to")
