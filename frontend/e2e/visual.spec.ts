@@ -116,6 +116,30 @@ modeDescribe("fixture", "Fixture mode — visual baselines", () => {
       // load-sensitive race looks like and exactly how a visual gate earns a
       // reputation for being flaky and gets muted.
       await page.waitForTimeout(1_200);
+
+      /*
+       * One discarded capture before the one that counts (SPEC-056 follow-up).
+       *
+       * This is the fix for the 5017/5022px oscillation that kept one room
+       * route failing per matrix run. The cause was not the capture path and
+       * not DOM instability, both of which were eliminated: it is that the
+       * *first* `fullPage` capture paints below-fold content for the first
+       * time, and text line boxes settle by a pixel or two as it does —
+       * `H3.brief-passage-label` 19→18, `P.screen-help` 63→65 — which
+       * accumulates to a five-pixel page. Measured directly: the document is
+       * 5022px before the first capture and 5017px after it, then constant.
+       *
+       * `toHaveScreenshot` already waits for `document.fonts.ready`, but that
+       * resolves before glyphs below the fold have actually been rasterised,
+       * so its own stability retry was racing a page still settling.
+       *
+       * Painting once and throwing the result away costs a few hundred
+       * milliseconds and makes every subsequent capture measure a page that
+       * has finished moving. The baselines already encode the settled height,
+       * so nothing needed re-recording.
+       */
+      await page.screenshot({ fullPage: true, animations: "disabled", scale: "css" });
+
       await expect(page).toHaveScreenshot(`${route.name}.png`, { fullPage: true });
     });
   }

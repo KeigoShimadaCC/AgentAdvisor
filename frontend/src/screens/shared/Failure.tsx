@@ -40,6 +40,31 @@ export function Failure({ error, onRetry }: { error: ErrorResponse; onRetry?: ()
   );
 }
 
+/**
+ * The same taxonomy, sized for a form (SPEC-056 follow-up).
+ *
+ * `Failure` replaces the screen, which is right when there is nothing else to
+ * show. It is wrong on the commissioning form: the user has typed a prompt, and
+ * throwing the draft away to report that a slug was rejected turns a small
+ * problem into a lost one. So this renders the same classification and the same
+ * words, inline, beside the control that failed.
+ *
+ * What it replaces was `<p className="error">{err.detail ?? err.error}</p>` —
+ * the one red paragraph SPEC-055 removed everywhere else, which here rendered
+ * the raw serialized response body at the foot of the page.
+ */
+export function InlineFailure({ error }: { error: ErrorResponse }) {
+  const kind = classify(error);
+  return (
+    <div className={`inline-failure inline-failure-${kind}`} role="alert">
+      <p className="inline-failure-what">
+        <strong>{TITLES[kind]}</strong> {BODIES[kind](error)}
+      </p>
+      {error.detail && <p className="inline-failure-detail">{error.detail}</p>}
+    </div>
+  );
+}
+
 type Kind = "unavailable" | "not_found" | "locked" | "invalid" | "unknown";
 
 export function classify(error: ErrorResponse): Kind {

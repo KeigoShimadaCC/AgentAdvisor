@@ -2354,6 +2354,26 @@ p, li, dd, dt, td, th, .brief-passage-text, .margin-note-claim, .honest-sentence
   max-width: 56ch;
 }
 
+/* The same taxonomy beside a control rather than instead of the screen, so a
+   rejected prompt does not cost the user their draft (SPEC-056 follow-up). */
+.inline-failure {
+  border: 1px solid var(--state-critical); background: var(--state-critical-wash);
+  border-radius: var(--radius-md); padding: var(--space-md);
+  display: flex; flex-direction: column; gap: var(--space-2xs);
+  max-width: 60ch; margin-top: var(--space-md);
+}
+.inline-failure-unavailable {
+  border-color: var(--state-uncertain); background: var(--state-uncertain-wash);
+}
+.inline-failure-locked {
+  border-color: var(--state-needs-you); background: var(--state-needs-you-wash);
+}
+.inline-failure-what { max-width: 56ch; }
+.inline-failure-detail {
+  font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-muted);
+  max-width: 56ch; overflow-wrap: break-word;
+}
+
 .stalled-case {
   border: 1px solid var(--state-uncertain-border); background: var(--state-uncertain-wash);
   border-radius: var(--radius-md); padding: var(--space-lg);

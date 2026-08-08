@@ -84,9 +84,10 @@ against 0. On the tree the sweep ran against, `make check` is green (**968 unit 
 **1002** and **418**. The e2e matrix runs in 589s across fixture, stub and replay — on five of its
 six browser projects, webkit being absent from the verification container — with axe clean on 15
 routes in both themes. (The `make e2e-frontend` recipe bug SPEC-056 also found had already been fixed by the 2026-08-06
-sweep, independently and identically.) Two product defects are filed and unfixed — a slug truncation that
-makes a class of prompts un-startable, and commissioning errors bypassing the failure taxonomy — and
-SPEC-055's "visual suite passes twice consecutively" budget is not yet met.
+sweep, independently and identically.) The two product defects it filed — a slug truncation that made
+a class of prompts un-startable, and commissioning errors bypassing the failure taxonomy — are fixed
+(2026-08-07), along with the raw enum leak and the visual flake; SPEC-055's "visual suite passes
+twice consecutively" budget is now met at 201/201.
 
 ---
 
@@ -490,6 +491,46 @@ testing contract, is at `phase-9-ux-improvement/README.md`.
   had to be reconstructed from the delivery visual baseline, which caught a first generic attempt at
   209,103 differing pixels; rebuilt to match, all 13 baselines and 8 coverage tests pass with no
   baseline changes.
+- (2026-08-07) **The SPEC-056 findings, fixed.** Every product defect that phase 9's re-evaluation
+  filed is now closed, and two of the guards that should have caught them were themselves defective.
+  - **The slug that blocked case creation.** `_slug_from_prompt` stripped hyphens before truncating
+    to 40 characters, so a cut landing on a word boundary left a trailing hyphen that `create_case`
+    rejected. Fixed by stripping after truncation; seven parametrised cases cover boundaries either
+    side, and reverting fails three of them.
+  - **Commissioning errors bypassing the failure taxonomy.** `/new` now renders SPEC-055's
+    classification through a new `InlineFailure` — inline rather than full-screen, so a rejected
+    prompt does not cost the user their draft.
+  - **Raw enum stop reasons, which were four sites rather than two.** Behind `FailurePath` and
+    `Delivery`, `caseview.py` composed the sentence server-side and `render.py` wrote it into the
+    exported `final_recommendation.md`. Phrases now live beside the enum in `artifacts/disclosure.py`
+    so one source serves the projection and the renderer, with tests on both sides that fail if a
+    reason is added without words. A fifth site fell out of it: the lexicon substituted raw payload
+    values into audit narration ("Completed stage: pre_mortem"). `projection.py` is deliberately
+    untouched — it feeds agents, and what an agent reads is pipeline input, not presentation.
+  - **The terminology guard had two defects, either sufficient.** It ran on two routes when the leak
+    was on a third, and it read `innerText` before the projection refetch had rendered the
+    disclosure block — sampling the page before the offending text existed and reporting clean. It
+    now walks the same route table the axe sweep does and settles first. Filenames are stripped
+    before scanning, because the Method room lists `evidence_critique.yaml` and an auditor needs
+    that verbatim.
+- (2026-08-07) **The room-route visual flake, diagnosed and fixed — SPEC-055's budget is now met.**
+  The 5017/5022px oscillation was neither the capture path (SPEC-056's stated conclusion) nor DOM
+  instability nor the browser binary. The *first* `fullPage` capture paints below-fold content for
+  the first time, and text line boxes settle by a pixel or two as it does — measured directly,
+  `H3.brief-passage-label` 19→18, `P.screen-help` 63→65, accumulating to five pixels. The document
+  is 5022px before the first capture and 5017px after it, then constant. `toHaveScreenshot` waits
+  for `document.fonts.ready`, which resolves before below-fold glyphs are rasterised, so its own
+  stability retry was racing a page still settling. One discarded capture before the one that counts
+  fixes it: **the fixture matrix now passes 201/201 twice consecutively**, which SPEC-055's budget
+  had never demonstrated.
+- (2026-08-07) **The visual gate cannot be made a content gate, and now says so.** SPEC-056 found
+  that an added badge and a reworded sentence (8,687px, ~0.12%) pass unnoticed at
+  `maxDiffPixelRatio: 1%`. Tightening is not the fix: at zero tolerance nine of thirteen routes fail
+  on pure antialiasing between consecutive runs of unchanged code, the worst at 20,616px (~0.29%).
+  The signal is below the noise, so a tighter ratio buys flakes rather than coverage. Recorded in
+  `playwright.config.ts` with both measurements, and the division of labour stated: screenshots
+  catch layout that has silently moved, content is asserted where it is exact — the terminology
+  guard for prose, `coverage.spec.ts` for engine outputs, component tests for the rest.
 - (2026-08-07) **One reviewed baseline change, from main rather than from phase 9 (SPEC-056).**
   `room-options-mobile-linux.png` is the only baseline this work touches. Merging `main` brought its
   SPEC-040 row badge ("least disconfirmed"), which the phase-9 mobile baseline predates; at 412px it
@@ -728,7 +769,7 @@ Work discovered mid-project lands here first as a candidate. With user approval 
 
 - ~~(2026-08-04, found implementing SPEC-039) **`max_high_tier_calls` is a vestigial cap.**~~ **Fixed 2026-08-06.** The ledger counted high-tier calls by *model*, and no model any role resolves to maps to `high` — cursor runs every role on `low` models, droid on `medium` — so a ceiling north star Section 13 makes mandatory was enforced by a counter that could not increment, while seven roles declared `model_tier: high`. It was vestigial twice over: `invoke_role` also discarded the `try_consume` return, so even a full counter would not have stopped an escalation. Both halves fixed. `counts_against_high_tier` treats a call as high-capability when the model is a frontier model **or** the role declared high tier and has been escalated — the second is the escalation ladder Section 13 actually describes, and the first keeps the accounting correct if frontier models are ever wired in. Reaching the ceiling now skips the escalation attempt and records why in the failure message, rather than counting an overrun and taking it anyway. A regression guard asserts no shipped role escalates to a frontier model on either backend, so if that changes the stale reasoning is noticed rather than assumed.
 - (2026-08-06, found fixing the high-tier cap) **Two budget kinds still record refusals without acting on them.** `try_consume` returns False when a cap is reached, but `invoke_role` discards the return for `AGENT_INVOCATIONS` and `stages.py` discards it for `RESEARCH_TASKS`; only `task_graph` and (as of this fix) `HIGH_TIER_CALLS` honour it. So the invocation and research-task ceilings count overruns rather than preventing them, which is the same defect the high-tier cap had, in two more places. Not fixed here because blocking changes pipeline behaviour on the two counters a real case is most likely to hit, and the pending SPEC-044 sweep should measure the current behaviour rather than a version changed underneath it. Worth a spec after the sweep.
-- (2026-08-06, found fixing the synthesis projection) **`_seed_case_inputs` seeds an artifact nothing can read.** The helper in `tests/test_role_synthesis.py` writes the preliminary recommendation to `outputs/preliminary_recommendation.yaml`, but the case store's canonical path for that artifact is `shared/`. `read_artifact` — and therefore the projection — never sees the seeded copy, so every test using this helper has been exercising the synthesizer *without* a preliminary recommendation while appearing to supply one. Worked around locally by writing the artifact properly; the helper itself should be fixed and the tests that depend on it re-checked, since some of them may be asserting less than they look like they assert.
+- (2026-08-06, found fixing the synthesis projection; **fixed 2026-08-07**) **`_seed_case_inputs` seeds an artifact nothing can read.** The helper in `tests/test_role_synthesis.py` writes the preliminary recommendation to `outputs/preliminary_recommendation.yaml`, but the case store's canonical path for that artifact is `shared/`. `read_artifact` — and therefore the projection — never sees the seeded copy, so every test using this helper has been exercising the synthesizer *without* a preliminary recommendation while appearing to supply one. Worked around locally by writing the artifact properly; the helper itself should be fixed and the tests that depend on it re-checked, since some of them may be asserting less than they look like they assert. **Fixed:** the helper now writes through `case.write_artifact` like every other artifact, and the local workaround is gone. The suspicion was right — with the helper fixed and the workaround removed, reverting it fails *two* tests, including phase 8's own `test_synthesizer_must_cite_inputs_survive_a_budget_evidence_would_consume`, which had been passing on the workaround rather than on the seeding. A new guard asserts the artifact is reachable through `read_artifact` *and* reaches the projection.
 
 - (2026-08-04, found implementing SPEC-039 and again in SPEC-042) **Registering an artifact in `case_store.py` takes four parallel edits and fails at runtime when you miss one.** `_artifact_path` (by instance), `_artifact_path` (by type), `_artifact_dir`, and the `list_artifacts` dispatch are four independent if-chains over the same model set. Two of them differ only by a path suffix, so an edit that targets the wrong one yields `IsADirectoryError` when the artifact is first read rather than an error at import. Both new Phase 8 artifacts hit this. A single registry mapping model type to (directory, filename) would collapse all four and make a missing registration a load-time failure. Needs a spec.
 

@@ -62,6 +62,24 @@ const FORBIDDEN_TERMS: string[] = [
   "objection_id",
   "evidence_id",
   "assumption_id",
+  // StopReason enum values. These reached users verbatim on the Delivery sheet
+  // and the early-stop path — "Stop reasons: no_critical_evidence_gaps_remain,
+  // recommendation_stable_across_plausible_sensitivity_ranges" — for the whole
+  // of phase 9, because this list named stage and role enums but not these
+  // (found in SPEC-056, fixed in its follow-up).
+  "no_critical_evidence_gaps_remain",
+  "recommendation_stable_across_plausible_sensitivity_ranges",
+  "no_unresolved_objection_likely_to_change_decision",
+  "expected_value_of_more_research_low",
+  "investigation_budget_exhausted",
+  "user_deadline_or_depth_limit_reached",
+  // BudgetDimension enum values, which leaked from the same two lines.
+  "agent_invocations",
+  "concurrent_workers",
+  "repair_cycles",
+  "research_tasks",
+  "high_tier_calls",
+  "wall_clock_s",
 ];
 
 /**
@@ -70,15 +88,26 @@ const FORBIDDEN_TERMS: string[] = [
  * content.
  */
 export async function assertNoForbiddenTerms(page: Page): Promise<void> {
-  const bodyText = await page.locator("body").innerText();
+  // Settle before reading (SPEC-056 follow-up). The projection is refetched
+  // shortly after the first paint, and the disclosure block — the one that was
+  // leaking raw `StopReason` values — arrives with it. Reading `innerText` as
+  // soon as the shell is up sampled the page *before* the offending text
+  // existed, so the guard reported clean on a screen that was leaking. Longer
+  // than SPEC-047's 250ms refetch debounce, for the same reason the visual
+  // suite waits longer than it.
+  await page.waitForTimeout(1_200);
+  // Filenames are not terminology. The Method room lists the case's own records
+  // by their real names — `evidence_critique.yaml` — and an auditor matching a
+  // row against what is on disk needs exactly that string. Renaming it to
+  // "Critiquing the evidence.yaml" would point at a file that does not exist.
+  // Stripping them keeps the guard about *prose* and lets it stay strict there.
+  const bodyText = (await page.locator("body").innerText()).replace(
+    /\b[a-z0-9_]+\.(ya?ml|json|md|jsonl)\b/g,
+    "",
+  );
   const found: string[] = [];
   for (const term of FORBIDDEN_TERMS) {
-    // Use a word-boundary-ish check to avoid matching substrings inside
-    // longer words (e.g. "reliability" inside a CSS class name is fine since
-    // innerText strips class names, but be defensive).
     if (bodyText.includes(term)) {
-      // Avoid false positives from the machinery toggle (raw YAML view).
-      // The raw YAML is inside a <pre> that is only visible when toggled.
       found.push(term);
     }
   }

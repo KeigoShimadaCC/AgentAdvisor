@@ -66,6 +66,32 @@ def load_lexicon() -> dict[str, LexiconEntry]:
     return {str(key): LexiconEntry.model_validate(value) for key, value in data.items()}
 
 
+# SPEC-056 follow-up: slots whose values are enum identifiers, not prose.
+#
+# The templates substitute payload values straight in, so "Completed stage:
+# {stage}" rendered "Completed stage: pre_mortem" in the Method room's audit
+# log for the whole of phase 9. The terminology guard did not catch it because
+# it sampled the DOM before the log had loaded.
+#
+# Only the slot values are humanised, never the event type or the cursor: the
+# Method room is the machinery view and an auditor still needs to line its rows
+# up against `audit.jsonl`.
+_IDENTIFIER_SLOTS: frozenset[str] = frozenset(
+    {"stage", "role", "actor", "outcome", "to_stage", "from_stage"}
+)
+
+
+def _humanise(value: Any) -> Any:
+    """Turn a snake_case identifier into words, leaving everything else alone."""
+    if not isinstance(value, str):
+        return value
+    if not value or not value.replace("_", "").isalnum():
+        return value
+    if "_" not in value:
+        return value
+    return value.replace("_", " ")
+
+
 def _format_template(template: str, event: dict[str, Any]) -> str:
     """Fill ``template`` from event payload + built-in vars.
 
@@ -74,10 +100,14 @@ def _format_template(template: str, event: dict[str, Any]) -> str:
     """
     raw_payload = event.get("payload")
     payload: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else {}
-    context: dict[str, Any] = dict(payload)
+    context: dict[str, Any] = {
+        key: _humanise(value) if key in _IDENTIFIER_SLOTS else value
+        for key, value in payload.items()
+    }
     for var in _BUILTIN_VARS:
         if var not in context:
-            context[var] = event.get(var)
+            raw = event.get(var)
+            context[var] = _humanise(raw) if var in _IDENTIFIER_SLOTS else raw
     try:
         # str.format_map with a defaultdict-like to substitute "—" for misses.
         return template.format_map(_DefaultDict(context))

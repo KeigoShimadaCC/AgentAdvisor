@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type ErrorResponse } from "../../api/client";
+import { InlineFailure } from "../shared/Failure";
 import {
   EFFORT_PROFILES,
   EXAMPLE_CHIPS,
@@ -36,7 +37,7 @@ export function NewDecision() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState<CommissionDraft>(readDraft);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorResponse | null>(null);
   const [history, setHistory] = useState<EffortHistory | null>(null);
 
   useEffect(() => {
@@ -66,8 +67,9 @@ export function NewDecision() {
       clearDraft();
       navigate(`/cases/${created.case_id}`);
     } catch (e) {
-      const err = e as ErrorResponse;
-      setError(err.detail ?? err.error);
+      // The whole error, not a flattened string: the taxonomy needs the status
+      // to tell a dead service from a rejected prompt.
+      setError(e as ErrorResponse);
       setSubmitting(false);
     }
   }
@@ -170,7 +172,7 @@ export function NewDecision() {
       <p className="method-promise">{METHOD_PROMISE}</p>
       <p className="not-licensed-advice">{NOT_LICENSED_ADVICE}</p>
 
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && <InlineFailure error={error} />}
 
       <button
         type="button"

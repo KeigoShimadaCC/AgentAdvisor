@@ -141,3 +141,58 @@ describe("effort times", () => {
     expect(screen.getAllByText("not measured yet")).toHaveLength(3);
   });
 });
+
+// ── Commissioning failures (SPEC-056 follow-up) ──────────────────────────────
+//
+// These used to render as one red paragraph carrying the raw serialized
+// response body — the exact shape SPEC-055 removed everywhere else. A user
+// cannot act on "{"error":"validation_error","detail":...}", and a dead service
+// and a rejected prompt looked identical.
+
+describe("when commissioning fails", () => {
+  async function submitAndFail(error: unknown) {
+    mocks.createCase.mockRejectedValue(error);
+    renderCommission();
+    await userEvent.type(
+      screen.getByRole("textbox"),
+      "Should I migrate the billing service to a new provider?",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Start this case/ }));
+    return waitFor(() => screen.getByRole("alert"));
+  }
+
+  it("tells a dead service apart from a rejected prompt", async () => {
+    const alert = await submitAndFail({ error: "service_unavailable", detail: "", status: 0 });
+    expect(alert).toHaveTextContent("The service is not running");
+    // The reassurance is the load-bearing part: a user who just typed a prompt
+    // needs to know the service is down, not that their input was wrong.
+    expect(alert).toHaveTextContent(/Nothing was lost/);
+  });
+
+  it("names a rejected request as invalid, not as an outage", async () => {
+    const alert = await submitAndFail({
+      error: "validation_error",
+      detail: "Invalid slug 'x-'. Use lowercase letters, digits, and hyphens.",
+      status: 422,
+    });
+    expect(alert).toHaveTextContent("That request was not valid");
+    expect(alert).toHaveTextContent("Invalid slug");
+  });
+
+  it("never renders the bare red paragraph SPEC-055 removed", async () => {
+    const { container } = renderCommission();
+    mocks.createCase.mockRejectedValue({ error: "boom", detail: "x", status: 500 });
+    await userEvent.type(screen.getByRole("textbox"), "A decision");
+    await userEvent.click(screen.getByRole("button", { name: /Start this case/ }));
+    await waitFor(() => screen.getByRole("alert"));
+    expect(container.querySelectorAll("p.error")).toHaveLength(0);
+  });
+
+  it("keeps the draft, so a rejected prompt is not a lost one", async () => {
+    await submitAndFail({ error: "validation_error", detail: "no", status: 422 });
+    // The whole reason this is inline rather than a full-screen Failure.
+    expect(screen.getByRole("textbox")).toHaveValue(
+      "Should I migrate the billing service to a new provider?",
+    );
+  });
+});

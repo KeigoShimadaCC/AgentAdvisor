@@ -18,6 +18,7 @@ from orchestrator.artifacts import (
     PreMortemReport,
     ProbabilityEstimate,
 )
+from orchestrator.artifacts.disclosure import budget_kind_phrase, stop_reason_phrase
 from orchestrator.artifacts.sentinels import (
     confidence_render_label,
     model_stability_render_label,
@@ -494,10 +495,16 @@ def render_final_recommendation_markdown(
         lines.append("")
     if disclosure_record is not None:
         lines.append("## Budget/depth stop disclosure")
-        stop_reasons = ", ".join(reason.value for reason in disclosure_record.stop_reasons)
-        exhausted = ", ".join(disclosure_record.exhausted_dimensions)
-        lines.append(f"- [{PROVENANCE_INTERPRETATION}] Stop reasons: {stop_reasons}.")
-        lines.append(f"- [{PROVENANCE_INTERPRETATION}] Exhausted dimensions: {exhausted}.")
+        # SPEC-056 follow-up: this is the document the decision owner reads and
+        # exports, so it says why in words rather than in enum values.
+        stop_reasons = "; ".join(
+            stop_reason_phrase(reason) for reason in disclosure_record.stop_reasons
+        )
+        exhausted = ", ".join(
+            budget_kind_phrase(dimension) for dimension in disclosure_record.exhausted_dimensions
+        )
+        lines.append(f"- [{PROVENANCE_INTERPRETATION}] Why it stopped: {stop_reasons}.")
+        lines.append(f"- [{PROVENANCE_INTERPRETATION}] What ran out: {exhausted}.")
         lines.append("")
     lines.append("## Evidence and citations")
     citation_ids = collect_final_recommendation_citation_ids(recommendation)

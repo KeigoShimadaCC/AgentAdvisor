@@ -372,3 +372,49 @@ def test_projection_changes_no_stage(monkeypatch: pytest.MonkeyPatch) -> None:
     build_case_view(Case(root=FIXTURES / "case-001-fixture-001"))
     after = {p: os.stat(p).st_mtime for p in sorted(case_dir.rglob("*")) if p.is_file()}
     assert before == after, "building a CaseView modified the case directory"
+
+
+# ── Stop reasons reach users as words (SPEC-056 follow-up) ───────────────────
+
+
+def test_every_stop_reason_has_a_phrase() -> None:
+    """Adding a reason without deciding what it says to a human fails here.
+
+    These leaked verbatim for the whole of phase 9 — the case surface, the
+    delivery sheet and the exported `final_recommendation.md` all rendered
+    "Stop reasons: no_critical_evidence_gaps_remain, ...". The enum is iterated
+    rather than listed so a new value cannot slip through.
+    """
+    from orchestrator.artifacts.disclosure import StopReason, stop_reason_phrase
+
+    for reason in StopReason:
+        phrase = stop_reason_phrase(reason)
+        assert phrase != reason.value, f"{reason.value} has no written phrase"
+        assert "_" not in phrase, f"{reason.value} still renders an identifier"
+
+
+def test_unknown_stop_reasons_and_dimensions_degrade_readably() -> None:
+    from orchestrator.artifacts.disclosure import budget_kind_phrase, stop_reason_phrase
+
+    # A value the maps have never seen must not reach a user as snake_case.
+    assert stop_reason_phrase("some_future_reason") == "some future reason"
+    # exhausted_dimensions is a free-form tuple[str, ...], not the BudgetKind
+    # enum: the golden fixture carries "max_research_tasks" and "wall_clock",
+    # neither of which is a BudgetKind value.
+    assert budget_kind_phrase("max_research_tasks") == "max research tasks"
+    assert budget_kind_phrase("research_tasks") == "research tasks"
+
+
+def test_the_projection_writes_the_disclosure_in_words(tmp_path: Path) -> None:
+    """The sentence the case surface renders verbatim."""
+    from orchestrator.artifacts.disclosure import DisclosureRecord, StopReason
+    from orchestrator.service.caseview import stop_reason_phrase
+
+    record = DisclosureRecord(
+        stop_reasons=(StopReason.INVESTIGATION_BUDGET_EXHAUSTED,),
+        exhausted_dimensions=("research_tasks",),
+    )
+    # Composed the same way build_case_view composes it.
+    sentence = "; ".join(stop_reason_phrase(r) for r in record.stop_reasons)
+    assert sentence == "the investigation budget ran out"
+    assert "investigation_budget_exhausted" not in sentence

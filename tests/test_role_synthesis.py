@@ -93,13 +93,18 @@ def _seed_case_inputs(case: Case, fixture_root: Path) -> None:
         case.write_artifact(assumption)
     for objection in _load_objections(fixture_root / "objections.yaml"):
         case.write_artifact(objection)
-    preliminary_text = (fixture_root / "preliminary_recommendation.yaml").read_text(
-        encoding="utf-8"
+    # Through the case store, like every other artifact above.
+    #
+    # This used to write the file straight into ``outputs/``, but the canonical
+    # path is ``shared/preliminary_recommendation.yaml`` — so ``read_artifact``,
+    # and therefore the synthesis projection, never saw it. Every test using
+    # this helper was exercising the synthesizer *without* a preliminary
+    # recommendation while appearing to supply one, which is exactly the input
+    # SPEC-020's real case showed the synthesizer failing without.
+    preliminary = load_model_from_yaml_path(
+        PreliminaryRecommendation, fixture_root / "preliminary_recommendation.yaml"
     )
-    (case.root / "outputs" / "preliminary_recommendation.yaml").write_text(
-        preliminary_text,
-        encoding="utf-8",
-    )
+    case.write_artifact(preliminary)
 
 
 def _write_output_from_fixture(
@@ -545,15 +550,10 @@ def test_synthesizer_must_cite_inputs_survive_a_budget_evidence_would_consume(
 
     config = load_role_config("synthesizer")
     case = create_case("synthesis-budget-guard", cases_root=tmp_path)
+    # The local workaround that used to sit here — re-writing the preliminary
+    # recommendation to shared/ because the helper wrote it to outputs/ — is gone:
+    # _seed_case_inputs goes through the case store now.
     _seed_case_inputs(case, _fixture_root())
-    # _seed_case_inputs writes the preliminary recommendation to outputs/, but the
-    # case store's canonical path for it is shared/ — so the projection cannot see
-    # the seeded copy. Write it where it is actually read from.
-    case.write_artifact(
-        load_model_from_yaml_path(
-            PreliminaryRecommendation, _fixture_root() / "preliminary_recommendation.yaml"
-        )
-    )
     case.write_artifact(
         load_model_from_yaml_path(ReviewReport, _fixture_root() / "review_report.fail.yaml")
     )
@@ -591,3 +591,35 @@ def test_synthesizer_must_cite_inputs_survive_a_budget_evidence_would_consume(
 
     # Crowding out did not disappear — it moved onto the substitutable inputs.
     assert "_truncation_notice.yaml" in guarded_names
+
+
+def test_seeded_inputs_are_readable_through_the_case_store(tmp_path: Path) -> None:
+    """The helper must seed where the projection actually reads.
+
+    It wrote the preliminary recommendation straight into ``outputs/`` while the
+    canonical path is ``shared/``, so `read_artifact` never saw it and every
+    test using this helper exercised the synthesizer *without* the one input
+    SPEC-020's real case showed it failing without — while appearing to supply
+    it. The tests passed either way, which is what made it invisible.
+
+    Asserted through `read_artifact` rather than by checking a path, so moving
+    the canonical location does not silently reintroduce the gap.
+    """
+    case = create_case("synthesis-seed-guard", cases_root=tmp_path)
+    _seed_case_inputs(case, _fixture_root())
+
+    preliminary = case.read_artifact(PreliminaryRecommendation)
+    assert preliminary is not None, (
+        "the seeded preliminary recommendation is not readable through the case store"
+    )
+
+    # And it reaches the projection, which is the thing that actually matters:
+    # the synthesizer cannot cite an input it never received, which is how
+    # SPEC-020's real case failed its review twice.
+    config = load_role_config("synthesizer")
+    projected = project(case, include=config.projection_include, budget_chars=200_000)
+    filenames = {artifact.filename for artifact in projected}
+    assert any("preliminary_recommendation" in name for name in filenames), (
+        "the preliminary recommendation never reaches the synthesizer; "
+        f"projected: {sorted(filenames)}"
+    )

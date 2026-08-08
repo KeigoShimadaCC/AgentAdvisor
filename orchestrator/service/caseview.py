@@ -46,6 +46,7 @@ from orchestrator.artifacts import (
     VerificationWorksheet,
 )
 from orchestrator.artifacts.confidence import ConfidenceAssessment
+from orchestrator.artifacts.disclosure import budget_kind_phrase, stop_reason_phrase
 from orchestrator.artifacts.evidence_critique import EvidenceAuthorityScore
 from orchestrator.artifacts.objections import ObjectionResolutionStatus
 from orchestrator.artifacts.probability import ProbabilityEstimate
@@ -875,8 +876,10 @@ def _build_brief_sections(
 
     # budget_depth_stop_disclosure
     if disclosure is not None:
-        stop_reasons = ", ".join(reason.value for reason in disclosure.stop_reasons)
-        exhausted = ", ".join(disclosure.exhausted_dimensions)
+        stop_reasons = "; ".join(stop_reason_phrase(reason) for reason in disclosure.stop_reasons)
+        exhausted = ", ".join(
+            budget_kind_phrase(dimension) for dimension in disclosure.exhausted_dimensions
+        )
         sections.append(
             BriefSection(
                 key="budget_depth_stop_disclosure",
@@ -884,11 +887,11 @@ def _build_brief_sections(
                 blocks=[
                     _block(
                         PROVENANCE_INTERPRETATION,
-                        f"Stop reasons: {stop_reasons}.",
+                        f"Why it stopped: {stop_reasons}.",
                     ),
                     _block(
                         PROVENANCE_INTERPRETATION,
-                        f"Exhausted dimensions: {exhausted}.",
+                        f"What ran out: {exhausted}.",
                     ),
                 ],
             )

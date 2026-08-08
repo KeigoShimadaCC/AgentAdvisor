@@ -24,6 +24,8 @@ import {
   FAILURE_COPY,
   TRIPWIRE_COPY,
   ACTION_PLAN_COPY,
+  stopReasonLabel,
+  budgetDimensionLabel,
 } from "../../copy/terms";
 import { provenanceVoice } from "../../copy/voices";
 import { honestSentence } from "../../copy/honestSentence";
@@ -420,12 +422,16 @@ function IntegritySlip({ view }: { view: CaseView }) {
         <div className="integrity-disclosure">
           <h4>Disclosure</h4>
           <p>
-            Stop reasons:{" "}
-            {((review.disclosure.stop_reasons as string[]) ?? []).join(", ")}
+            Why it stopped:{" "}
+            {((review.disclosure.stop_reasons as string[]) ?? [])
+              .map(stopReasonLabel)
+              .join("; ")}
           </p>
           <p>
-            Exhausted dimensions:{" "}
-            {((review.disclosure.exhausted_dimensions as string[]) ?? []).join(", ")}
+            What ran out:{" "}
+            {((review.disclosure.exhausted_dimensions as string[]) ?? [])
+              .map(budgetDimensionLabel)
+              .join(", ")}
           </p>
         </div>
       )}
